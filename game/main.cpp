@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "vec.h"
+#include "math/vec.h"
 
 int main() {
     using namespace math;

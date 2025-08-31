@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.31)
 project(td_game)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(td_game main.cpp
-        vec.h
-        types.h
-        trig.h)
+add_subdirectory(math)
+
+add_subdirectory(game)
