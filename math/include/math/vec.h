@@ -22,12 +22,6 @@ namespace math {
         [[nodiscard]] float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
 
-        static float2 normalize(float2 in) noexcept;
-        static float sqrDistance(float2 from, float2 to) noexcept;
-        static float distance(float2 from, float2 to) noexcept;
-        static float dot(float2 lhs, float2 rhs) noexcept;
-        static float2 perp(float2 in) noexcept;
-
         static const float2 zero;
         static const float2 one;
         static const float2 up;
@@ -99,6 +93,10 @@ namespace math {
         return vec /= scalar;
     }
 
+    constexpr float2 operator-(const float2& in) {
+        return float2(-in.x, -in.y);
+    }
+
     inline float float2::sqrLength() const noexcept {
         return x * x + y * y;
     }
@@ -107,24 +105,24 @@ namespace math {
         return sqrt(sqrLength());
     }
 
-    inline float2 float2::normalize(float2 in) noexcept {
+    inline float2 normalize(float2 in) noexcept {
         return in / in.length();
     }
 
-    inline float float2::sqrDistance(float2 from, float2 to) noexcept {
+    inline float sqrDistance(float2 from, float2 to) noexcept {
         return (to - from).sqrLength();
     }
 
-    inline float float2::distance(float2 from, float2 to) noexcept {
+    inline float distance(float2 from, float2 to) noexcept {
         return (to - from).length();
     }
 
-    inline float float2::dot(float2 lhs, float2 rhs) noexcept {
+    inline float dot(float2 lhs, float2 rhs) noexcept {
         return lhs.x * rhs.x + lhs.y * rhs.y;
     }
 
-    inline float2 float2::perp(float2 in) noexcept {
-        return float2{in.y, -in.x};
+    inline float2 perp(float2 in) noexcept {
+        return float2(in.y, -in.x);
     }
 
     // ################
@@ -146,12 +144,6 @@ namespace math {
 
         [[nodiscard]] float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
-
-        static float3 normalize(float3 in) noexcept;
-        static float sqrDistance(float3 from, float3 to) noexcept;
-        static float distance(float3 from, float3 to) noexcept;
-        static float dot(float3 lhs, float3 rhs) noexcept;
-        static float3 cross(float3 lhs, float3 rhs) noexcept;
     };
 
     constexpr float3& float3::operator+=(const float3& rhs) noexcept {
@@ -214,6 +206,10 @@ namespace math {
         return vec /= scalar;
     }
 
+    constexpr float3 operator-(const float3& in) {
+        return float3{-in.x, -in.y, -in.z};
+    }
+
     inline float float3::sqrLength() const noexcept {
         return x * x + y * y + z * z;
     }
@@ -222,23 +218,23 @@ namespace math {
         return sqrt(sqrLength());
     }
 
-    inline float3 float3::normalize(float3 in) noexcept {
+    inline float3 normalize(float3 in) noexcept {
         return in / in.length();
     }
 
-    inline float float3::sqrDistance(float3 from, float3 to) noexcept {
+    inline float sqrDistance(float3 from, float3 to) noexcept {
         return (to - from).sqrLength();
     }
 
-    inline float float3::distance(float3 from, float3 to) noexcept {
+    inline float distance(float3 from, float3 to) noexcept {
         return (to - from).length();
     }
 
-    inline float float3::dot(float3 lhs, float3 rhs) noexcept {
+    constexpr float dot(float3 lhs, float3 rhs) noexcept {
         return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
     }
 
-    inline float3 float3::cross(float3 lhs, float3 rhs) noexcept {
+    constexpr float3 cross(float3 lhs, float3 rhs) noexcept {
         return float3{
             lhs.y * rhs.z - lhs.z * rhs.y,
             lhs.z * rhs.x - lhs.x * rhs.z,
@@ -265,9 +261,6 @@ namespace math {
 
         [[nodiscard]] float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
-
-        static float4 normalize(float4 in) noexcept;
-        static float dot(float4 lhs, float4 rhs) noexcept;
     };
 
     constexpr float4& float4::operator+=(const float4& rhs) noexcept {
@@ -334,6 +327,10 @@ namespace math {
         return vec /= scalar;
     }
 
+    constexpr float4 operator-(const float4& in) {
+        return float4{-in.x, -in.y, -in.z, -in.w};
+    }
+
     inline float float4::sqrLength() const noexcept {
         return x * x + y * y + z * z + w * w;
     }
@@ -342,11 +339,11 @@ namespace math {
         return sqrt(sqrLength());
     }
 
-    inline float4 float4::normalize(float4 in) noexcept {
+    inline float4 normalize(float4 in) noexcept {
         return in / in.length();
     }
 
-    inline float float4::dot(float4 lhs, float4 rhs) noexcept {
+    constexpr float dot(float4 lhs, float4 rhs) noexcept {
         return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
     }
 }

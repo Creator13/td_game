@@ -7,15 +7,15 @@ namespace math {
     constexpr float RAD2DEG = 57.2957795f;
 
     inline float cos(float t) {
-        return std::cosf(t);
+        return std::cos(t);
     }
 
     inline float sin(float t) {
-        return std::sinf(t);
+        return std::sin(t);
     }
 
     inline float tan(float t) {
-        return std::tanf(t);
+        return std::tan(t);
     }
 
     inline float asin(float t) {
@@ -31,6 +31,6 @@ namespace math {
     }
 
     inline float sqrt(float t) {
-        return std::sqrtf(t);
+        return std::sqrt(t);
     }
 }
