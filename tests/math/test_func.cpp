@@ -2,7 +2,7 @@
 
 #include "math/func.h"
 
-TEST_CASE("Lerp") {
+TEST_CASE("Lerp", "[math]") {
     // Normal usage
     REQUIRE(math::lerp(2.f, 5.f, 1.f) == 5.f);
     REQUIRE(math::lerp(-2.f, 5.f, 0.f) == -2.f);

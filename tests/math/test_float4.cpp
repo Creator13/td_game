@@ -1,0 +1,278 @@
+#include <catch2/catch_all.hpp>
+
+#include "math/vec.h"
+
+using math::float4;
+
+namespace math {
+    std::ostream& operator<<(std::ostream& os, const float4& rhs) {
+        return os << "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ", " << rhs.w << ")";
+    }
+}
+
+TEST_CASE("float4 construction", "[math]") {
+    SECTION("Parameter constructor") {
+        float x = 3.3;
+        float y = -53.4;
+        float z = 2.7;
+        float w = 5.1;
+        float4 vec(x, y, z, w);
+        REQUIRE(vec.x == 3.3f);
+        REQUIRE(vec.y == -53.4f);
+        REQUIRE(vec.z == 2.7f);
+        REQUIRE(vec.w == 5.1f);
+    }
+
+    SECTION("Default constructor") {
+        float4 vec = float4();
+        REQUIRE(vec.x == 0);
+        REQUIRE(vec.y == 0);
+        REQUIRE(vec.z == 0);
+        REQUIRE(vec.w == 0);
+    }
+}
+
+TEST_CASE("float4 add/subtract", "[math]") {
+    float4 a = float4(2.3, 6.8, 1.0, 3.5);
+    float4 b = GENERATE(
+        float4(-1.2f, 4.3f, 3.0, 1.5),
+        float4(0, 0, 0, 0),
+        float4(3, 4, 2.5, 5.0),
+        float4(1, -.5f, -3.2f, 2.0)
+    );
+
+    SECTION("Addition") {
+        float4 result = a + b;
+        REQUIRE(result.x == a.x + b.x);
+        REQUIRE(result.y == a.y + b.y);
+        REQUIRE(result.z == a.z + b.z);
+        REQUIRE(result.w == a.w + b.w);
+        REQUIRE(a.x == 2.3f);
+        REQUIRE(a.y == 6.8f);
+        REQUIRE(a.z == 1.0f);
+        REQUIRE(a.w == 3.5f);
+    }
+
+    SECTION("Subtraction") {
+        float4 result = a - b;
+        REQUIRE(result.x == a.x - b.x);
+        REQUIRE(result.y == a.y - b.y);
+        REQUIRE(result.z == a.z - b.z);
+        REQUIRE(result.w == a.w - b.w);
+        REQUIRE(a.x == 2.3f);
+        REQUIRE(a.y == 6.8f);
+        REQUIRE(a.z == 1.0f);
+        REQUIRE(a.w == 3.5f);
+    }
+
+    SECTION("Commutative") {
+        REQUIRE(a + b == b + a);
+        REQUIRE(a - b != b - a);
+    }
+
+    SECTION("Assignment operators") {
+        float4 c = float4(5.2f, 4.5f, -2.0f, 4.5);
+
+        SECTION("Addition") {
+            c += b;
+            REQUIRE(c.x == 5.2f + b.x);
+            REQUIRE(c.y == 4.5f + b.y);
+            REQUIRE(c.z == -2.0f + b.z);
+            REQUIRE(c.w == 4.5f + b.w);
+        }
+
+        SECTION("Subtraction") {
+            c -= b;
+            REQUIRE(c.x == 5.2f - b.x);
+            REQUIRE(c.y == 4.5f - b.y);
+            REQUIRE(c.z == -2.0f - b.z);
+            REQUIRE(c.w == 4.5f - b.w);
+        }
+    }
+}
+
+TEST_CASE("float4 scalar math", "[math]") {
+    SECTION("Zero vector multiplication") {
+        float4 vec = float4();
+        float4 result = vec * 4.5f;
+        REQUIRE(result.x == 0);
+        REQUIRE(result.y == 0);
+        REQUIRE(result.z == 0);
+        REQUIRE(result.w == 0);
+        REQUIRE(vec == float4());
+    }
+
+    SECTION("Zero scalar multiplication") {
+        float4 vec = float4(7.45f, -0.54f, 3.0f, 1.5);
+        float4 result = vec * 0.f;
+        REQUIRE(result.x == 0);
+        REQUIRE(result.y == 0);
+        REQUIRE(result.z == 0);
+        REQUIRE(result.w == 0);
+        REQUIRE(vec.x == 7.45f);
+        REQUIRE(vec.y == -0.54f);
+        REQUIRE(vec.z == 3.0f);
+        REQUIRE(vec.w == 1.5f);
+    }
+
+    SECTION("Zero vector division") {
+        float4 vec = float4();
+        float4 result = vec / 4.5f;
+        REQUIRE(result.x == 0);
+        REQUIRE(result.y == 0);
+        REQUIRE(result.z == 0);
+        REQUIRE(result.w == 0);
+        REQUIRE(vec == float4());
+    }
+
+    SECTION("Zero scalar division") {
+        float4 vec = float4(7.45f, -0.54f, 3.0f, 1.5);
+        float4 result = vec / 0.f;
+        REQUIRE(std::isinf(result.x));
+        REQUIRE(std::isinf(result.y));
+        REQUIRE(std::isinf(result.z));
+        REQUIRE(std::isinf(result.w));
+    }
+}
+
+TEST_CASE("float4 length", "[math]") {
+    using pair = std::pair<float4, float>;
+
+    SECTION("Square length") {
+        auto [vec, expected] = GENERATE(
+            pair(float4(0, 0, 0, 0), 0.f),
+            pair(float4(1, 0, 0, 0), 1.f),
+            pair(float4(0, 1, 0, 0), 1.f),
+            pair(float4(0, 0, 1, 0), 1.f),
+            pair(float4(0, 0, 0, 1), 1.f),
+            pair(float4(2, 2, 2, 2), 16.f),
+            pair(float4(5, 0, 0, 0), 25.f),
+            pair(float4(-3, -2, 1, 2), 18.f),
+            pair(float4(2, -3, 4, 5), 54.f),
+            pair(float4(-1, 0, 0, 0), 1.f)
+        );
+        REQUIRE(vec.sqrLength() == expected);
+    }
+
+    SECTION("Length") {
+        auto [vec, expected] = GENERATE(
+            pair(float4(0, 0, 0, 0), 0.f),
+            pair(float4(1, 0, 0, 0), 1.f),
+            pair(float4(0, 1, 0, 0), 1.f),
+            pair(float4(0, 0, 1, 0), 1.f),
+            pair(float4(0, 0, 0, 1), 1.f),
+            pair(float4(2, 2, 2, 2), math::sqrt(16.f)),
+            pair(float4(5, 0, 0, 0), 5.f),
+            pair(float4(-3, -2, 1, 2), math::sqrt(18.f)),
+            pair(float4(3, 4, 0, 0), 5.f),
+            pair(float4(-1, 0, 0, 0), 1.f)
+        );
+        REQUIRE(vec.length() == expected);
+    }
+}
+
+TEST_CASE("float4 equality and inequality", "[math]") {
+    float4 a(1.f, 2.f, 3.f, 4.f);
+    float4 b(1.f, 2.f, 3.f, 4.f);
+    float4 c(2.f, 1.f, 3.f, 4.f);
+    REQUIRE(a == b);
+    REQUIRE_FALSE(a != b);
+    REQUIRE(a != c);
+    REQUIRE_FALSE(a == c);
+}
+
+TEST_CASE("float4 unary minus", "[math]") {
+    float4 a(3.5f, -7.1f, 2.0f, -4.0f);
+    float4 b = -a;
+    REQUIRE(b.x == -3.5f);
+    REQUIRE(b.y == 7.1f);
+    REQUIRE(b.z == -2.0f);
+    REQUIRE(b.w == 4.0f);
+    // Double negation returns the original
+    REQUIRE(-b == a);
+}
+
+TEST_CASE("float4 scalar division and multiplication symmetry", "[math]") {
+    float4 a(2.f, -4.f, 6.f, -8.f);
+
+    SECTION("Multiply then divide") {
+        float4 scaled = (a * 5.f) / 5.f;
+        REQUIRE(scaled == a);
+    }
+
+    SECTION("Division by scalar") {
+        float4 result = a / 2.f;
+        REQUIRE_THAT(result.x, Catch::Matchers::WithinRel(1.f));
+        REQUIRE_THAT(result.y, Catch::Matchers::WithinRel(-2.f));
+        REQUIRE_THAT(result.z, Catch::Matchers::WithinRel(3.f));
+        REQUIRE_THAT(result.w, Catch::Matchers::WithinRel(-4.f));
+    }
+
+    SECTION("Scalar on left side") {
+        float4 result = 2.f * a;
+        REQUIRE(result.x == 4.f);
+        REQUIRE(result.y == -8.f);
+        REQUIRE(result.z == 12.f);
+        REQUIRE(result.w == -16.f);
+    }
+}
+
+TEST_CASE("float4 normalize", "[math]") {
+    SECTION("Unit vectors remain unchanged") {
+        float4 right(1.f, 0.f, 0.f, 0.f);
+        float4 up(0.f, 1.f, 0.f, 0.f);
+        float4 forward(0.f, 0.f, 1.f, 0.f);
+        float4 time(0.f, 0.f, 0.f, 1.f);
+
+        REQUIRE(normalize(right) == right);
+        REQUIRE(normalize(up) == up);
+        REQUIRE(normalize(forward) == forward);
+        REQUIRE(normalize(time) == time);
+    }
+
+    SECTION("General vector normalization") {
+        float4 v(3.f, 4.f, 0.f, 0.f);
+        float4 n = normalize(v);
+
+        REQUIRE_THAT(n.length(), Catch::Matchers::WithinRel(1.f));
+        REQUIRE_THAT(n.x, Catch::Matchers::WithinRel(0.6f));
+        REQUIRE_THAT(n.y, Catch::Matchers::WithinRel(0.8f));
+        REQUIRE_THAT(n.z, Catch::Matchers::WithinRel(0.f));
+        REQUIRE_THAT(n.w, Catch::Matchers::WithinRel(0.f));
+    }
+
+    SECTION("Zero vector normalization") {
+        float4 zero = float4::zero;
+        float4 n = normalize(zero);
+
+        REQUIRE(std::isnan(n.x));
+        REQUIRE(std::isnan(n.y));
+        REQUIRE(std::isnan(n.z));
+        REQUIRE(std::isnan(n.w));
+    }
+}
+
+TEST_CASE("float4 dot product", "[math]") {
+    SECTION("Orthogonal vectors") {
+        float4 right(1.f, 0.f, 0.f, 0.f);
+        float4 up(0.f, 1.f, 0.f, 0.f);
+        float4 forward(0.f, 0.f, 1.f, 0.f);
+        float4 time(0.f, 0.f, 0.f, 1.f);
+
+        REQUIRE(dot(right, up) == 0.f);
+        REQUIRE(dot(up, forward) == 0.f);
+        REQUIRE(dot(forward, time) == 0.f);
+        REQUIRE(dot(time, right) == 0.f);
+    }
+
+    SECTION("General vectors") {
+        float4 a(2.f, 3.f, 1.f, 0.5f);
+        float4 b(-1.f, 4.f, 2.f, 0.1f);
+        REQUIRE_THAT(dot(a, b), Catch::Matchers::WithinRel(12.05f));
+    }
+}
+
+TEST_CASE("float4 static constants", "[math]") {
+    REQUIRE(float4::zero == float4(0.f, 0.f, 0.f, 0.f));
+    REQUIRE(float4::one == float4(1.f, 1.f, 1.f, 1.f));
+}

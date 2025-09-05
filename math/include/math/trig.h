@@ -29,8 +29,4 @@ namespace math {
     inline float atan(float t) {
         return std::atan(t);
     }
-
-    inline float sqrt(float t) {
-        return std::sqrt(t);
-    }
 }

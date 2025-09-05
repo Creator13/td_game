@@ -12,6 +12,10 @@ namespace math {
         return approx(a, b, EPSILON);
     }
 
+    inline float sqrt(float t) {
+        return std::sqrt(t);
+    }
+
     template <typename T>
     constexpr T min(T a, T b) {
         return a < b ? a : b;
