@@ -1,43 +1,43 @@
 #include <catch2/catch_all.hpp>
 
-#include "math/vec.h"
+#include "math/vec2.h"
 
-using math::float2;
+using math::vec2;
 
 namespace math {
-    std::ostream& operator<<(std::ostream& os, const float2& rhs) {
+    std::ostream& operator<<(std::ostream& os, const vec2& rhs) {
         return os << "(" << rhs.x << ", " << rhs.y << ")";
     }
 }
 
-TEST_CASE("float2 construction", "[math]") {
+TEST_CASE("float2 construction", "[math][vector]") {
     SECTION("Parameter constructor") {
         float x = 3.3;
         float y = -53.4;
-        float2 vec(x, y);
+        vec2 vec(x, y);
 
-        REQUIRE(vec.x == 3.3f);
-        REQUIRE(vec.y == -53.4f);
+        REQUIRE(vec.x == x);
+        REQUIRE(vec.y == y);
     }
 
     SECTION("Default constructor") {
-        float2 vec = float2();
+        vec2 vec = vec2();
         REQUIRE(vec.x == 0);
         REQUIRE(vec.y == 0);
     }
 }
 
-TEST_CASE("float2 add/subtract", "[math]") {
-    float2 a = float2(2.3, 6.8);
-    float2 b = GENERATE(
-        float2(-1.2f, 4.3f),
-        float2(0, 0),
-        float2(3, 4),
-        float2(1, -.5f)
+TEST_CASE("float2 add/subtract", "[math][vector]") {
+    vec2 a = vec2(2.3, 6.8);
+    vec2 b = GENERATE(
+        vec2(-1.2f, 4.3f),
+        vec2(0, 0),
+        vec2(3, 4),
+        vec2(1, -.5f)
     );
 
     SECTION("Addition") {
-        float2 result = a + b;
+        vec2 result = a + b;
         REQUIRE(result.x == a.x + b.x);
         REQUIRE(result.y == a.y + b.y);
         REQUIRE(a.x == 2.3f);
@@ -45,7 +45,7 @@ TEST_CASE("float2 add/subtract", "[math]") {
     }
 
     SECTION("Subtraction") {
-        float2 result = a - b;
+        vec2 result = a - b;
         REQUIRE(result.x == a.x - b.x);
         REQUIRE(result.y == a.y - b.y);
         REQUIRE(a.x == 2.3f);
@@ -58,7 +58,7 @@ TEST_CASE("float2 add/subtract", "[math]") {
     }
 
     SECTION("Assignment operators") {
-        float2 c = float2(5.2f, 4.5f);
+        vec2 c = vec2(5.2f, 4.5f);
         SECTION("Addition") {
             c += b;
             REQUIRE(c.x == 5.2f + b.x);
@@ -72,18 +72,18 @@ TEST_CASE("float2 add/subtract", "[math]") {
     }
 }
 
-TEST_CASE("float2 scalar math", "[math]") {
+TEST_CASE("float2 scalar math", "[math][vector]") {
     SECTION("Zero vector multiplication") {
-        float2 vec = float2();
-        float2 result = vec * 4.5f;
+        vec2 vec = vec2();
+        vec2 result = vec * 4.5f;
         REQUIRE(result.x == 0);
         REQUIRE(result.y == 0);
-        REQUIRE(vec == float2());
+        REQUIRE(vec == vec2());
     }
 
     SECTION("Zero scalar multiplication") {
-        float2 vec = float2(7.45f, -0.54f);
-        float2 result = vec * 0.f;
+        vec2 vec = vec2(7.45f, -0.54f);
+        vec2 result = vec * 0.f;
         REQUIRE(result.x == 0);
         REQUIRE(result.y == 0);
         REQUIRE(vec.x == 7.45f);
@@ -91,34 +91,40 @@ TEST_CASE("float2 scalar math", "[math]") {
     }
 
     SECTION("Zero vector division") {
-        float2 vec = float2();
-        float2 result = vec * 4.5f;
+        vec2 vec = vec2();
+        vec2 result = vec * 4.5f;
         REQUIRE(result.x == 0);
         REQUIRE(result.y == 0);
-        REQUIRE(vec == float2());
+        REQUIRE(vec == vec2());
     }
 
     SECTION("Zero scalar division") {
-        float2 vec = float2(7.45f, -0.54f);
-        float2 result = vec / 0.f;
+        vec2 vec = vec2(7.45f, -0.54f);
+        vec2 result = vec / 0.f;
         REQUIRE(std::isinf(result.x));
         REQUIRE(std::isinf(result.y));
     }
+
+    SECTION("Commutative multiplication") {
+        vec2 vec = vec2(5.f, 6.3f);
+        float scalar = 3.45;
+        REQUIRE(vec * scalar == scalar * vec);
+    }
 }
 
-TEST_CASE("float2 length", "[math]") {
-    using pair = std::pair<float2, float>;
+TEST_CASE("float2 length", "[math][vector]") {
+    using pair = std::pair<vec2, float>;
 
     SECTION("Square length") {
         auto [vec, expected] = GENERATE(
-            pair(float2(0, 0), 0.f),
-            pair(float2(1, 0), 1.f),
-            pair(float2(0, 1), 1.f),
-            pair(float2(2, 2), 8.f),
-            pair(float2(5, 0), 25.f),
-            pair(float2(-3, -2), 13.f),
-            pair(float2(2, -3), 13.f),
-            pair(float2(-1, 0), 1.f)
+            pair(vec2(0, 0), 0.f),
+            pair(vec2(1, 0), 1.f),
+            pair(vec2(0, 1), 1.f),
+            pair(vec2(2, 2), 8.f),
+            pair(vec2(5, 0), 25.f),
+            pair(vec2(-3, -2), 13.f),
+            pair(vec2(2, -3), 13.f),
+            pair(vec2(-1, 0), 1.f)
         );
 
         REQUIRE(vec.sqrLength() == expected);
@@ -126,14 +132,14 @@ TEST_CASE("float2 length", "[math]") {
 
     SECTION("Length") {
         auto [vec, expected] = GENERATE(
-            pair(float2(0, 0), 0.f),
-            pair(float2(1, 0), 1.f),
-            pair(float2(0, 1), 1.f),
-            pair(float2(2, 2), math::sqrt(8.f)),
-            pair(float2(5, 0), 5.f),
-            pair(float2(-3, -2), math::sqrt(13.f)),
-            pair(float2(4, -3), 5.f),
-            pair(float2(-1, 0), 1.f)
+            pair(vec2(0, 0), 0.f),
+            pair(vec2(1, 0), 1.f),
+            pair(vec2(0, 1), 1.f),
+            pair(vec2(2, 2), math::sqrt(8.f)),
+            pair(vec2(5, 0), 5.f),
+            pair(vec2(-3, -2), math::sqrt(13.f)),
+            pair(vec2(4, -3), 5.f),
+            pair(vec2(-1, 0), 1.f)
         );
 
         REQUIRE(vec.length() == expected);
@@ -141,11 +147,11 @@ TEST_CASE("float2 length", "[math]") {
 
     SECTION("Distance") {
         // Distance from zero to a vector is equal to the length of that vector
-        float2 a = float2(3, 7);
-        REQUIRE(distance(float2::zero, a) == a.length());
+        vec2 a = vec2(3, 7);
+        REQUIRE(distance(vec2::zero, a) == a.length());
 
         // Distance from a to b is equal to the length of the difference vector between a and b
-        float2 b = float2(13.4, 2);
+        vec2 b = vec2(13.4, 2);
         REQUIRE(distance(a, b) == (b - a).length());
 
         // Distance from a to b is equal to distance from b to a
@@ -153,10 +159,10 @@ TEST_CASE("float2 length", "[math]") {
     }
 }
 
-TEST_CASE("float2 equality and inequality", "[math]") {
-    float2 a(1.f, 2.f);
-    float2 b(1.f, 2.f);
-    float2 c(2.f, 1.f);
+TEST_CASE("float2 equality and inequality", "[math][vector]") {
+    vec2 a(1.f, 2.f);
+    vec2 b(1.f, 2.f);
+    vec2 c(2.f, 1.f);
 
     REQUIRE(a == b);
     REQUIRE_FALSE(a != b);
@@ -164,9 +170,9 @@ TEST_CASE("float2 equality and inequality", "[math]") {
     REQUIRE_FALSE(a == c);
 }
 
-TEST_CASE("float2 unary minus", "[math]") {
-    float2 a(3.5f, -7.1f);
-    float2 b = -a;
+TEST_CASE("float2 unary minus", "[math][vector]") {
+    vec2 a(3.5f, -7.1f);
+    vec2 b = -a;
 
     REQUIRE(b.x == -3.5f);
     REQUIRE(b.y == 7.1f);
@@ -175,36 +181,36 @@ TEST_CASE("float2 unary minus", "[math]") {
     REQUIRE(-b == a);
 }
 
-TEST_CASE("float2 scalar division and multiplication symmetry", "[math]") {
-    float2 a(2.f, -4.f);
+TEST_CASE("float2 scalar division and multiplication symmetry", "[math][vector]") {
+    vec2 a(2.f, -4.f);
 
     SECTION("Multiply then divide") {
-        float2 scaled = (a * 5.f) / 5.f;
+        vec2 scaled = (a * 5.f) / 5.f;
         REQUIRE(scaled == a);
     }
 
     SECTION("Division by scalar") {
-        float2 result = a / 2.f;
+        vec2 result = a / 2.f;
         REQUIRE_THAT(result.x, Catch::Matchers::WithinRel(1.f));
         REQUIRE_THAT(result.y, Catch::Matchers::WithinRel(-2.f));
     }
 
     SECTION("Scalar on left side") {
-        float2 result = 2.f * a;
+        vec2 result = 2.f * a;
         REQUIRE(result.x == 4.f);
         REQUIRE(result.y == -8.f);
     }
 }
 
-TEST_CASE("float2 normalize", "[math]") {
+TEST_CASE("float2 normalize", "[math][vector]") {
     SECTION("Unit vectors remain unchanged") {
-        REQUIRE(normalize(float2::right) == float2::right);
-        REQUIRE(normalize(float2::up) == float2::up);
+        REQUIRE(normalize(vec2::right) == vec2::right);
+        REQUIRE(normalize(vec2::up) == vec2::up);
     }
 
     SECTION("General vector normalization") {
-        float2 v(3.f, 4.f);
-        float2 n = normalize(v);
+        vec2 v(3.f, 4.f);
+        vec2 n = normalize(v);
 
         REQUIRE_THAT(n.length(), Catch::Matchers::WithinRel(1.f));
         REQUIRE_THAT(n.x, Catch::Matchers::WithinRel(0.6f));
@@ -212,40 +218,40 @@ TEST_CASE("float2 normalize", "[math]") {
     }
 
     SECTION("Zero vector normalization") {
-        float2 zero = float2::zero;
-        float2 n = normalize(zero);
+        vec2 zero = vec2::zero;
+        vec2 n = normalize(zero);
         REQUIRE(std::isnan(n.x));
         REQUIRE(std::isnan(n.y));
     }
 }
 
-TEST_CASE("float2 dot product", "[math]") {
+TEST_CASE("float2 dot product", "[math][vector]") {
     SECTION("Orthogonal vectors") {
-        REQUIRE(dot(float2::right, float2::up) == 0.f);
+        REQUIRE(dot(vec2::right, vec2::up) == 0.f);
     }
 
     SECTION("General vectors") {
-        float2 a(2.f, 3.f);
-        float2 b(-1.f, 4.f);
+        vec2 a(2.f, 3.f);
+        vec2 b(-1.f, 4.f);
         REQUIRE_THAT(dot(a, b), Catch::Matchers::WithinRel(10.f)); // 2*(-1) + 3*4 = -2 + 12 = 10
     }
 }
 
-TEST_CASE("float2 perp", "[math]") {
-    float2 a(2.f, 3.f);
-    float2 p = perp(a);
+TEST_CASE("float2 perp", "[math][vector]") {
+    vec2 a(2.f, 3.f);
+    vec2 p = perp(a);
 
-    REQUIRE(p == float2(3.f, -2.f));
+    REQUIRE(p == vec2(3.f, -2.f));
 
     // Perpendicular vector is orthogonal
     REQUIRE_THAT(dot(a, p), Catch::Matchers::WithinRel(0.f));
 }
 
-TEST_CASE("float2 static constants", "[math]") {
-    REQUIRE(float2::zero == float2(0.f, 0.f));
-    REQUIRE(float2::one == float2(1.f, 1.f));
-    REQUIRE(float2::up == float2(0.f, 1.f));
-    REQUIRE(float2::down == float2(0.f, -1.f));
-    REQUIRE(float2::left == float2(-1.f, 0.f));
-    REQUIRE(float2::right == float2(1.f, 0.f));
+TEST_CASE("float2 static constants", "[math][vector]") {
+    REQUIRE(vec2::zero == vec2(0.f, 0.f));
+    REQUIRE(vec2::one == vec2(1.f, 1.f));
+    REQUIRE(vec2::up == vec2(0.f, 1.f));
+    REQUIRE(vec2::down == vec2(0.f, -1.f));
+    REQUIRE(vec2::left == vec2(-1.f, 0.f));
+    REQUIRE(vec2::right == vec2(1.f, 0.f));
 }

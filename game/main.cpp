@@ -5,10 +5,10 @@
 int main() {
     using namespace math;
 
-    float2 a = float2::zero;
-    float2 b = float2::down;
+    vec2 a = vec2::zero;
+    vec2 b = vec2::down;
 
-    std::cout << "Distance: " << float2::distance(a, b) << std::endl;
-    std::cout << "Sqr distance: " << float2::sqrDistance(a, b) << std::endl;
+    std::cout << "Distance: " << distance(a, b) << std::endl;
+    std::cout << "Sqr distance: " << sqrDistance(a, b) << std::endl;
     return 0;
 }
