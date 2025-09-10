@@ -3,20 +3,21 @@
 #include <assert.h>
 #include <span>
 
+#include "vec3.h"
 #include "vec4.h"
 
 namespace math {
     // Column-major representation
-    struct mat4x4 {
+    struct mat4 {
         float m[16];
 
-        constexpr mat4x4() : m{ } { }
+        constexpr mat4() : m{ } { }
 
         // Format: m#row#col
-        constexpr mat4x4(float m00, float m01, float m02, float m03, // ROW 0
-                         float m10, float m11, float m12, float m13, // ROW 1
-                         float m20, float m21, float m22, float m23, // ROW 2
-                         float m30, float m31, float m32, float m33) // ROW 3
+        constexpr mat4(float m00, float m01, float m02, float m03, // ROW 0
+                       float m10, float m11, float m12, float m13, // ROW 1
+                       float m20, float m21, float m22, float m23, // ROW 2
+                       float m30, float m31, float m32, float m33) // ROW 3
             : m{
                 m00, m10, m20, m30, // COL 1
                 m01, m11, m21, m31, // COL 2
@@ -24,12 +25,12 @@ namespace math {
                 m03, m13, m23, m33 // COL 4
             } { }
 
-        // Operators: op*: const mat4x4, const mat4x4 -> mat4x4, op[]: i -> float, op==
+        // Operators: op*: const mat4, const mat4 -> mat4, op[]: i -> float, op==
         constexpr float operator[](int i) const { return m[i]; } // Raw indexer, column-major indexing
-        constexpr bool operator==(const mat4x4& other) const;
-        constexpr bool operator!=(const mat4x4& other) const;
+        constexpr bool operator==(const mat4& other) const;
+        constexpr bool operator!=(const mat4& other) const;
 
-        constexpr mat4x4& operator*=(const mat4x4& n);
+        constexpr mat4& operator*=(const mat4& n);
 
         // Getters (const member functions): getCol: int -> float4, getRow: int -> float4, get: int, int -> float
         constexpr float get(int row, int col) const; // Explicit row-column indexer
@@ -37,49 +38,54 @@ namespace math {
         constexpr vec4 getCol(int col) const;
         constexpr std::span<const float, 16> asSpan() { return {m}; };
 
-        // Properties (as const member functions): getTranspose -> mat4x4, isIdentity -> bool, getInverse -> mat4x4, getDeterminant -> float
-        constexpr mat4x4 getTranspose() const;
+        // Properties (as const member functions): getTranspose -> mat4, isIdentity -> bool, getInverse -> mat4, getDeterminant -> float
+        constexpr mat4 getTranspose() const;
         constexpr bool isIdentity(float epsilon = EPSILON) const;
         constexpr float getDeterminant() const;
-        constexpr mat4x4 getInverse() const;
+        constexpr mat4 getInverse() const;
 
         // Setters (mutating member functions): setCol: float4 -> void, setRow: float4 -> void, set: float -> void
 
-        // Static factory functions: makeOrtho, makePerspective, makeTranslate, makeRotate, makeScale, (makeTRS)
+        // Static factory functions: makeOrtho, makePerspective, makeLookAt, makeTranslate, makeRotate, makeScale, (makeTRS)
+        static constexpr mat4 makeTranslate(vec3 t);
+        static constexpr mat4 makeTranslate(float x, float y, float z);
+
+        static constexpr mat4 makeScale(vec3 t);
+        static constexpr mat4 makeScale(float x, float y, float z);
 
         // default matrices: zero, identity
-        static const mat4x4 zero, identity;
+        static const mat4 zero, identity;
     };
 
-    constexpr bool approx(const mat4x4& a, const mat4x4& b, float epsilon = EPSILON) {
+    constexpr bool approx(const mat4& a, const mat4& b, float epsilon = EPSILON) {
         for (int i = 0; i < 16; ++i) {
             if (!approx(a.m[i], b.m[i], epsilon)) return false;
         }
         return true;
     }
 
-    const mat4x4 mat4x4::zero = mat4x4();
+    const mat4 mat4::zero = mat4();
 
-    const mat4x4 mat4x4::identity = {
+    const mat4 mat4::identity = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1
     };
 
-    constexpr bool mat4x4::operator==(const mat4x4& other) const {
+    constexpr bool mat4::operator==(const mat4& other) const {
         for (int i = 0; i < 16; i++) {
             if (other[i] != m[i]) return false;
         }
         return true;
     }
 
-    constexpr bool mat4x4::operator!=(const mat4x4& other) const {
+    constexpr bool mat4::operator!=(const mat4& other) const {
         return !operator==(other);
     }
 
-    constexpr mat4x4 operator*(const mat4x4& lhs, const mat4x4& rhs) {
-        return mat4x4(
+    constexpr mat4 operator*(const mat4& lhs, const mat4& rhs) {
+        return mat4(
             lhs.m[0] * rhs.m[0] + lhs.m[4] * rhs.m[1] + lhs.m[8] * rhs.m[2] + lhs.m[12] * rhs.m[3],
             lhs.m[0] * rhs.m[4] + lhs.m[4] * rhs.m[5] + lhs.m[8] * rhs.m[6] + lhs.m[12] * rhs.m[7],
             lhs.m[0] * rhs.m[8] + lhs.m[4] * rhs.m[9] + lhs.m[8] * rhs.m[10] + lhs.m[12] * rhs.m[11],
@@ -102,7 +108,7 @@ namespace math {
         );
     }
 
-    constexpr vec4 operator*(const mat4x4& lhs, vec4 vec) {
+    constexpr vec4 operator*(const mat4& lhs, vec4 vec) {
         return vec4(
             dot(lhs.getRow(0), vec),
             dot(lhs.getRow(1), vec),
@@ -111,17 +117,17 @@ namespace math {
         );
     }
 
-    constexpr mat4x4& mat4x4::operator*=(const mat4x4& n) {
+    constexpr mat4& mat4::operator*=(const mat4& n) {
         *this = *this * n;
         return *this;
     }
 
-    constexpr float mat4x4::get(int row, int col) const {
+    constexpr float mat4::get(int row, int col) const {
         assert(col >= 0 && col < 4 && row >= 0 && row < 4);
         return m[col * 4 + row];
     }
 
-    constexpr vec4 mat4x4::getRow(int row) const {
+    constexpr vec4 mat4::getRow(int row) const {
         assert(row >= 0 && row < 4);
         return vec4(
             m[row + 0 * 4],
@@ -130,7 +136,7 @@ namespace math {
             m[row + 3 * 4]);
     }
 
-    constexpr vec4 mat4x4::getCol(int col) const {
+    constexpr vec4 mat4::getCol(int col) const {
         assert(col >= 0 && col < 4);
         const int base = col * 4;
         return vec4(
@@ -140,8 +146,8 @@ namespace math {
             m[base + 3]);
     }
 
-    constexpr mat4x4 mat4x4::getTranspose() const {
-        return mat4x4{
+    constexpr mat4 mat4::getTranspose() const {
+        return mat4{
             m[0], m[1], m[2], m[3],
             m[4], m[5], m[6], m[7],
             m[8], m[9], m[10], m[11],
@@ -149,7 +155,7 @@ namespace math {
         };
     }
 
-    constexpr bool mat4x4::isIdentity(float epsilon) const {
+    constexpr bool mat4::isIdentity(float epsilon) const {
         return
                 approx(m[0], 1.0f, epsilon) &&
                 approx(m[5], 1.0f, epsilon) &&
@@ -169,7 +175,7 @@ namespace math {
                 approx(m[14], 0.0f, epsilon);
     }
 
-    constexpr float mat4x4::getDeterminant() const {
+    constexpr float mat4::getDeterminant() const {
         if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0)) {
             const float a = m[0], b = m[4], c = m[8];
             const float d = m[1], e = m[5], f = m[9];
@@ -192,7 +198,7 @@ namespace math {
         }
     }
 
-    constexpr mat4x4 mat4x4::getInverse() const {
+    constexpr mat4 mat4::getInverse() const {
         // Affine variant
         if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0)) {
             const float a = m[0], b = m[4], c = m[8];
@@ -221,7 +227,7 @@ namespace math {
             const float invTy = -(r10 * tx + r11 * ty + r12 * tz);
             const float invTz = -(r20 * tx + r21 * ty + r22 * tz);
 
-            return mat4x4(
+            return mat4(
                 r00, r01, r02, 0.0f,
                 r10, r11, r12, 0.0f,
                 r20, r21, r22, 0.0f,
@@ -262,11 +268,35 @@ namespace math {
 
             const float invDet = 1.0f / det;
 
-            mat4x4 result;
+            mat4 result;
             for (int i = 0; i < 16; ++i) {
                 result.m[i] = inv[i] * invDet;
             }
             return result;
         }
+    }
+
+    constexpr mat4 mat4::makeTranslate(vec3 t) {
+        return makeTranslate(t.x, t.y, t.z);
+    }
+
+    constexpr mat4 mat4::makeTranslate(float x, float y, float z) {
+        return mat4(
+            1, 0, 0, x,
+            0, 1, 0, y,
+            0, 0, 1, z,
+            0, 0, 0, 1);
+    }
+
+    constexpr mat4 mat4::makeScale(vec3 t) {
+        return makeScale(t.x, t.y, t.z);
+    }
+
+    constexpr mat4 mat4::makeScale(float x, float y, float z) {
+        return mat4(
+            x, 0, 0, 0,
+            0, y, 0, 0,
+            0, 0, z, 0,
+            0, 0, 0, 1);
     }
 }

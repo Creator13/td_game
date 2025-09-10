@@ -1,14 +1,14 @@
 #include <catch2/catch_all.hpp>
 
-#include "math/mat4x4.h"
+#include "math/mat4.h"
 
-using math::mat4x4;
+using math::mat4;
 using math::vec4;
 
 #define MATRIX_TEST_TAG "[math][matrix]"
 
 namespace math {
-    std::ostream& operator<<(std::ostream& os, const mat4x4& m) {
+    std::ostream& operator<<(std::ostream& os, const mat4& m) {
         return os << "[ " <<
                m[0] << " " << m[4] << " " << m[8] << " " << m[12] << "; " <<
                m[1] << " " << m[5] << " " << m[9] << " " << m[13] << "; " <<
@@ -17,9 +17,9 @@ namespace math {
     }
 }
 
-TEST_CASE("mat4x4 construction", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 construction", MATRIX_TEST_TAG) {
     SECTION("Parameter constructor") {
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             0, 1, 2, 3,
             4, 5, 6, 7,
             8, 9, 10, 11,
@@ -38,7 +38,7 @@ TEST_CASE("mat4x4 construction", MATRIX_TEST_TAG) {
     }
 
     SECTION("Zero constructor") {
-        mat4x4 mat = mat4x4();
+        mat4 mat = mat4();
 
         for (int i = 0; i < 16; i++) {
             CHECK(mat[i] == 0);
@@ -46,17 +46,17 @@ TEST_CASE("mat4x4 construction", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 constants", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 constants", MATRIX_TEST_TAG) {
     SECTION("Zero matrix") {
-        mat4x4 mat = mat4x4::zero;
+        mat4 mat = mat4::zero;
         for (int i = 0; i < 16; i++) {
             CHECK(mat[i] == 0);
         }
     }
 
     SECTION("Identity matrix") {
-        mat4x4 mat = mat4x4::identity;
-        REQUIRE(mat == mat4x4(
+        mat4 mat = mat4::identity;
+        REQUIRE(mat == mat4(
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
@@ -64,22 +64,22 @@ TEST_CASE("mat4x4 constants", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 equality", MATRIX_TEST_TAG) {
-    mat4x4 a = mat4x4(
+TEST_CASE("mat4 equality", MATRIX_TEST_TAG) {
+    mat4 a = mat4(
         0, 1, 2, 3,
         4, 5, 6, 7,
         8, 9, 10, 11,
         12, 13, 14, 15);
 
     // Identical matrix
-    mat4x4 b = mat4x4(
+    mat4 b = mat4(
         0, 1, 2, 3,
         4, 5, 6, 7,
         8, 9, 10, 11,
         12, 13, 14, 15);
 
     // Different values
-    mat4x4 c = mat4x4(
+    mat4 c = mat4(
         15, 14, 13, 12,
         11, 10, 9, 8,
         7, 6, 5, 4,
@@ -98,8 +98,8 @@ TEST_CASE("mat4x4 equality", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 getters", MATRIX_TEST_TAG) {
-    mat4x4 mat = mat4x4(
+TEST_CASE("mat4 getters", MATRIX_TEST_TAG) {
+    mat4 mat = mat4(
         0, 1, 2, 3,
         4, 5, 6, 7,
         8, 9, 10, 11,
@@ -142,12 +142,12 @@ TEST_CASE("mat4x4 getters", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 transpose", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 transpose", MATRIX_TEST_TAG) {
     SECTION("Symmetric matrix is transpose of itself") {
-        REQUIRE(mat4x4::zero.getTranspose() == mat4x4::zero);
-        REQUIRE(mat4x4::identity.getTranspose() == mat4x4::identity);
+        REQUIRE(mat4::zero.getTranspose() == mat4::zero);
+        REQUIRE(mat4::identity.getTranspose() == mat4::identity);
 
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             0, 1, 2, 3,
             1, 1, -1, -1,
             2, -1, 2, 0,
@@ -155,20 +155,20 @@ TEST_CASE("mat4x4 transpose", MATRIX_TEST_TAG) {
         REQUIRE(mat.getTranspose() == mat);
     }
 
-    mat4x4 mat = mat4x4(
+    mat4 mat = mat4(
         4, 5, 4, 5,
         1, 2, 3, 4,
         -1, -2, -3, -4,
         9, 8, 9, 8);
 
     SECTION("Arbitrary matrix") {
-        mat4x4 expected = mat4x4(
+        mat4 expected = mat4(
             4, 1, -1, 9,
             5, 2, -2, 8,
             4, 3, -3, 9,
             5, 4, -4, 8
         );
-        mat4x4 result = mat.getTranspose();
+        mat4 result = mat.getTranspose();
         REQUIRE(result == expected);
     }
 
@@ -177,23 +177,23 @@ TEST_CASE("mat4x4 transpose", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 identity", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 identity", MATRIX_TEST_TAG) {
     SECTION("Identity matrix is identity matrix") {
-        REQUIRE(mat4x4::identity.isIdentity());
+        REQUIRE(mat4::identity.isIdentity());
     }
 
     SECTION("Non-identity matrix") {
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             4, 5, 4, 5,
             1, 2, 3, 4,
             -1, -2, -3, -4,
             9, 8, 9, 8);
         REQUIRE_FALSE(mat.isIdentity());
-        REQUIRE_FALSE(mat4x4::zero.isIdentity());
+        REQUIRE_FALSE(mat4::zero.isIdentity());
     }
 
     SECTION("Tolerance") {
-        mat4x4 bad_tolerance = mat4x4(
+        mat4 bad_tolerance = mat4(
             1.1, 0, 0, 0,
             0, 1.1, 0, 0,
             0, 0, 0.9, 0,
@@ -201,7 +201,7 @@ TEST_CASE("mat4x4 identity", MATRIX_TEST_TAG) {
         REQUIRE_FALSE(bad_tolerance.isIdentity()); // Falls far outside the default tolerance
         REQUIRE(bad_tolerance.isIdentity(.11f)); // Should be accepted with a higher tolerance
 
-        mat4x4 right_tolerance = mat4x4(
+        mat4 right_tolerance = mat4(
             1.0000001, -.0000001, 0, 0.0000001,
             0, 1, 0, 0,
             0.0000001, 0, .9999999, 0,
@@ -213,31 +213,31 @@ TEST_CASE("mat4x4 identity", MATRIX_TEST_TAG) {
 using Catch::Matchers::WithinAbs;
 constexpr float EPS = math::EPSILON;
 
-TEST_CASE("mat4x4 determinant", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 determinant", MATRIX_TEST_TAG) {
     SECTION("Zero and identity") {
-        REQUIRE_THAT(mat4x4::identity.getDeterminant(), WithinAbs(1.0f, EPS));
-        REQUIRE_THAT(mat4x4::zero.getDeterminant(), WithinAbs(0.0f, EPS));
+        REQUIRE_THAT(mat4::identity.getDeterminant(), WithinAbs(1.0f, EPS));
+        REQUIRE_THAT(mat4::zero.getDeterminant(), WithinAbs(0.0f, EPS));
     }
 
     SECTION("General") {
-        using pair = std::pair<mat4x4, float>;
+        using pair = std::pair<mat4, float>;
         auto [mat, expected] = GENERATE(
-            pair(mat4x4(
+            pair(mat4(
                 2, 0, 0, 0,
                 0, 3, 0, 0,
                 0, 0, 4, 0,
                 0, 0, 0, 5), 120.f),
-            pair(mat4x4(
+            pair(mat4(
                 1, 2, 3, 4,
                 5, 3, 2, 1,
                 2, 1, 5, 3,
                 4, 1, 2, 3), -126.f),
-            pair(mat4x4(
+            pair(mat4(
                 1, 2, 3, 4,
                 1, 2, 3, 4,
                 5, 6, 7, 8,
                 9, 10, 11, 12), 0.f),
-            pair(mat4x4(
+            pair(mat4(
                 2, 0, 0, -5.0f,
                 0, 1, 0, 10.f,
                 0, 0, 3, -20.f,
@@ -248,31 +248,31 @@ TEST_CASE("mat4x4 determinant", MATRIX_TEST_TAG) {
     }
 }
 
-TEST_CASE("mat4x4 inverse", MATRIX_TEST_TAG) {
+TEST_CASE("mat4 inverse", MATRIX_TEST_TAG) {
     SECTION("Identity") {
-        REQUIRE(math::approx(mat4x4::identity, mat4x4::identity.getInverse()));
+        REQUIRE(math::approx(mat4::identity, mat4::identity.getInverse()));
     }
 
     SECTION("Translation matrix") {
         // The inverse should be a translation in the opposite direction.
-        mat4x4 translation = mat4x4(
+        mat4 translation = mat4(
             1, 0, 0, 5.0f,
             0, 1, 0, -10.f,
             0, 0, 1, 20.f,
             0, 0, 0, 1);
 
-        mat4x4 expectedInvTranslation = mat4x4(
+        mat4 expectedInvTranslation = mat4(
             1, 0, 0, -5.0f,
             0, 1, 0, 10.f,
             0, 0, 1, -20.f,
             0, 0, 0, 1);
 
-        mat4x4 invTranslation = translation.getInverse();
+        mat4 invTranslation = translation.getInverse();
         REQUIRE(math::approx(invTranslation, expectedInvTranslation));
     }
 
-    SECTION("M * M-1 = M1") {
-        mat4x4 general(
+    SECTION("M * M-1 = I") {
+        mat4 general(
             2, 0, 1, 0,
             0, 1, 0, 2,
             1, 0, 2, 0,
@@ -280,14 +280,14 @@ TEST_CASE("mat4x4 inverse", MATRIX_TEST_TAG) {
         );
         REQUIRE_THAT(general.getDeterminant(), !WithinAbs(0.0f, EPS));
 
-        mat4x4 invGeneral = general.getInverse();
-        mat4x4 result = general * invGeneral;
+        mat4 invGeneral = general.getInverse();
+        mat4 result = general * invGeneral;
 
-        REQUIRE(math::approx(result, mat4x4::identity));
+        REQUIRE(math::approx(result, mat4::identity));
     }
 
     SECTION("Singular matrix failure") {
-        mat4x4 singular(
+        mat4 singular(
             1, 2, 3, 4,
             5, 6, 7, 8,
             9, 10, 11, 12,
@@ -295,60 +295,60 @@ TEST_CASE("mat4x4 inverse", MATRIX_TEST_TAG) {
         );
         REQUIRE_THAT(singular.getDeterminant(), WithinAbs(0.0f, EPS));
 
-        mat4x4 invSingular = singular.getInverse();
-        REQUIRE(math::approx(invSingular, mat4x4::zero));
+        mat4 invSingular = singular.getInverse();
+        REQUIRE(math::approx(invSingular, mat4::zero));
     }
 }
 
-TEST_CASE("mat4x4 multiplication", MATRIX_TEST_TAG) {
-    mat4x4 a = mat4x4(
+TEST_CASE("mat4 multiplication", MATRIX_TEST_TAG) {
+    mat4 a = mat4(
         0, 1, 2, 3,
         4, 5, 6, 7,
         8, 9, 10, 11,
         12, 13, 14, 15);
-    mat4x4 b = mat4x4(
+    mat4 b = mat4(
         3, 4, 5, 6,
         1, 2, 3, 4,
         5, 6, 7, 8,
         0, 2, 4, 6);
 
     SECTION("Matrix * matrix") {
-        mat4x4 result = mat4x4(
+        mat4 result = mat4(
             11, 20, 29, 38,
             47, 76, 105, 134,
             83, 132, 181, 230,
             119, 188, 257, 326);
-        REQUIRE(math::approx(a * b, result));
+        CHECK(math::approx(a * b, result));
     }
 
     SECTION("Non-commutative") {
-        REQUIRE_FALSE(math::approx(a * b, b * a));
+        CHECK_FALSE(math::approx(a * b, b * a));
     }
 
     SECTION("Associative") {
-        mat4x4 c = mat4x4(
+        mat4 c = mat4(
             1, 2, 1, 2,
             3, 4, 3, 4,
             5, 6, 5, 6,
             1, 4, 2, 8);
 
-        REQUIRE(math::approx((a * b) * c, a * (b * c)));
+        CHECK(math::approx((a * b) * c, a * (b * c)));
     }
 
     SECTION("Identity") {
-        REQUIRE(math::approx(mat4x4::identity * a, a));
-        REQUIRE(math::approx(a * mat4x4::identity, a));
+        CHECK(math::approx(mat4::identity * a, a));
+        CHECK(math::approx(a * mat4::identity, a));
     }
 
     SECTION("Zero") {
-        REQUIRE(math::approx(a * mat4x4::zero, mat4x4::zero));
-        REQUIRE(math::approx(mat4x4::zero * a, mat4x4::zero));
-        REQUIRE(math::approx(mat4x4::zero * mat4x4::identity, mat4x4::zero));
+        CHECK(math::approx(a * mat4::zero, mat4::zero));
+        CHECK(math::approx(mat4::zero * a, mat4::zero));
+        CHECK(math::approx(mat4::zero * mat4::identity, mat4::zero));
     }
 
     SECTION("Transpose") {
-        mat4x4 transposeA = a.getTranspose();
-        mat4x4 transposeB = b.getTranspose();
+        mat4 transposeA = a.getTranspose();
+        mat4 transposeB = b.getTranspose();
 
         REQUIRE(math::approx(transposeA * transposeB, (b * a).getTranspose()));
     }
@@ -356,28 +356,28 @@ TEST_CASE("mat4x4 multiplication", MATRIX_TEST_TAG) {
     SECTION("Determinant") {
         float detA = a.getDeterminant();
         float detB = b.getDeterminant();
-        REQUIRE_THAT((a * b).getDeterminant(), WithinAbs(detA * detB, EPS));
+        CHECK_THAT((a * b).getDeterminant(), WithinAbs(detA * detB, EPS));
     }
 
     SECTION("Invertible matrices") {
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             2, 1, 0, 3,
             0, 1, 4, -1,
             0, 0, 3, 2,
             0, 0, 0, 1);
-        mat4x4 mat2 = mat4x4(
+        mat4 mat2 = mat4(
             3, 0, 2, -1,
             1, 2, 0, -2,
             4, 0, 6, -3,
             0, 0, 0, 2);
-        REQUIRE((mat * mat.getInverse()).isIdentity());
-        REQUIRE(math::approx((mat * mat2).getInverse(), mat2.getInverse() * mat.getInverse()));
+        CHECK((mat * mat.getInverse()).isIdentity());
+        CHECK(math::approx((mat * mat2).getInverse(), mat2.getInverse() * mat.getInverse()));
     }
 }
 
 TEST_CASE("Matrix-vector multiplication", MATRIX_TEST_TAG) {
     SECTION("General affine") {
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             2, 0, 0, 5,
             0, 1, 0, 1.52f,
             0, 0, 3, 0.2f,
@@ -388,7 +388,7 @@ TEST_CASE("Matrix-vector multiplication", MATRIX_TEST_TAG) {
     }
 
     SECTION("Arbitrary") {
-        mat4x4 mat = mat4x4(
+        mat4 mat = mat4(
             1, 2, 3, -4,
             5, -6, 5, 6,
             7, 8, 9.1, -10,
@@ -396,5 +396,41 @@ TEST_CASE("Matrix-vector multiplication", MATRIX_TEST_TAG) {
         vec4 vec = vec4(-1.5, 2, 1.2, 2.5);
         vec4 expected = vec4(-3.9, 1.5, -8.58, 1.1);
         REQUIRE(math::approx(mat * vec, expected));
+    }
+}
+
+TEST_CASE("Transformations matrices", MATRIX_TEST_TAG) {
+    SECTION("Translation") {
+        mat4 t = mat4::makeTranslate(2, .5f, 18.23f);
+        SECTION("Point") {
+            vec4 point = vec4(1, 1, 1, 1);
+            vec4 result = t * point;
+            // Multiplying a vector by a transformation matrix yields a translated point
+            CHECK(math::approx(result, vec4(1 + 2, 1 + .5f, 1 + 18.23f, 1)));
+            // Multiplying with the inverse yields the original vector
+            CHECK(math::approx(t.getInverse() * result, point));
+        }
+        SECTION("Direction") {
+            // Multiplying a vec4 which represents a direction (ie vec4.w = 0) yields the original vector
+            vec4 dir = vec4(1, 1, 1, 0);
+            vec4 result = t * dir;
+            CHECK(math::approx(result, dir));
+        }
+    }
+
+    SECTION("Scaling") {
+        mat4 s = mat4::makeScale(4, 2, 3);
+        vec4 vec = vec4(1, 2, 3, 1);
+        vec4 result = s * vec;
+        CHECK(math::approx(result, vec4(1 * 4, 2 * 2, 3 * 3, 1)));
+        CHECK(math::approx(s.getInverse() * result, vec));
+    }
+
+    SECTION("Overloads") {
+        // The overloads that take a vec3 and separate coords produce the same matrices
+        float x = 2, y = 4, z = 6;
+        math::vec3 vec = math::vec3(x, y, z);
+        CHECK(mat4::makeTranslate(x, y, z) == mat4::makeTranslate(vec));
+        CHECK(mat4::makeScale(x, y, z) == mat4::makeScale(vec));
     }
 }
