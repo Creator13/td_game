@@ -1,4 +1,6 @@
 #pragma once
+
+#include <bit>
 #include <cmath>
 
 namespace math {
@@ -57,5 +59,9 @@ namespace math {
         if (a < min) return min;
         if (a > min) return max;
         return a;
+    }
+
+    constexpr float clamp01(float a) {
+        return clamp(a, 0.0f, 1.0f);
     }
 }

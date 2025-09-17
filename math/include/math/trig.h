@@ -2,7 +2,10 @@
 #include <cmath>
 
 namespace math {
+    constexpr float TWOPI = 6.2831853f;
     constexpr float PI = 3.1415927f;
+    constexpr float HALFPI = 1.5707963f;
+
     constexpr float DEG2RAD = 0.017453293f;
     constexpr float RAD2DEG = 57.2957795f;
 
@@ -28,5 +31,9 @@ namespace math {
 
     inline float atan(float t) {
         return std::atan(t);
+    }
+
+    inline float atan2(float y, float x) {
+        return std::atan2(y, x);
     }
 }

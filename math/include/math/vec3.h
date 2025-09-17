@@ -25,10 +25,13 @@ namespace math {
 
     inline const vec3 vec3::zero(0.0f, 0.0f, 0.0f);
     inline const vec3 vec3::one(1.f, 1.f, 1.f);
+
     inline const vec3 vec3::right(1.0f, 0.0f, 0.0f);
     inline const vec3 vec3::left(-1.0f, 0.0f, 0.0f);
+
     inline const vec3 vec3::forward(0.0f, 1.0f, 0.0f);
     inline const vec3 vec3::backward(0.0f, -1.0f, 0.0f);
+
     inline const vec3 vec3::up(0.0f, 0.0f, 1.0f);
     inline const vec3 vec3::down(0.0f, 0.0f, -1.0f);
 

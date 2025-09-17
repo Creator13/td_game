@@ -38,3 +38,15 @@ TEST_CASE("Approx", FUNCTIONS_TEST_TAG) {
         CHECK_FALSE(math::approx(1.0, 1.11, .11f));
     }
 }
+
+TEST_CASE("Abs", FUNCTIONS_TEST_TAG) {
+    CHECK(math::abs(-1) == 1);
+    CHECK(math::abs(1) == 1);
+    CHECK(math::abs(0) == 0);
+    CHECK(math::abs(-0) == 0);
+    CHECK(math::abs(-23.4223f) == 23.4223f);
+    CHECK(math::abs(23.4223f) == 23.4223f);
+    CHECK(math::abs(-2382739324.f) == 2382739324.f);
+    CHECK(math::abs(-0.1563343234f) == 0.1563343234f);
+    CHECK(math::abs(0.1563343234f) == 0.1563343234f);
+}
