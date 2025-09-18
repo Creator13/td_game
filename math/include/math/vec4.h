@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "func.h"
 
 namespace math {
@@ -106,7 +108,9 @@ namespace math {
     }
 
     inline vec4 normalize(vec4 in) noexcept {
-        return in / in.length();
+        float sqrLength = in.sqrLength();
+        assert(sqrLength > EPSILON);
+        return in / sqrt(sqrLength);
     }
 
     constexpr float dot(vec4 lhs, vec4 rhs) noexcept {

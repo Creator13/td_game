@@ -2,7 +2,8 @@
 
 #include "math/vec.h"
 
-int main() {
+int main()
+{
     using namespace math;
 
     vec2 a = vec2::zero;

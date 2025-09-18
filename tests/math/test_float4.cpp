@@ -4,14 +4,18 @@
 
 using math::vec4;
 
-namespace math {
-    std::ostream& operator<<(std::ostream& os, const vec4& rhs) {
+namespace math
+{
+    std::ostream& operator<<(std::ostream& os, const vec4& rhs)
+    {
         return os << "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ", " << rhs.w << ")";
     }
 }
 
-TEST_CASE("float4 construction", "[math][vector]") {
-    SECTION("Parameter constructor") {
+TEST_CASE("float4 construction", "[math][vector]")
+{
+    SECTION("Parameter constructor")
+    {
         float x = 3.3;
         float y = -53.4;
         float z = 2.7;
@@ -23,7 +27,8 @@ TEST_CASE("float4 construction", "[math][vector]") {
         REQUIRE(vec.w == w);
     }
 
-    SECTION("Default constructor") {
+    SECTION("Default constructor")
+    {
         vec4 vec = vec4();
         REQUIRE(vec.x == 0);
         REQUIRE(vec.y == 0);
@@ -32,7 +37,8 @@ TEST_CASE("float4 construction", "[math][vector]") {
     }
 }
 
-TEST_CASE("float4 add/subtract", "[math][vector]") {
+TEST_CASE("float4 add/subtract", "[math][vector]")
+{
     vec4 a = vec4(2.3, 6.8, 1.0, 3.5);
     vec4 b = GENERATE(
         vec4(-1.2f, 4.3f, 3.0, 1.5),
@@ -41,7 +47,8 @@ TEST_CASE("float4 add/subtract", "[math][vector]") {
         vec4(1, -.5f, -3.2f, 2.0)
     );
 
-    SECTION("Addition") {
+    SECTION("Addition")
+    {
         vec4 result = a + b;
         REQUIRE(result.x == a.x + b.x);
         REQUIRE(result.y == a.y + b.y);
@@ -53,7 +60,8 @@ TEST_CASE("float4 add/subtract", "[math][vector]") {
         REQUIRE(a.w == 3.5f);
     }
 
-    SECTION("Subtraction") {
+    SECTION("Subtraction")
+    {
         vec4 result = a - b;
         REQUIRE(result.x == a.x - b.x);
         REQUIRE(result.y == a.y - b.y);
@@ -65,15 +73,18 @@ TEST_CASE("float4 add/subtract", "[math][vector]") {
         REQUIRE(a.w == 3.5f);
     }
 
-    SECTION("Commutative") {
+    SECTION("Commutative")
+    {
         REQUIRE(a + b == b + a);
         REQUIRE(a - b != b - a);
     }
 
-    SECTION("Assignment operators") {
+    SECTION("Assignment operators")
+    {
         vec4 c = vec4(5.2f, 4.5f, -2.0f, 4.5);
 
-        SECTION("Addition") {
+        SECTION("Addition")
+        {
             c += b;
             REQUIRE(c.x == 5.2f + b.x);
             REQUIRE(c.y == 4.5f + b.y);
@@ -81,7 +92,8 @@ TEST_CASE("float4 add/subtract", "[math][vector]") {
             REQUIRE(c.w == 4.5f + b.w);
         }
 
-        SECTION("Subtraction") {
+        SECTION("Subtraction")
+        {
             c -= b;
             REQUIRE(c.x == 5.2f - b.x);
             REQUIRE(c.y == 4.5f - b.y);
@@ -91,8 +103,10 @@ TEST_CASE("float4 add/subtract", "[math][vector]") {
     }
 }
 
-TEST_CASE("float4 scalar math", "[math][vector]") {
-    SECTION("Zero vector multiplication") {
+TEST_CASE("float4 scalar math", "[math][vector]")
+{
+    SECTION("Zero vector multiplication")
+    {
         vec4 vec = vec4();
         vec4 result = vec * 4.5f;
         REQUIRE(result.x == 0);
@@ -102,7 +116,8 @@ TEST_CASE("float4 scalar math", "[math][vector]") {
         REQUIRE(vec == vec4());
     }
 
-    SECTION("Zero scalar multiplication") {
+    SECTION("Zero scalar multiplication")
+    {
         vec4 vec = vec4(7.45f, -0.54f, 3.0f, 1.5);
         vec4 result = vec * 0.f;
         REQUIRE(result.x == 0);
@@ -115,7 +130,8 @@ TEST_CASE("float4 scalar math", "[math][vector]") {
         REQUIRE(vec.w == 1.5f);
     }
 
-    SECTION("Zero vector division") {
+    SECTION("Zero vector division")
+    {
         vec4 vec = vec4();
         vec4 result = vec / 4.5f;
         REQUIRE(result.x == 0);
@@ -125,7 +141,8 @@ TEST_CASE("float4 scalar math", "[math][vector]") {
         REQUIRE(vec == vec4());
     }
 
-    SECTION("Zero scalar division") {
+    SECTION("Zero scalar division")
+    {
         vec4 vec = vec4(7.45f, -0.54f, 3.0f, 1.5);
         vec4 result = vec / 0.f;
         REQUIRE(std::isinf(result.x));
@@ -134,17 +151,20 @@ TEST_CASE("float4 scalar math", "[math][vector]") {
         REQUIRE(std::isinf(result.w));
     }
 
-    SECTION("Commutative multiplication") {
+    SECTION("Commutative multiplication")
+    {
         vec4 vec = vec4(5.f, 6.3f, -1.2f, 0.f);
         float scalar = 3.45;
         REQUIRE(vec * scalar == scalar * vec);
     }
 }
 
-TEST_CASE("float4 length", "[math][vector]") {
+TEST_CASE("float4 length", "[math][vector]")
+{
     using pair = std::pair<vec4, float>;
 
-    SECTION("Square length") {
+    SECTION("Square length")
+    {
         auto [vec, expected] = GENERATE(
             pair(vec4(0, 0, 0, 0), 0.f),
             pair(vec4(1, 0, 0, 0), 1.f),
@@ -160,7 +180,8 @@ TEST_CASE("float4 length", "[math][vector]") {
         REQUIRE(vec.sqrLength() == expected);
     }
 
-    SECTION("Length") {
+    SECTION("Length")
+    {
         auto [vec, expected] = GENERATE(
             pair(vec4(0, 0, 0, 0), 0.f),
             pair(vec4(1, 0, 0, 0), 1.f),
@@ -177,7 +198,8 @@ TEST_CASE("float4 length", "[math][vector]") {
     }
 }
 
-TEST_CASE("float4 equality and inequality", "[math][vector]") {
+TEST_CASE("float4 equality and inequality", "[math][vector]")
+{
     vec4 a(1.f, 2.f, 3.f, 4.f);
     vec4 b(1.f, 2.f, 3.f, 4.f);
     vec4 c(2.f, 1.f, 3.f, 4.f);
@@ -187,7 +209,8 @@ TEST_CASE("float4 equality and inequality", "[math][vector]") {
     REQUIRE_FALSE(a == c);
 }
 
-TEST_CASE("float4 unary minus", "[math][vector]") {
+TEST_CASE("float4 unary minus", "[math][vector]")
+{
     vec4 a(3.5f, -7.1f, 2.0f, -4.0f);
     vec4 b = -a;
     REQUIRE(b.x == -3.5f);
@@ -198,15 +221,18 @@ TEST_CASE("float4 unary minus", "[math][vector]") {
     REQUIRE(-b == a);
 }
 
-TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]") {
+TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]")
+{
     vec4 a(2.f, -4.f, 6.f, -8.f);
 
-    SECTION("Multiply then divide") {
+    SECTION("Multiply then divide")
+    {
         vec4 scaled = (a * 5.f) / 5.f;
         REQUIRE(scaled == a);
     }
 
-    SECTION("Division by scalar") {
+    SECTION("Division by scalar")
+    {
         vec4 result = a / 2.f;
         REQUIRE_THAT(result.x, Catch::Matchers::WithinRel(1.f));
         REQUIRE_THAT(result.y, Catch::Matchers::WithinRel(-2.f));
@@ -214,7 +240,8 @@ TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]"
         REQUIRE_THAT(result.w, Catch::Matchers::WithinRel(-4.f));
     }
 
-    SECTION("Scalar on left side") {
+    SECTION("Scalar on left side")
+    {
         vec4 result = 2.f * a;
         REQUIRE(result.x == 4.f);
         REQUIRE(result.y == -8.f);
@@ -223,8 +250,10 @@ TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]"
     }
 }
 
-TEST_CASE("float4 normalize", "[math][vector]") {
-    SECTION("Unit vectors remain unchanged") {
+TEST_CASE("float4 normalize", "[math][vector]")
+{
+    SECTION("Unit vectors remain unchanged")
+    {
         vec4 right(1.f, 0.f, 0.f, 0.f);
         vec4 up(0.f, 1.f, 0.f, 0.f);
         vec4 forward(0.f, 0.f, 1.f, 0.f);
@@ -236,7 +265,8 @@ TEST_CASE("float4 normalize", "[math][vector]") {
         REQUIRE(normalize(time) == time);
     }
 
-    SECTION("General vector normalization") {
+    SECTION("General vector normalization")
+    {
         vec4 v(3.f, 4.f, 0.f, 0.f);
         vec4 n = normalize(v);
 
@@ -247,7 +277,8 @@ TEST_CASE("float4 normalize", "[math][vector]") {
         REQUIRE_THAT(n.w, Catch::Matchers::WithinRel(0.f));
     }
 
-    SECTION("Zero vector normalization") {
+    SECTION("Zero vector normalization")
+    {
         vec4 zero = vec4::zero;
         vec4 n = normalize(zero);
 
@@ -258,7 +289,8 @@ TEST_CASE("float4 normalize", "[math][vector]") {
     }
 }
 
-TEST_CASE("float4 dot product", "[math][vector]") {
+TEST_CASE("float4 dot product", "[math][vector]")
+{
     vec4 a(2.f, 3.f, 1.f, 0.5f);
     vec4 b(-1.f, 4.f, 2.f, 0.1f);
     CHECK_THAT(dot(a, b), Catch::Matchers::WithinRel(12.05f));
@@ -268,7 +300,8 @@ TEST_CASE("float4 dot product", "[math][vector]") {
     CHECK_THAT(dot(a, b), Catch::Matchers::WithinAbs(-3.9, 1e-6f));
 }
 
-TEST_CASE("float4 static constants", "[math][vector]") {
+TEST_CASE("float4 static constants", "[math][vector]")
+{
     REQUIRE(vec4::zero == vec4(0.f, 0.f, 0.f, 0.f));
     REQUIRE(vec4::one == vec4(1.f, 1.f, 1.f, 1.f));
 }

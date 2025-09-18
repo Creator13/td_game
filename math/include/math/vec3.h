@@ -1,9 +1,13 @@
 #pragma once
 
+#include <cassert>
+
 #include "func.h"
 
-namespace math {
-    struct vec3 {
+namespace math
+{
+    struct vec3
+    {
         float x, y, z;
 
         constexpr vec3() noexcept : x(0.0f), y(0.0f), z(0.0f) { }
@@ -20,7 +24,7 @@ namespace math {
         [[nodiscard]] float length() const noexcept;
 
         static const vec3 zero, one;
-        static const vec3 right, left, forward, backward, up, down;
+        static const vec3 right, left, forward, back, up, down;
     };
 
     inline const vec3 vec3::zero(0.0f, 0.0f, 0.0f);
@@ -30,102 +34,124 @@ namespace math {
     inline const vec3 vec3::left(-1.0f, 0.0f, 0.0f);
 
     inline const vec3 vec3::forward(0.0f, 1.0f, 0.0f);
-    inline const vec3 vec3::backward(0.0f, -1.0f, 0.0f);
+    inline const vec3 vec3::back(0.0f, -1.0f, 0.0f);
 
     inline const vec3 vec3::up(0.0f, 0.0f, 1.0f);
     inline const vec3 vec3::down(0.0f, 0.0f, -1.0f);
 
-    constexpr vec3& vec3::operator+=(const vec3& rhs) noexcept {
+    constexpr vec3& vec3::operator+=(const vec3& rhs) noexcept
+    {
         x += rhs.x;
         y += rhs.y;
         z += rhs.z;
         return *this;
     }
 
-    constexpr vec3& vec3::operator-=(const vec3& rhs) noexcept {
+    constexpr vec3& vec3::operator-=(const vec3& rhs) noexcept
+    {
         x -= rhs.x;
         y -= rhs.y;
         z -= rhs.z;
         return *this;
     }
 
-    constexpr vec3& vec3::operator*=(float scalar) noexcept {
+    constexpr vec3& vec3::operator*=(float scalar) noexcept
+    {
         x *= scalar;
         y *= scalar;
         z *= scalar;
         return *this;
     }
 
-    constexpr vec3& vec3::operator/=(float scalar) noexcept {
+    constexpr vec3& vec3::operator/=(float scalar) noexcept
+    {
         x /= scalar;
         y /= scalar;
         z /= scalar;
         return *this;
     }
 
-    constexpr bool vec3::operator==(const vec3& rhs) const noexcept {
+    constexpr bool vec3::operator==(const vec3& rhs) const noexcept
+    {
         return x == rhs.x && y == rhs.y && z == rhs.z;
     }
 
-    constexpr bool vec3::operator!=(const vec3& rhs) const noexcept {
+    constexpr bool vec3::operator!=(const vec3& rhs) const noexcept
+    {
         return !operator==(rhs);
     }
 
-    constexpr bool approx(vec3 a, vec3 b, float epsilon = EPSILON) {
+    constexpr bool approx(vec3 a, vec3 b, float epsilon = EPSILON)
+    {
         return approx(a.x, b.x, epsilon)
                && approx(a.y, b.y, epsilon)
                && approx(a.z, b.z, epsilon);
     }
 
-    constexpr vec3 operator+(vec3 lhs, const vec3& rhs) noexcept {
+    constexpr vec3 operator+(vec3 lhs, const vec3& rhs) noexcept
+    {
         return lhs += rhs;
     }
 
-    constexpr vec3 operator-(vec3 lhs, const vec3& rhs) noexcept {
+    constexpr vec3 operator-(vec3 lhs, const vec3& rhs) noexcept
+    {
         return lhs -= rhs;
     }
 
-    constexpr vec3 operator*(vec3 vec, float scalar) noexcept {
+    constexpr vec3 operator*(vec3 vec, float scalar) noexcept
+    {
         return vec *= scalar;
     }
 
-    constexpr vec3 operator*(float scalar, vec3 vec) noexcept {
+    constexpr vec3 operator*(float scalar, vec3 vec) noexcept
+    {
         return vec *= scalar;
     }
 
-    constexpr vec3 operator/(vec3 vec, float scalar) noexcept {
+    constexpr vec3 operator/(vec3 vec, float scalar) noexcept
+    {
         return vec /= scalar;
     }
 
-    constexpr vec3 operator-(const vec3& in) {
+    constexpr vec3 operator-(const vec3& in)
+    {
         return vec3{-in.x, -in.y, -in.z};
     }
 
-    inline float vec3::sqrLength() const noexcept {
+    inline float vec3::sqrLength() const noexcept
+    {
         return x * x + y * y + z * z;
     }
 
-    inline float vec3::length() const noexcept {
+    inline float vec3::length() const noexcept
+    {
         return sqrt(sqrLength());
     }
 
-    inline vec3 normalize(vec3 in) noexcept {
-        return in / in.length();
+    inline vec3 normalize(vec3 in) noexcept
+    {
+        float sqrLength = in.sqrLength();
+        assert(sqrLength > EPSILON);
+        return in / sqrt(sqrLength);
     }
 
-    inline float sqrDistance(vec3 from, vec3 to) noexcept {
+    inline float sqrDistance(vec3 from, vec3 to) noexcept
+    {
         return (to - from).sqrLength();
     }
 
-    inline float distance(vec3 from, vec3 to) noexcept {
+    inline float distance(vec3 from, vec3 to) noexcept
+    {
         return (to - from).length();
     }
 
-    constexpr float dot(vec3 lhs, vec3 rhs) noexcept {
+    constexpr float dot(vec3 lhs, vec3 rhs) noexcept
+    {
         return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
     }
 
-    constexpr vec3 cross(vec3 lhs, vec3 rhs) noexcept {
+    constexpr vec3 cross(vec3 lhs, vec3 rhs) noexcept
+    {
         return vec3{
             lhs.y * rhs.z - lhs.z * rhs.y,
             lhs.z * rhs.x - lhs.x * rhs.z,
@@ -133,7 +159,8 @@ namespace math {
         };
     }
 
-    constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept {
+    constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept
+    {
         return a + (b - a) * t;
     }
 }

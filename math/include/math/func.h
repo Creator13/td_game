@@ -3,65 +3,79 @@
 #include <bit>
 #include <cmath>
 
-namespace math {
+namespace math
+{
     constexpr float EPSILON = 1e-5f;
 
-    inline float sqrt(float t) {
+    inline float sqrt(float t)
+    {
         return std::sqrt(t);
     }
 
     template<typename T>
-    constexpr T min(T a, T b) {
+    constexpr T min(T a, T b)
+    {
         return a < b ? a : b;
     }
 
     template<typename T>
-    constexpr T max(T a, T b) {
+    constexpr T max(T a, T b)
+    {
         return a > b ? a : b;
     }
 
-    constexpr float abs(float x) noexcept {
+    constexpr float abs(float x) noexcept
+    {
         // clear the sign-bit of the IEEE-754 32-bit float
         uint32_t bits = std::bit_cast<uint32_t>(x);
         bits &= 0x7FFF'FFFFu;
         return std::bit_cast<float>(bits);
     }
 
-    constexpr bool approx(float a, float b, float epsilon = EPSILON) {
+    constexpr bool approx(float a, float b, float epsilon = EPSILON)
+    {
         return abs(a - b) < epsilon;
     }
 
-    inline float floor(float in) {
+    inline float floor(float in)
+    {
         return std::floor(in);
     }
 
-    inline int floorToInt(float in) {
+    inline int floorToInt(float in)
+    {
         return static_cast<int>(std::floor(in));
     }
 
-    inline float ceil(float in) {
+    inline float ceil(float in)
+    {
         return std::ceil(in);
     }
 
-    inline int ceilToInt(float in) {
+    inline int ceilToInt(float in)
+    {
         return static_cast<int>(std::ceil(in));
     }
 
-    inline float frac(float a) {
+    inline float frac(float a)
+    {
         return a - floor(a);
     }
 
-    constexpr float lerp(float a, float b, float t) {
+    constexpr float lerp(float a, float b, float t)
+    {
         return a + (b - a) * t;
     }
 
-    constexpr float clamp(float a, float min, float max) {
+    constexpr float clamp(float a, float min, float max)
+    {
         if (a < min) return min;
         if (a > min) return max;
         return a;
     }
 
-    constexpr float clamp01(float a) {
+    constexpr float clamp01(float a)
+    {
         return clamp(a, 0.0f, 1.0f);
     }
 }

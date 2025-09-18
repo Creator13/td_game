@@ -3,12 +3,15 @@
 #include <assert.h>
 #include <span>
 
+#include "rot3x3.h"
 #include "vec3.h"
 #include "vec4.h"
 
-namespace math {
+namespace math
+{
     // Column-major representation
-    struct mat4 {
+    struct mat4
+    {
         float m[16];
 
         constexpr mat4() : m{ } { }
@@ -53,12 +56,17 @@ namespace math {
         static constexpr mat4 makeScale(vec3 t);
         static constexpr mat4 makeScale(float x, float y, float z);
 
+        static constexpr mat4 makeRotation(const rot3x3& rot);
+        static constexpr mat4 makeRotation(quaternion rotation);
+
         // default matrices: zero, identity
         static const mat4 zero, identity;
     };
 
-    constexpr bool approx(const mat4& a, const mat4& b, float epsilon = EPSILON) {
-        for (int i = 0; i < 16; ++i) {
+    constexpr bool approx(const mat4& a, const mat4& b, float epsilon = EPSILON)
+    {
+        for (int i = 0; i < 16; ++i)
+        {
             if (!approx(a.m[i], b.m[i], epsilon)) return false;
         }
         return true;
@@ -73,18 +81,22 @@ namespace math {
         0, 0, 0, 1
     };
 
-    constexpr bool mat4::operator==(const mat4& other) const {
-        for (int i = 0; i < 16; i++) {
+    constexpr bool mat4::operator==(const mat4& other) const
+    {
+        for (int i = 0; i < 16; i++)
+        {
             if (other[i] != m[i]) return false;
         }
         return true;
     }
 
-    constexpr bool mat4::operator!=(const mat4& other) const {
+    constexpr bool mat4::operator!=(const mat4& other) const
+    {
         return !operator==(other);
     }
 
-    constexpr mat4 operator*(const mat4& lhs, const mat4& rhs) {
+    constexpr mat4 operator*(const mat4& lhs, const mat4& rhs)
+    {
         return mat4(
             lhs.m[0] * rhs.m[0] + lhs.m[4] * rhs.m[1] + lhs.m[8] * rhs.m[2] + lhs.m[12] * rhs.m[3],
             lhs.m[0] * rhs.m[4] + lhs.m[4] * rhs.m[5] + lhs.m[8] * rhs.m[6] + lhs.m[12] * rhs.m[7],
@@ -108,7 +120,8 @@ namespace math {
         );
     }
 
-    constexpr vec4 operator*(const mat4& lhs, vec4 vec) {
+    constexpr vec4 operator*(const mat4& lhs, vec4 vec)
+    {
         return vec4(
             dot(lhs.getRow(0), vec),
             dot(lhs.getRow(1), vec),
@@ -117,17 +130,20 @@ namespace math {
         );
     }
 
-    constexpr mat4& mat4::operator*=(const mat4& n) {
+    constexpr mat4& mat4::operator*=(const mat4& n)
+    {
         *this = *this * n;
         return *this;
     }
 
-    constexpr float mat4::get(int row, int col) const {
+    constexpr float mat4::get(int row, int col) const
+    {
         assert(col >= 0 && col < 4 && row >= 0 && row < 4);
         return m[col * 4 + row];
     }
 
-    constexpr vec4 mat4::getRow(int row) const {
+    constexpr vec4 mat4::getRow(int row) const
+    {
         assert(row >= 0 && row < 4);
         return vec4(
             m[row + 0 * 4],
@@ -136,7 +152,8 @@ namespace math {
             m[row + 3 * 4]);
     }
 
-    constexpr vec4 mat4::getCol(int col) const {
+    constexpr vec4 mat4::getCol(int col) const
+    {
         assert(col >= 0 && col < 4);
         const int base = col * 4;
         return vec4(
@@ -146,7 +163,8 @@ namespace math {
             m[base + 3]);
     }
 
-    constexpr mat4 mat4::getTranspose() const {
+    constexpr mat4 mat4::getTranspose() const
+    {
         return mat4{
             m[0], m[1], m[2], m[3],
             m[4], m[5], m[6], m[7],
@@ -155,7 +173,8 @@ namespace math {
         };
     }
 
-    constexpr bool mat4::isIdentity(float epsilon) const {
+    constexpr bool mat4::isIdentity(float epsilon) const
+    {
         return
                 approx(m[0], 1.0f, epsilon) &&
                 approx(m[5], 1.0f, epsilon) &&
@@ -175,14 +194,17 @@ namespace math {
                 approx(m[14], 0.0f, epsilon);
     }
 
-    constexpr float mat4::getDeterminant() const {
-        if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0)) {
+    constexpr float mat4::getDeterminant() const
+    {
+        if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0))
+        {
             const float a = m[0], b = m[4], c = m[8];
             const float d = m[1], e = m[5], f = m[9];
             const float g = m[2], h = m[6], i = m[10];
             return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
         }
-        else {
+        else
+        {
             const float a00 = m[0], a01 = m[4], a02 = m[8], a03 = m[12];
             const float a10 = m[1], a11 = m[5], a12 = m[9], a13 = m[13];
             const float a20 = m[2], a21 = m[6], a22 = m[10], a23 = m[14];
@@ -198,9 +220,11 @@ namespace math {
         }
     }
 
-    constexpr mat4 mat4::getInverse() const {
+    constexpr mat4 mat4::getInverse() const
+    {
         // Affine variant
-        if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0)) {
+        if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0))
+        {
             const float a = m[0], b = m[4], c = m[8];
             const float d = m[1], e = m[5], f = m[9];
             const float g = m[2], h = m[6], i = m[10];
@@ -235,7 +259,8 @@ namespace math {
             );
         }
         // General inverse
-        else {
+        else
+        {
             const float det = getDeterminant();
             if (approx(det, 0)) return zero;
 
@@ -269,18 +294,21 @@ namespace math {
             const float invDet = 1.0f / det;
 
             mat4 result;
-            for (int i = 0; i < 16; ++i) {
+            for (int i = 0; i < 16; ++i)
+            {
                 result.m[i] = inv[i] * invDet;
             }
             return result;
         }
     }
 
-    constexpr mat4 mat4::makeTranslate(vec3 t) {
+    constexpr mat4 mat4::makeTranslate(vec3 t)
+    {
         return makeTranslate(t.x, t.y, t.z);
     }
 
-    constexpr mat4 mat4::makeTranslate(float x, float y, float z) {
+    constexpr mat4 mat4::makeTranslate(float x, float y, float z)
+    {
         return mat4(
             1, 0, 0, x,
             0, 1, 0, y,
@@ -288,15 +316,27 @@ namespace math {
             0, 0, 0, 1);
     }
 
-    constexpr mat4 mat4::makeScale(vec3 t) {
+    constexpr mat4 mat4::makeScale(vec3 t)
+    {
         return makeScale(t.x, t.y, t.z);
     }
 
-    constexpr mat4 mat4::makeScale(float x, float y, float z) {
+    constexpr mat4 mat4::makeScale(float x, float y, float z)
+    {
         return mat4(
             x, 0, 0, 0,
             0, y, 0, 0,
             0, 0, z, 0,
             0, 0, 0, 1);
+    }
+
+    constexpr mat4 mat4::makeRotation(const rot3x3& rot)
+    {
+        return mat4(
+            rot.xBasis.x, rot.yBasis.x, rot.zBasis.x, 0,
+            rot.xBasis.y, rot.yBasis.y, rot.zBasis.y, 0,
+            rot.xBasis.z, rot.yBasis.z, rot.zBasis.z, 0,
+            0, 0, 0, 1
+        );
     }
 }

@@ -4,7 +4,8 @@
 
 #define FUNCTIONS_TEST_TAG "[math][function]"
 
-TEST_CASE("Lerp", FUNCTIONS_TEST_TAG) {
+TEST_CASE("Lerp", FUNCTIONS_TEST_TAG)
+{
     // Normal usage
     CHECK(math::lerp(2.f, 5.f, 1.f) == 5.f);
     CHECK(math::lerp(-2.f, 5.f, 0.f) == -2.f);
@@ -19,8 +20,10 @@ TEST_CASE("Lerp", FUNCTIONS_TEST_TAG) {
     CHECK(math::lerp(23.7f, 23.7f, .3f) == 23.7f);
 }
 
-TEST_CASE("Approx", FUNCTIONS_TEST_TAG) {
-    SECTION("Default epsilon") {
+TEST_CASE("Approx", FUNCTIONS_TEST_TAG)
+{
+    SECTION("Default epsilon")
+    {
         CHECK(math::approx(2, 2));
         CHECK(math::approx(0, 0));
         CHECK(math::approx(0.14, 0.1400001));
@@ -31,7 +34,8 @@ TEST_CASE("Approx", FUNCTIONS_TEST_TAG) {
         CHECK_FALSE(math::approx(0, 0.1));
     }
 
-    SECTION("Custom epsilon") {
+    SECTION("Custom epsilon")
+    {
         CHECK(math::approx(1.1, 1.0, .11f));
         CHECK(math::approx(1.0, 1.1, .11f));
         CHECK_FALSE(math::approx(1.11, 1.0, .11f));
@@ -39,7 +43,8 @@ TEST_CASE("Approx", FUNCTIONS_TEST_TAG) {
     }
 }
 
-TEST_CASE("Abs", FUNCTIONS_TEST_TAG) {
+TEST_CASE("Abs", FUNCTIONS_TEST_TAG)
+{
     CHECK(math::abs(-1) == 1);
     CHECK(math::abs(1) == 1);
     CHECK(math::abs(0) == 0);
