@@ -120,8 +120,7 @@ namespace math
     inline vec2 normalize(vec2 in) noexcept
     {
         float sqrLength = in.sqrLength();
-        assert(sqrLength > EPSILON);
-        return in / sqrt(sqrLength);
+        return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec2::zero;
     }
 
     inline float sqrDistance(vec2 from, vec2 to) noexcept

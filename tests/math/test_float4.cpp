@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include "math/vec3.h"
 #include "math/vec4.h"
 
 using math::vec4;
@@ -34,6 +35,16 @@ TEST_CASE("float4 construction", "[math][vector]")
         REQUIRE(vec.y == 0);
         REQUIRE(vec.z == 0);
         REQUIRE(vec.w == 0);
+    }
+
+    SECTION("vec3 constructor")
+    {
+        math::vec3 vec3 = math::vec3(3, 4, 5);
+        vec4 vec = vec4(vec3, 1);
+        REQUIRE(vec.x == 3);
+        REQUIRE(vec.y == 4);
+        REQUIRE(vec.z == 5);
+        REQUIRE(vec.w == 1);
     }
 }
 
@@ -282,10 +293,10 @@ TEST_CASE("float4 normalize", "[math][vector]")
         vec4 zero = vec4::zero;
         vec4 n = normalize(zero);
 
-        REQUIRE(std::isnan(n.x));
-        REQUIRE(std::isnan(n.y));
-        REQUIRE(std::isnan(n.z));
-        REQUIRE(std::isnan(n.w));
+        REQUIRE(n.x == 0);
+        REQUIRE(n.y == 0);
+        REQUIRE(n.z == 0);
+        REQUIRE(n.w == 0);
     }
 }
 

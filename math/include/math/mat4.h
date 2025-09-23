@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <span>
 
-#include "rot3x3.h"
+#include "rotation.h"
 #include "vec3.h"
 #include "vec4.h"
 
@@ -26,6 +26,17 @@ namespace math
                 m01, m11, m21, m31, // COL 2
                 m02, m12, m22, m32, // COL 3
                 m03, m13, m23, m33 // COL 4
+            } { }
+
+        /**
+         * Constructor takes four 4D vectors for each of the columns of the matrix.
+         */
+        constexpr mat4(vec4 c0, vec4 c1, vec4 c2, vec4 c3)
+            : m{
+                c0.x, c0.y, c0.z, c0.w,
+                c1.x, c1.y, c1.z, c1.w,
+                c2.x, c2.y, c2.z, c2.w,
+                c3.x, c3.y, c3.z, c3.w
             } { }
 
         // Operators: op*: const mat4, const mat4 -> mat4, op[]: i -> float, op==
@@ -56,8 +67,11 @@ namespace math
         static constexpr mat4 makeScale(vec3 t);
         static constexpr mat4 makeScale(float x, float y, float z);
 
-        static constexpr mat4 makeRotation(const rot3x3& rot);
-        static constexpr mat4 makeRotation(quaternion rotation);
+        constexpr static mat4 makeRotation(const rot3x3& rot);
+        static mat4 makeRotation(quaternion rotation);
+
+        constexpr static mat4 makeTRS(vec3 t, const rot3x3& r, vec3 s);
+        static mat4 makeTRS(vec3 t, quaternion r, vec3 s);
 
         // default matrices: zero, identity
         static const mat4 zero, identity;
@@ -74,7 +88,7 @@ namespace math
 
     const mat4 mat4::zero = mat4();
 
-    const mat4 mat4::identity = {
+    inline const mat4 mat4::identity = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
@@ -338,5 +352,24 @@ namespace math
             rot.xBasis.z, rot.yBasis.z, rot.zBasis.z, 0,
             0, 0, 0, 1
         );
+    }
+
+    inline mat4 mat4::makeRotation(quaternion rotation)
+    {
+        return makeRotation(rot3x3::fromQuaternion(rotation));
+    }
+
+    constexpr mat4 mat4::makeTRS(vec3 t, const rot3x3& r, vec3 s)
+    {
+        const vec4 xBasis = vec4(r.xBasis * s.x, 0);
+        const vec4 yBasis = vec4(r.yBasis * s.y, 0);
+        const vec4 zBasis = vec4(r.zBasis * s.z, 0);
+        const vec4 w = vec4(t, 1);
+        return mat4(xBasis, yBasis, zBasis, w);
+    }
+
+    inline mat4 mat4::makeTRS(vec3 t, quaternion r, vec3 s)
+    {
+        return makeTRS(t, rot3x3::fromQuaternion(r), s);
     }
 }

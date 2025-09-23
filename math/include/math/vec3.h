@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "vec2.h"
 #include "func.h"
 
 namespace math
@@ -12,6 +13,7 @@ namespace math
 
         constexpr vec3() noexcept : x(0.0f), y(0.0f), z(0.0f) { }
         constexpr vec3(float x, float y, float z) noexcept : x(x), y(y), z(z) { }
+        constexpr vec3(vec2 vec, float z) noexcept : x(vec.x), y(vec.y), z(z) { }
 
         constexpr vec3& operator+=(const vec3& rhs) noexcept;
         constexpr vec3& operator-=(const vec3& rhs) noexcept;
@@ -131,8 +133,7 @@ namespace math
     inline vec3 normalize(vec3 in) noexcept
     {
         float sqrLength = in.sqrLength();
-        assert(sqrLength > EPSILON);
-        return in / sqrt(sqrLength);
+        return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec3::zero;
     }
 
     inline float sqrDistance(vec3 from, vec3 to) noexcept

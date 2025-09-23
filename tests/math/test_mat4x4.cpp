@@ -51,6 +51,26 @@ TEST_CASE("mat4 construction", MATRIX_TEST_TAG)
             CHECK(mat[i] == 0);
         }
     }
+
+    SECTION("Column constructor")
+    {
+        vec4 c0 = vec4(1, 2, 3, 4);
+        vec4 c1 = vec4(5, 6, 7, 8);
+        vec4 c2 = vec4(9, 10, 11, 12);
+        vec4 c3 = vec4(13, 14, 15, 16);
+
+        mat4 colMatrix = mat4(c0, c1, c2, c3);
+        mat4 expected = mat4(
+            1, 5, 9, 13,
+            2, 6, 10, 14,
+            3, 7, 11, 15,
+            4, 8, 12, 16);
+
+        for (int i = 0; i < 16; i++)
+        {
+            CHECK(colMatrix[i] == expected[i]);
+        }
+    }
 }
 
 TEST_CASE("mat4 constants", MATRIX_TEST_TAG)

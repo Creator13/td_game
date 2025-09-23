@@ -266,9 +266,9 @@ TEST_CASE("float3 normalize", "[math][vector]")
     {
         vec3 zero = vec3::zero;
         vec3 n = normalize(zero);
-        REQUIRE(std::isnan(n.x));
-        REQUIRE(std::isnan(n.y));
-        REQUIRE(std::isnan(n.z));
+        REQUIRE(n.x == 0);
+        REQUIRE(n.y == 0);
+        REQUIRE(n.z == 0);
     }
 }
 

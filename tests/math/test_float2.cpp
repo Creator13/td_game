@@ -252,8 +252,8 @@ TEST_CASE("float2 normalize", "[math][vector]")
     {
         vec2 zero = vec2::zero;
         vec2 n = normalize(zero);
-        REQUIRE(std::isnan(n.x));
-        REQUIRE(std::isnan(n.y));
+        REQUIRE(n.x == 0);
+        REQUIRE(n.y == 0);
     }
 }
 
