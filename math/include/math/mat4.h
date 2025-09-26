@@ -86,7 +86,7 @@ namespace math
         return true;
     }
 
-    const mat4 mat4::zero = mat4();
+    inline const mat4 mat4::zero = mat4();
 
     inline const mat4 mat4::identity = {
         1, 0, 0, 0,

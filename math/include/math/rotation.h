@@ -23,10 +23,9 @@ namespace math
         constexpr bool operator==(const quaternion&) const;
         constexpr bool operator!=(const quaternion&) const;
 
-        constexpr static quaternion inverse(quaternion q);
-
         /// Creates a rotation by degrees around each axis, in XYZ order
         static quaternion eulerAngles(float x, float y, float z);
+        static quaternion eulerAngles(vec3 angles);
         static quaternion lookRotation(const vec3& forward, const vec3& up);
         static quaternion angleAxis(float angle, const vec3& axis);
 
@@ -76,6 +75,7 @@ namespace math
 
         static constexpr rot3x3 fromQuaternion(quaternion q);
         static rot3x3 eulerAngles(float x, float y, float z);
+        static rot3x3 eulerAngles(vec3 angles);
         static rot3x3 lookRotation(const vec3& forward, const vec3& up);
         static rot3x3 angleAxis(float angle, const vec3& axis);
 
@@ -87,11 +87,14 @@ namespace math
     quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept;
     constexpr bool approx(const quaternion& lhs, const quaternion& rhs, float eps = EPSILON) noexcept;
 
+    constexpr quaternion inverse(quaternion q);
     inline quaternion normalize(quaternion q);
     constexpr float dot(quaternion a, quaternion b);
     inline vec3 toEuler(quaternion q);
     inline quaternion slerp(quaternion a, quaternion b, float t);
     inline vec3 rotate(const quaternion& q, const vec3& v);
+
+    inline vec3 toEuler(const rot3x3& rot);
 
     constexpr bool quaternion::operator==(const quaternion& other) const
     {
@@ -103,7 +106,7 @@ namespace math
         return !this->operator==(other);
     }
 
-    constexpr quaternion quaternion::inverse(quaternion q)
+    constexpr quaternion inverse(quaternion q)
     {
         // Actually computes the conjugate of the quaternion, not the true inverse, on the basis that we always work with a unit quaternion.
         // inverse(q) = conjugate(q) / magnitude(q) -> if magnitude is 1 (unit quaternion), the inverse is simply the conjugate
@@ -117,19 +120,24 @@ namespace math
         y *= DEG2RAD;
         z *= DEG2RAD;
 
-        const float sx = sin(x * .5f);
-        const float cx = cos(x * .5f);
-        const float sy = sin(y * .5f);
-        const float cy = cos(y * .5f);
-        const float sz = sin(z * .5f);
-        const float cz = cos(z * .5f);
+        const float sx = sin(x * 0.5f);
+        const float cx = cos(x * 0.5f);
+        const float sy = sin(y * 0.5f);
+        const float cy = cos(y * 0.5f);
+        const float sz = sin(z * 0.5f);
+        const float cz = cos(z * 0.5f);
 
         quaternion q;
-        q.x = sx * cy * cz + cx * sy * sz;
-        q.y = cx * sy * cz - sx * cy * sz;
-        q.z = cx * cy * sz + sx * sy * cz;
-        q.w = cx * cy * cz - sx * sy * sz;
+        q.w = cx * cy * cz + sx * sy * sz;
+        q.x = sx * cy * cz - cx * sy * sz;
+        q.y = cx * sy * cz + sx * cy * sz;
+        q.z = cx * cy * sz - sx * sy * cz;
         return normalize(q);
+    }
+
+    inline quaternion quaternion::eulerAngles(vec3 angles)
+    {
+        return eulerAngles(angles.x, angles.y, angles.z);
     }
 
     inline quaternion quaternion::lookRotation(const vec3& forward, const vec3& up)
@@ -253,25 +261,35 @@ namespace math
 
     inline vec3 toEuler(quaternion q)
     {
-        vec3 euler;
-        float sinp = 2 * (q.w * q.x - q.y * q.z);
+        float sinp = -2 * (q.x * q.z - q.w * q.y);
         sinp = clamp(sinp, -1.f, 1.f);
 
-        if (approx(abs(sinp), 1))
+        vec3 euler;
+        if (abs(sinp) > 0.999999f)
         {
-            euler.x = HALFPI * sinp;
-            euler.y = atan2(2 * (q.w * q.y + q.z * q.x), 1 - 2 * (q.x * q.x + q.y * q.y));
+            euler.x = atan2(-2.0f * (q.y*q.z - q.w*q.x),
+                            1.0f - 2.0f * (q.x * q.x + q.z * q.z));
+            euler.y = HALFPI * sinp;
             euler.z = 0;
         }
         else
         {
-            euler.x = asin(sinp);
-            euler.y = atan2(2 * (q.w * q.y + q.z * q.x), 1 - 2 * (q.x * q.x + q.y * q.y));
-            euler.z = atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
+            euler.x = atan2(2.0f * (q.y*q.z + q.w*q.x),
+                            1.0f - 2.0f * (q.x*q.x + q.y*q.y));
+            euler.y = asin(sinp);
+            euler.z = atan2(2.0f * (q.x*q.y + q.w*q.z),
+                            1.0f - 2.0f * (q.y * q.y + q.z * q.z));
         }
 
         return euler * RAD2DEG;
     }
+
+    // inline vec3 toEuler(quaternion q)
+    // {
+    //     rot3x3 rot = rot3x3::fromQuaternion(q);
+    //     return toEuler(rot);
+    // }
+
 
     inline quaternion slerp(quaternion a, quaternion b, float t)
     {
@@ -356,18 +374,21 @@ namespace math
         y *= DEG2RAD;
         z *= DEG2RAD;
 
-        const float sx = sin(x * .5f);
-        const float cx = cos(x * .5f);
-        const float sy = sin(y * .5f);
-        const float cy = cos(y * .5f);
-        const float sz = sin(z * .5f);
-        const float cz = cos(z * .5f);
+        const float sx = sin(x), cx = cos(x);
+        const float sy = sin(y), cy = cos(y);
+        const float sz = sin(z), cz = cos(z);
 
+        // R = Rz * Ry * Rx
         rot3x3 m;
-        m.xBasis = vec3(cy * cz, cx * sz + sx * sy * cz, sx * sz - cx * sy * sz);
-        m.yBasis = vec3(-cy * sz, cx * cz - sx * sy * sz, sx * cz + cx * sy * sz);
-        m.zBasis = vec3(sy, -sx * cy, cx * cy);
+        m.xBasis = vec3(cz * cy, sz * cy, -sy);
+        m.yBasis = vec3(cz * sy * sx - sz * cx, sx * sy * sz + cz * cx, cy * sx);
+        m.zBasis = vec3(cz * sy * cx + sz * sx, sz * sy * cx - cz * sx, cy * cx);
         return m;
+    }
+
+    inline rot3x3 rot3x3::eulerAngles(vec3 angles)
+    {
+        return eulerAngles(angles.x, angles.y, angles.z);
     }
 
     inline rot3x3 rot3x3::lookRotation(const vec3& forward, const vec3& up)
@@ -467,25 +488,34 @@ namespace math
 
     inline vec3 toEuler(const rot3x3& m)
     {
-        float sy = m.zBasis.y;
-        sy = math::clamp(sy, -1.0f, 1.0f);
-
         float x, y, z;
 
-        if (math::abs(sy) < 1 - EPSILON)
+        // R = Rz * Ry * Rx
+        float sy = -m.xBasis.z; // -sinY
+        if (sy <= -1.f)
         {
-            x = math::atan2(-m.zBasis.y, m.zBasis.z);
-            y = asin(sy);
-            z = math::atan2(-m.yBasis.x, m.xBasis.x);
+            y = -HALFPI;
+        }
+        else if (sy >= 1.f)
+        {
+            y = HALFPI;
         }
         else
         {
-            float s = (sy > 0) ? 1.f : -1.f;
-            y = s * HALFPI;
-            x = math::atan2(s * m.zBasis.y, m.zBasis.z);
-            z = 0;
+            y = asin(sy);
         }
 
+        if (abs(sy) < .999999f)
+        {
+            x = atan2(m.yBasis.z, m.zBasis.z);
+            z = atan2(m.xBasis.y, m.xBasis.x);
+        }
+        else
+        {
+            // gimbal lock
+            x = atan2(-m.zBasis.y, m.yBasis.y);
+            z = 0.0f;
+        }
         return vec3(x, y, z) * RAD2DEG;
     }
 }

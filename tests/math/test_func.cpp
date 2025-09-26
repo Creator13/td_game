@@ -55,3 +55,19 @@ TEST_CASE("Abs", FUNCTIONS_TEST_TAG)
     CHECK(math::abs(-0.1563343234f) == 0.1563343234f);
     CHECK(math::abs(0.1563343234f) == 0.1563343234f);
 }
+
+TEST_CASE("Clamp", FUNCTIONS_TEST_TAG)
+{
+    CHECK(math::clamp(3, -4, 4) == 3);
+    CHECK(math::clamp(-2, -4, 4) == -2);
+    CHECK(math::clamp(-15, -4, 4) == -4);
+    CHECK(math::clamp(45, -4, 4) == 4);
+    CHECK(math::clamp(4, -4, 4) == 4);
+    CHECK(math::clamp(-4, -4, 4) == -4);
+    CHECK(math::clamp(2, 2, 2) == 2);
+    CHECK(math::clamp(-2, 2, 2) == 2);
+    CHECK(math::clamp(0, 2, 2) == 2);
+    CHECK(math::clamp(3.4, 2, 2) == 2);
+    CHECK(math::clamp(.3, 0, 1) == .3f);
+    CHECK(math::clamp01(.3) == .3f);
+}
