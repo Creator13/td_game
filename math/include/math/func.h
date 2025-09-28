@@ -7,9 +7,9 @@ namespace math
 {
     constexpr float EPSILON = 1e-5f;
 
-    inline float sqrt(float t)
+    inline float sqrt(float val)
     {
-        return std::sqrt(t);
+        return std::sqrt(val);
     }
 
     template<typename T>
@@ -77,5 +77,12 @@ namespace math
     constexpr float clamp01(float a)
     {
         return clamp(a, 0.0f, 1.0f);
+    }
+
+    constexpr float copysign(float num, float sgn) noexcept
+    {
+        uint32_t xi = std::bit_cast<uint32_t>(num) & 0x7fff'ffffu;
+        uint32_t yi = std::bit_cast<uint32_t>(sgn) & 0x8000'0000u;
+        return std::bit_cast<float>(xi | yi);
     }
 }

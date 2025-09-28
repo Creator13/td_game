@@ -125,18 +125,23 @@ TEST_CASE("Inverse rotation", ROTATION_TEST_TAG)
 
 TEST_CASE("Euler angles", ROTATION_TEST_TAG)
 {
-    vec3 angles = vec3(63, 17, -40);
+    vec3 angles = GENERATE(
+        // vec3(63, 17, -40)
+        vec3(180, 0, 90)
+    );
 
     SECTION("Quaternion euler angles")
     {
         quaternion q = quaternion::eulerAngles(angles);
-        CHECK(math::approx(angles, toEuler(q)));
+        vec3 result = math::toEuler(q);
+        CHECK(math::approx(angles, result));
     }
 
     SECTION("Rot3x3 euler angles")
     {
         rot3x3 rot = rot3x3::eulerAngles(angles);
-        CHECK(math::approx(angles, math::toEuler(rot)));
+        vec3 result = math::toEuler(rot);
+        CHECK(math::approx(angles, result));
     }
 }
 
@@ -162,15 +167,53 @@ TEST_CASE("Cardinal axes rotation", ROTATION_TEST_TAG)
 
 TEST_CASE("Quaternion and matrix equivalency", ROTATION_TEST_TAG)
 {
+    vec3 angles = GENERATE(
+        vec3(23, 45, 76),
+        vec3(-25.3, 18, 190),
+        vec3(0, 10, 890),
+        vec3(500,500 , 0),
+        vec3(0, 500, 0),
+        vec3(0, -500,0),
+        vec3(0, 0, 190),
+        vec3(40, 190, -270),
+        vec3(0, 10, 190)
+    );
+
+    quaternion q = quaternion::eulerAngles(angles);
+    rot3x3 mat = rot3x3::eulerAngles(angles);
+
     vec3 vector = vec3(3.4, -2.23, 7.1);
+    SECTION("Rotation application")
+    {
+        vec3 qResult = math::rotate(q, vector);
+        vec3 matResult = mat * vector;
 
-    quaternion q = quaternion::eulerAngles(23, 45, 76);
-    rot3x3 mat = rot3x3::eulerAngles(23, 45, 76);
+        CHECK(math::approx(qResult, matResult));
+    }
 
-    vec3 qResult = math::rotate(q, vector);
-    vec3 matResult = mat * vector;
+    SECTION("Conversion")
+    {
+        SECTION("Matrix to quaternion")
+        {
+            quaternion qFromMat = quaternion::fromRot3x3(mat);
 
-    CHECK(math::approx(qResult, matResult));
+            vec3 result_originalQuaternion = math::rotate(q, vector);
+            vec3 result_convertedQuaterion = math::rotate(qFromMat, vector);
+
+            CHECK(math::approx(math::abs(dot(q, qFromMat)), 1));
+            CHECK(math::approx(result_convertedQuaterion, result_originalQuaternion));
+        }
+        SECTION("Quaternion to matrix")
+        {
+            rot3x3 matFromQ = rot3x3::fromQuaternion(q);
+
+            vec3 result_originalMatrix = mat * vector;
+            vec3 result_convertedMatrix = matFromQ * vector;
+
+            CHECK(math::approx(mat, matFromQ));
+            CHECK(math::approx(result_convertedMatrix, result_originalMatrix));
+        }
+    }
 }
 
 TEST_CASE("Quaternion normalize", ROTATION_TEST_TAG)

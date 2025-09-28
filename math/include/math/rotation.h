@@ -162,9 +162,9 @@ namespace math
     inline quaternion quaternion::fromRot3x3(const rot3x3& m)
     {
         // Adapted from https://gamemath.com/book/orient.html#matrix_to_quaternion (listing 8.5), originally Shoemake
-        float m11 = m.xBasis.x, m12 = m.yBasis.x, m13 = m.zBasis.x;
-        float m21 = m.xBasis.y, m22 = m.yBasis.y, m23 = m.zBasis.y;
-        float m31 = m.xBasis.z, m32 = m.yBasis.z, m33 = m.zBasis.z;
+        float m11 = m.xBasis.x, m12 = m.xBasis.y, m13 = m.xBasis.z;
+        float m21 = m.yBasis.x, m22 = m.yBasis.y, m23 = m.yBasis.z;
+        float m31 = m.zBasis.x, m32 = m.zBasis.y, m33 = m.zBasis.z;
 
         float fourWSqMinus1 = m11 + m22 + m33;
         float fourXSqMinus1 = m11 - m22 - m33;
@@ -219,14 +219,15 @@ namespace math
                 q.z = biggestVal;
                 q.w = (m12 - m21) * mult;
                 q.x = (m31 + m13) * mult;
-                q.y = (m23 - m32) * mult;
+                q.y = (m23 + m32) * mult;
                 break;
         }
         return normalize(q);
     }
 
     // ****
-    // FREE FUNCTIONS    // ****
+    // FREE FUNCTIONS
+    // ****
 
     inline quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept
     {
@@ -261,35 +262,29 @@ namespace math
 
     inline vec3 toEuler(quaternion q)
     {
-        float sinp = -2 * (q.x * q.z - q.w * q.y);
-        sinp = clamp(sinp, -1.f, 1.f);
+        float sinp = -2 * (q.x * q.z - q.w * q.y); // xBasis.z
+        sinp = clamp(sinp, -1.0f, 1.0f);
 
         vec3 euler;
         if (abs(sinp) > 0.999999f)
         {
-            euler.x = atan2(-2.0f * (q.y*q.z - q.w*q.x),
-                            1.0f - 2.0f * (q.x * q.x + q.z * q.z));
-            euler.y = HALFPI * sinp;
+            // gimbal lock
+            euler.x = atan2(-2.0f * (q.y * q.z - q.w * q.x), // -zBasis.y
+                            1.0f - 2.0f * (q.x * q.x + q.z * q.z)); // yBasis.y
+            euler.y = copysign(HALFPI, sinp);
             euler.z = 0;
         }
         else
         {
-            euler.x = atan2(2.0f * (q.y*q.z + q.w*q.x),
-                            1.0f - 2.0f * (q.x*q.x + q.y*q.y));
+            euler.x = atan2(2.0f * (q.y * q.z + q.w * q.x), // yBasis.z
+                            1.0f - 2.0f * (q.x * q.x + q.y * q.y)); // zBasis.z
             euler.y = asin(sinp);
-            euler.z = atan2(2.0f * (q.x*q.y + q.w*q.z),
-                            1.0f - 2.0f * (q.y * q.y + q.z * q.z));
+            euler.z = atan2(2.0f * (q.x * q.y + q.w * q.z), // xBasis.y
+                            1.0f - 2.0f * (q.y * q.y + q.z * q.z)); // xBasis.x
         }
 
         return euler * RAD2DEG;
     }
-
-    // inline vec3 toEuler(quaternion q)
-    // {
-    //     rot3x3 rot = rot3x3::fromQuaternion(q);
-    //     return toEuler(rot);
-    // }
-
 
     inline quaternion slerp(quaternion a, quaternion b, float t)
     {
@@ -312,12 +307,21 @@ namespace math
 
     constexpr bool rot3x3::operator==(const rot3x3& other) const
     {
-        return xBasis == other.xBasis && yBasis == other.yBasis && zBasis == other.zBasis;
+        return xBasis == other.xBasis
+               && yBasis == other.yBasis
+               && zBasis == other.zBasis;
     }
 
     constexpr bool rot3x3::operator!=(const rot3x3& other) const
     {
         return !operator==(other);
+    }
+
+    constexpr bool approx(const rot3x3& lhs, const rot3x3& rhs)
+    {
+        return approx(lhs.xBasis, rhs.xBasis)
+               && approx(lhs.yBasis, rhs.yBasis)
+               && approx(lhs.zBasis, rhs.zBasis);
     }
 
     constexpr vec3 operator*(const rot3x3& lhs, vec3 vec)
@@ -488,34 +492,23 @@ namespace math
 
     inline vec3 toEuler(const rot3x3& m)
     {
-        float x, y, z;
+        float sinp = -m.xBasis.z;
+        sinp = clamp(sinp, -1.0f, 1.0f);
 
-        // R = Rz * Ry * Rx
-        float sy = -m.xBasis.z; // -sinY
-        if (sy <= -1.f)
-        {
-            y = -HALFPI;
-        }
-        else if (sy >= 1.f)
-        {
-            y = HALFPI;
-        }
-        else
-        {
-            y = asin(sy);
-        }
-
-        if (abs(sy) < .999999f)
-        {
-            x = atan2(m.yBasis.z, m.zBasis.z);
-            z = atan2(m.xBasis.y, m.xBasis.x);
-        }
-        else
+        vec3 euler;
+        if (abs(sinp) > .999999f)
         {
             // gimbal lock
-            x = atan2(-m.zBasis.y, m.yBasis.y);
-            z = 0.0f;
+            euler.x = atan2(-m.zBasis.y, m.yBasis.y);
+            euler.y = copysign(HALFPI, sinp);
+            euler.z = 0.0f;
         }
-        return vec3(x, y, z) * RAD2DEG;
+        else
+        {
+            euler.x = atan2(m.yBasis.z, m.zBasis.z);
+            euler.y = asin(sinp);
+            euler.z = atan2(m.xBasis.y, m.xBasis.x);
+        }
+        return euler * RAD2DEG;
     }
 }
