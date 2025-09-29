@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "rotation.h"
 #include "vec3.h"
 #include "vec4.h"
 #include "trig.h"
@@ -288,7 +289,37 @@ namespace math
 
     inline quaternion slerp(quaternion a, quaternion b, float t)
     {
-        return quaternion::identity;
+        float cosOmega = dot(a, b);
+        if (cosOmega < 0.f)
+        {
+            b.w = -b.w;
+            b.x = -b.x;
+            b.y = -b.y;
+            b.z = -b.z;
+            cosOmega = -cosOmega;
+        }
+
+        float k0, k1;
+        if (cosOmega > 1 - EPSILON)
+        {
+            k0 = 1.f - t;
+            k1 = t;
+        }
+        else
+        {
+            float sinOmega = sqrt(1.0f - cosOmega * cosOmega);
+            float omega = atan2(sinOmega, cosOmega);
+            float oneOverSinOmega = 1.f / sinOmega;
+            k0 = sin((1.f - t) * omega) * oneOverSinOmega;
+            k1 = sin(t * omega) * oneOverSinOmega;
+        }
+
+        quaternion result;
+        result.w = a.w * k0 + b.w * k1;
+        result.x = a.x * k0 + b.x * k1;
+        result.y = a.y * k0 + b.y * k1;
+        result.z = a.z * k0 + b.z * k1;
+        return result;
     }
 
     inline vec3 rotate(const quaternion& q, const vec3& v)
@@ -510,5 +541,10 @@ namespace math
             euler.z = atan2(m.xBasis.y, m.xBasis.x);
         }
         return euler * RAD2DEG;
+    }
+
+    inline vec3 rotate(const rot3x3& mat, vec3 vec)
+    {
+        return mat * vec;
     }
 }

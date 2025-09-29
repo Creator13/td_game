@@ -1,9 +1,9 @@
 #include <catch2/catch_all.hpp>
 
-#include "math/vec.h"
 #include "math/mat4.h"
 #include "math/func.h"
 #include "math/rotation.h"
+#include "math/vec.h"
 
 using math::vec3;
 using math::vec4;
@@ -123,25 +123,81 @@ TEST_CASE("Inverse rotation", ROTATION_TEST_TAG)
     }
 }
 
-TEST_CASE("Euler angles", ROTATION_TEST_TAG)
+TEMPLATE_TEST_CASE("Euler angles special cases", ROTATION_TEST_TAG, quaternion, rot3x3)
 {
-    vec3 angles = GENERATE(
-        // vec3(63, 17, -40)
-        vec3(180, 0, 90)
-    );
+    using RotationType = TestType;
 
-    SECTION("Quaternion euler angles")
+    SECTION("Canonical angles")
     {
-        quaternion q = quaternion::eulerAngles(angles);
-        vec3 result = math::toEuler(q);
-        CHECK(math::approx(angles, result));
+        vec3 angles = GENERATE(
+            vec3(-30, 20, 56),
+            vec3(34.4f, -89, 32),
+            vec3(0, 18, -122),
+            vec3(-179.4f, 0, 179.5f),
+            vec3(0, 0, 0),
+            vec3(118, 20, 0),
+            vec3(90, 0, 0),
+            vec3 (0, 45, 0),
+            vec3(0, 0, -90)
+        );
+
+        RotationType rot = RotationType::eulerAngles(angles);
+        vec3 result = math::toEuler(rot);
+        // Requires a fairly large epsilon, because the numbers go through quite a few transformations.
+        // Unfortunately this is the nature of rotations.
+        CHECK(math::approx(angles, result, 2e-4f));
     }
 
-    SECTION("Rot3x3 euler angles")
+    SECTION("Gimbal lock")
     {
-        rot3x3 rot = rot3x3::eulerAngles(angles);
+        vec3 angles = GENERATE(
+            vec3(45, 90, 0),
+            vec3(-21.15, 90, 143),
+            vec3(60, 90, -143),
+            vec3(60, -90, 20),
+            vec3(-60, -90, 122),
+            vec3(0, -90, 0)
+        );
+
+        RotationType rot = RotationType::eulerAngles(angles);
         vec3 result = math::toEuler(rot);
-        CHECK(math::approx(angles, result));
+
+        CHECK(math::approx(result.y, angles.y)); // Returned y angle is identical to the input y angle.
+        CHECK(result.z == 0); // Z is expected to be exactly zero as it cannot be recovered in gimbal lock.
+
+        // Compare sin and cos of combined x and z input angles to be equal to the sin and cos of the output x angle.
+        // This ensures the resulting angles are equivalent even if they do not match numerically.
+        float expectedCombined;
+        if (angles.y > 0)
+        {
+            expectedCombined = angles.x - angles.z;
+        }
+        else
+        {
+            expectedCombined = angles.x + angles.z;
+        }
+        expectedCombined *= math::DEG2RAD;
+        float resultX = result.x * math::DEG2RAD;
+        CHECK(math::approx(math::cos(expectedCombined), math::cos(resultX)));
+        CHECK(math::approx(math::sin(expectedCombined), math::sin(resultX)));
+    }
+
+    SECTION("Boundary angle checks")
+    {
+        vec3 angles = GENERATE(
+            vec3(180, 0, 0),
+            vec3(-180, 0, 0),
+            vec3(0, 180, 0),
+            vec3(0, -180, 0),
+            vec3(0, 0, 180),
+            vec3(0, 0, -180)
+        );
+        RotationType rot = RotationType::eulerAngles(angles);
+        vec3 result = math::toEuler(rot);
+
+        rot3x3 originalAnglesMatrix = rot3x3::eulerAngles(angles);
+        rot3x3 convertedAnglesMatrix = rot3x3::eulerAngles(result);
+        CHECK(math::approx(originalAnglesMatrix, convertedAnglesMatrix));
     }
 }
 
@@ -213,6 +269,31 @@ TEST_CASE("Quaternion and matrix equivalency", ROTATION_TEST_TAG)
             CHECK(math::approx(mat, matFromQ));
             CHECK(math::approx(result_convertedMatrix, result_originalMatrix));
         }
+    }
+}
+
+TEST_CASE("Slerp", ROTATION_TEST_TAG)
+{
+    SECTION("Edge cases")
+    {
+        quaternion q0 = quaternion::eulerAngles(78, 1, 23.4);
+        quaternion q1 = quaternion::eulerAngles(-20.2, 98, 30.3);
+
+        CHECK(math::slerp(q0, q1, 0) == q0);
+        CHECK(math::slerp(q0, q1, 1) == q1);
+
+        CHECK(math::slerp(q0, q0, 0) == q0);
+        CHECK(math::approx(math::slerp(q0, q0, .234), q0));
+        CHECK(math::slerp(q0, q0, 1) == q0);
+    }
+
+    SECTION("Functionality")
+    {
+        quaternion q0 = quaternion::identity;
+        quaternion q1 = quaternion::angleAxis(90, vec3(1, 0, 0));
+
+        quaternion expected = quaternion::angleAxis(45, vec3(1, 0, 0));
+        CHECK(math::approx(math::slerp(q0, q1, .5f), expected));
     }
 }
 
