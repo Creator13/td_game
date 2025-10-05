@@ -110,7 +110,7 @@ TEST_CASE("Inverse rotation", ROTATION_TEST_TAG)
     {
         rot3x3 rot = rot3x3::eulerAngles(23, 45, 76);
         vec3 rotated = rot * vector;
-        rot3x3 invRot = rot.getTranspose();
+        rot3x3 invRot = transpose(rot);
         CHECK(math::approx(invRot * rotated, vector));
     }
 

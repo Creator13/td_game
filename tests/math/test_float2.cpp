@@ -12,7 +12,7 @@ namespace math
     }
 }
 
-TEST_CASE("float2 construction", "[math][vector]")
+TEST_CASE("vec2 construction", "[math][vector]")
 {
     SECTION("Parameter constructor")
     {
@@ -32,7 +32,7 @@ TEST_CASE("float2 construction", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 add/subtract", "[math][vector]")
+TEST_CASE("vec2 add/subtract", "[math][vector]")
 {
     vec2 a = vec2(2.3, 6.8);
     vec2 b = GENERATE(
@@ -84,7 +84,7 @@ TEST_CASE("float2 add/subtract", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 scalar math", "[math][vector]")
+TEST_CASE("vec2 scalar math", "[math][vector]")
 {
     SECTION("Zero vector multiplication")
     {
@@ -130,7 +130,7 @@ TEST_CASE("float2 scalar math", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 length", "[math][vector]")
+TEST_CASE("vec2 length", "[math][vector]")
 {
     using pair = std::pair<vec2, float>;
 
@@ -181,7 +181,7 @@ TEST_CASE("float2 length", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 equality and inequality", "[math][vector]")
+TEST_CASE("vec2 equality and inequality", "[math][vector]")
 {
     vec2 a(1.f, 2.f);
     vec2 b(1.f, 2.f);
@@ -193,7 +193,7 @@ TEST_CASE("float2 equality and inequality", "[math][vector]")
     REQUIRE_FALSE(a == c);
 }
 
-TEST_CASE("float2 unary minus", "[math][vector]")
+TEST_CASE("vec2 unary minus", "[math][vector]")
 {
     vec2 a(3.5f, -7.1f);
     vec2 b = -a;
@@ -205,7 +205,7 @@ TEST_CASE("float2 unary minus", "[math][vector]")
     REQUIRE(-b == a);
 }
 
-TEST_CASE("float2 scalar division and multiplication symmetry", "[math][vector]")
+TEST_CASE("vec2 scalar division and multiplication symmetry", "[math][vector]")
 {
     vec2 a(2.f, -4.f);
 
@@ -230,7 +230,7 @@ TEST_CASE("float2 scalar division and multiplication symmetry", "[math][vector]"
     }
 }
 
-TEST_CASE("float2 normalize", "[math][vector]")
+TEST_CASE("vec2 normalize", "[math][vector]")
 {
     SECTION("Unit vectors remain unchanged")
     {
@@ -257,7 +257,7 @@ TEST_CASE("float2 normalize", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 dot product", "[math][vector]")
+TEST_CASE("vec2 dot product", "[math][vector]")
 {
     SECTION("Orthogonal vectors")
     {
@@ -272,7 +272,7 @@ TEST_CASE("float2 dot product", "[math][vector]")
     }
 }
 
-TEST_CASE("float2 perp", "[math][vector]")
+TEST_CASE("vec2 perp", "[math][vector]")
 {
     vec2 a(2.f, 3.f);
     vec2 p = perp(a);
@@ -283,7 +283,7 @@ TEST_CASE("float2 perp", "[math][vector]")
     REQUIRE_THAT(dot(a, p), Catch::Matchers::WithinRel(0.f));
 }
 
-TEST_CASE("float2 static constants", "[math][vector]")
+TEST_CASE("vec2 static constants", "[math][vector]")
 {
     REQUIRE(vec2::zero == vec2(0.f, 0.f));
     REQUIRE(vec2::one == vec2(1.f, 1.f));

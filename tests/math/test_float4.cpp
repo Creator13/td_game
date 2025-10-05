@@ -13,7 +13,7 @@ namespace math
     }
 }
 
-TEST_CASE("float4 construction", "[math][vector]")
+TEST_CASE("vec4 construction", "[math][vector]")
 {
     SECTION("Parameter constructor")
     {
@@ -48,7 +48,7 @@ TEST_CASE("float4 construction", "[math][vector]")
     }
 }
 
-TEST_CASE("float4 add/subtract", "[math][vector]")
+TEST_CASE("vec4 add/subtract", "[math][vector]")
 {
     vec4 a = vec4(2.3, 6.8, 1.0, 3.5);
     vec4 b = GENERATE(
@@ -114,7 +114,7 @@ TEST_CASE("float4 add/subtract", "[math][vector]")
     }
 }
 
-TEST_CASE("float4 scalar math", "[math][vector]")
+TEST_CASE("vec4 scalar math", "[math][vector]")
 {
     SECTION("Zero vector multiplication")
     {
@@ -170,7 +170,7 @@ TEST_CASE("float4 scalar math", "[math][vector]")
     }
 }
 
-TEST_CASE("float4 length", "[math][vector]")
+TEST_CASE("vec4 length", "[math][vector]")
 {
     using pair = std::pair<vec4, float>;
 
@@ -209,7 +209,7 @@ TEST_CASE("float4 length", "[math][vector]")
     }
 }
 
-TEST_CASE("float4 equality and inequality", "[math][vector]")
+TEST_CASE("vec4 equality and inequality", "[math][vector]")
 {
     vec4 a(1.f, 2.f, 3.f, 4.f);
     vec4 b(1.f, 2.f, 3.f, 4.f);
@@ -220,7 +220,7 @@ TEST_CASE("float4 equality and inequality", "[math][vector]")
     REQUIRE_FALSE(a == c);
 }
 
-TEST_CASE("float4 unary minus", "[math][vector]")
+TEST_CASE("vec4 unary minus", "[math][vector]")
 {
     vec4 a(3.5f, -7.1f, 2.0f, -4.0f);
     vec4 b = -a;
@@ -232,7 +232,7 @@ TEST_CASE("float4 unary minus", "[math][vector]")
     REQUIRE(-b == a);
 }
 
-TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]")
+TEST_CASE("vec4 scalar division and multiplication symmetry", "[math][vector]")
 {
     vec4 a(2.f, -4.f, 6.f, -8.f);
 
@@ -261,7 +261,7 @@ TEST_CASE("float4 scalar division and multiplication symmetry", "[math][vector]"
     }
 }
 
-TEST_CASE("float4 normalize", "[math][vector]")
+TEST_CASE("vec4 normalize", "[math][vector]")
 {
     SECTION("Unit vectors remain unchanged")
     {
@@ -300,7 +300,7 @@ TEST_CASE("float4 normalize", "[math][vector]")
     }
 }
 
-TEST_CASE("float4 dot product", "[math][vector]")
+TEST_CASE("vec4 dot product", "[math][vector]")
 {
     vec4 a(2.f, 3.f, 1.f, 0.5f);
     vec4 b(-1.f, 4.f, 2.f, 0.1f);
@@ -311,7 +311,7 @@ TEST_CASE("float4 dot product", "[math][vector]")
     CHECK_THAT(dot(a, b), Catch::Matchers::WithinAbs(-3.9, 1e-6f));
 }
 
-TEST_CASE("float4 static constants", "[math][vector]")
+TEST_CASE("vec4 static constants", "[math][vector]")
 {
     REQUIRE(vec4::zero == vec4(0.f, 0.f, 0.f, 0.f));
     REQUIRE(vec4::one == vec4(1.f, 1.f, 1.f, 1.f));

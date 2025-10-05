@@ -1,7 +1,9 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 
+#include "rotation.h"
+#include "rotation.h"
 #include "rotation.h"
 #include "vec3.h"
 #include "vec4.h"
@@ -18,7 +20,7 @@ namespace math
         constexpr quaternion() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) { }
         constexpr quaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) { };
 
-        explicit constexpr operator vec4() const noexcept { return vec4(x, y, z, w); }
+        constexpr explicit operator vec4() const noexcept { return vec4(x, y, z, w); }
         constexpr explicit quaternion(const vec4& v) noexcept : x(v.x), y(v.y), z(v.z), w(v.w) { }
 
         constexpr bool operator==(const quaternion&) const;
@@ -26,10 +28,14 @@ namespace math
 
         /// Creates a rotation by degrees around each axis, in XYZ order
         static quaternion eulerAngles(float x, float y, float z);
+        /// Creates a rotation by degrees around each axis, in XYZ order
         static quaternion eulerAngles(vec3 angles);
+        /// Creates a rotation from a forward and up vector
         static quaternion lookRotation(const vec3& forward, const vec3& up);
+        /// Creates a rotation by angle degrees around the provided axis
         static quaternion angleAxis(float angle, const vec3& axis);
 
+        /// Create a quaternion from a rotation matrix
         static quaternion fromRot3x3(const rot3x3& m);
 
         static const quaternion identity;
@@ -72,18 +78,19 @@ namespace math
 
         constexpr rot3x3& operator*=(const rot3x3& other);
 
-        constexpr rot3x3 getTranspose() const;
-
-        static constexpr rot3x3 fromQuaternion(quaternion q);
         static rot3x3 eulerAngles(float x, float y, float z);
         static rot3x3 eulerAngles(vec3 angles);
         static rot3x3 lookRotation(const vec3& forward, const vec3& up);
         static rot3x3 angleAxis(float angle, const vec3& axis);
 
+        static constexpr rot3x3 fromQuaternion(quaternion q);
+
         static const rot3x3 identity;
     };
 
-    inline const quaternion quaternion::identity = quaternion(0, 0, 0, 1);
+    // ***************************
+    //  QUATERNION FREE FUNCTIONS
+    // ***************************
 
     quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept;
     constexpr bool approx(const quaternion& lhs, const quaternion& rhs, float eps = EPSILON) noexcept;
@@ -93,9 +100,13 @@ namespace math
     constexpr float dot(quaternion a, quaternion b);
     inline vec3 toEuler(quaternion q);
     inline quaternion slerp(quaternion a, quaternion b, float t);
-    constexpr vec3 rotate(const quaternion& q, const vec3& v);
+    constexpr vec3 rotate(const quaternion& q, const vec3& vec);
 
-    inline vec3 toEuler(const rot3x3& rot);
+    // ***************************
+    //  QUATERNION IMPLEMENTATION
+    // ***************************
+
+    inline const quaternion quaternion::identity = quaternion(0, 0, 0, 1);
 
     constexpr bool quaternion::operator==(const quaternion& other) const
     {
@@ -226,10 +237,6 @@ namespace math
         return normalize(q);
     }
 
-    // ****
-    // FREE FUNCTIONS
-    // ****
-
     inline quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept
     {
         quaternion result;
@@ -322,13 +329,30 @@ namespace math
         return result;
     }
 
-    constexpr vec3 rotate(const quaternion& q, const vec3& v)
+    constexpr vec3 rotate(const quaternion& q, const vec3& vec)
     {
         vec3 qv(q.x, q.y, q.z);
-        vec3 uv = cross(qv, v);
+        vec3 uv = cross(qv, vec);
         vec3 uuv = cross(qv, uv);
-        return v + ((uv * q.w) + uuv) * 2.f;
+        return vec + ((uv * q.w) + uuv) * 2.f;
     }
+
+    // *****************************
+    //  ROT3x3 FUNCTION DEFINITIONS
+    // *****************************
+
+    constexpr rot3x3 operator*(const rot3x3& lhs, const rot3x3& rhs);
+    constexpr vec3 operator*(const rot3x3& mat, vec3 vec);
+    constexpr bool approx(const rot3x3& lhs, const rot3x3& rhs);
+
+    constexpr rot3x3 transpose(const rot3x3& mat);
+    inline rot3x3 orthonormalize(const rot3x3& mat);
+    inline vec3 toEuler(const rot3x3& mat);
+    inline vec3 rotate(const rot3x3& mat, vec3 vec);
+
+    // ***********************
+    //  ROT3x3 IMPLEMENTATION
+    // ***********************
 
     inline const rot3x3 rot3x3::identity = rot3x3{
         1, 0, 0,
@@ -348,6 +372,12 @@ namespace math
         return !operator==(other);
     }
 
+    constexpr rot3x3& rot3x3::operator*=(const rot3x3& other)
+    {
+        *this = *this * other;
+        return *this;
+    }
+
     constexpr bool approx(const rot3x3& lhs, const rot3x3& rhs)
     {
         return approx(lhs.xBasis, rhs.xBasis)
@@ -355,9 +385,9 @@ namespace math
                && approx(lhs.zBasis, rhs.zBasis);
     }
 
-    constexpr vec3 operator*(const rot3x3& lhs, vec3 vec)
+    constexpr vec3 operator*(const rot3x3& mat, vec3 vec)
     {
-        return vec.x * lhs.xBasis + vec.y * lhs.yBasis + vec.z * lhs.zBasis;
+        return vec.x * mat.xBasis + vec.y * mat.yBasis + vec.z * mat.zBasis;
     }
 
     constexpr rot3x3 operator*(const rot3x3& lhs, const rot3x3& rhs)
@@ -369,18 +399,12 @@ namespace math
         return result;
     }
 
-    constexpr rot3x3& rot3x3::operator*=(const rot3x3& other)
-    {
-        *this = *this * other;
-        return *this;
-    }
-
-    constexpr rot3x3 rot3x3::getTranspose() const
+    constexpr rot3x3 transpose(const rot3x3& mat)
     {
         rot3x3 result;
-        result.xBasis = vec3(this->xBasis.x, this->yBasis.x, this->zBasis.x);
-        result.yBasis = vec3(this->xBasis.y, this->yBasis.y, this->zBasis.y);
-        result.zBasis = vec3(this->xBasis.z, this->yBasis.z, this->zBasis.z);
+        result.xBasis = vec3(mat.xBasis.x, mat.yBasis.x, mat.zBasis.x);
+        result.yBasis = vec3(mat.xBasis.y, mat.yBasis.y, mat.zBasis.y);
+        result.zBasis = vec3(mat.xBasis.z, mat.yBasis.z, mat.zBasis.z);
         return result;
     }
 
@@ -511,12 +535,12 @@ namespace math
         return m;
     }
 
-    inline rot3x3 orthonormalize(const rot3x3& in)
+    inline rot3x3 orthonormalize(const rot3x3& mat)
     {
-        vec3 x = normalize(in.xBasis);
+        vec3 x = normalize(mat.xBasis);
 
-        vec3 y = in.yBasis - x * dot(in.yBasis, x);
-        if (in.yBasis.sqrLength() < EPSILON)
+        vec3 y = mat.yBasis - x * dot(mat.yBasis, x);
+        if (mat.yBasis.sqrLength() < EPSILON)
         {
             y = math::abs(x.x) > math::abs(x.z) ? vec3(-x.y, x.x, 0) : vec3(0, -x.z, x.y);
         }
@@ -527,24 +551,24 @@ namespace math
         return rot3x3(x, y, z);
     }
 
-    inline vec3 toEuler(const rot3x3& m)
+    inline vec3 toEuler(const rot3x3& mat)
     {
-        float sinp = -m.xBasis.z;
+        float sinp = -mat.xBasis.z;
         sinp = clamp(sinp, -1.0f, 1.0f);
 
         vec3 euler;
         if (abs(sinp) > .999999f)
         {
             // gimbal lock
-            euler.x = atan2(-m.zBasis.y, m.yBasis.y);
+            euler.x = atan2(-mat.zBasis.y, mat.yBasis.y);
             euler.y = copysign(HALFPI, sinp);
             euler.z = 0.0f;
         }
         else
         {
-            euler.x = atan2(m.yBasis.z, m.zBasis.z);
+            euler.x = atan2(mat.yBasis.z, mat.zBasis.z);
             euler.y = asin(sinp);
-            euler.z = atan2(m.xBasis.y, m.xBasis.x);
+            euler.z = atan2(mat.xBasis.y, mat.xBasis.x);
         }
         return euler * RAD2DEG;
     }
