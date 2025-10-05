@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cassert>
-
+#include "vec3.h"
 #include "func.h"
 
 namespace math
@@ -23,6 +22,8 @@ namespace math
 
         [[nodiscard]] float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
+
+        constexpr vec3 xyz() const noexcept;
 
         static const vec4 zero;
         static const vec4 one;
@@ -76,6 +77,8 @@ namespace math
     {
         return !operator==(rhs);
     }
+
+    constexpr vec3 vec4::xyz() const noexcept { return vec3(x, y, z); }
 
     constexpr bool approx(vec4 a, vec4 b, float epsilon = EPSILON)
     {

@@ -25,6 +25,10 @@ namespace math
         [[nodiscard]] float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
 
+        constexpr vec2 xy() const noexcept;
+        constexpr vec2 xz() const noexcept;
+        constexpr vec2 yz() const noexcept;
+
         static const vec3 zero, one;
         static const vec3 right, left, forward, back, up, down;
     };
@@ -82,6 +86,10 @@ namespace math
     {
         return !operator==(rhs);
     }
+
+    constexpr vec2 vec3::xy() const noexcept { return vec2(x, y); }
+    constexpr vec2 vec3::xz() const noexcept { return vec2(x, z); }
+    constexpr vec2 vec3::yz() const noexcept { return vec2(y, z); }
 
     constexpr bool approx(vec3 a, vec3 b, float epsilon = EPSILON)
     {

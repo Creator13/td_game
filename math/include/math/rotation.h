@@ -93,7 +93,7 @@ namespace math
     constexpr float dot(quaternion a, quaternion b);
     inline vec3 toEuler(quaternion q);
     inline quaternion slerp(quaternion a, quaternion b, float t);
-    inline vec3 rotate(const quaternion& q, const vec3& v);
+    constexpr vec3 rotate(const quaternion& q, const vec3& v);
 
     inline vec3 toEuler(const rot3x3& rot);
 
@@ -148,7 +148,7 @@ namespace math
 
     inline quaternion quaternion::angleAxis(float angle, const vec3& axis)
     {
-        if (angle == 0)
+        if (angle == 0 || approx(axis, vec3::zero))
         {
             return identity;
         }
@@ -322,7 +322,7 @@ namespace math
         return result;
     }
 
-    inline vec3 rotate(const quaternion& q, const vec3& v)
+    constexpr vec3 rotate(const quaternion& q, const vec3& v)
     {
         vec3 qv(q.x, q.y, q.z);
         vec3 uv = cross(qv, v);
@@ -428,15 +428,21 @@ namespace math
 
     inline rot3x3 rot3x3::lookRotation(const vec3& forward, const vec3& up)
     {
-        vec3 f = normalize(forward); // local y
-        vec3 r = normalize(cross(f, up)); // local x
-        vec3 u = cross(r, f); // local z
+        float forwardSqrMag = forward.sqrLength();
+        vec3 f = forwardSqrMag - 1 < EPSILON // normalized local forward (y)
+                     ? forward
+                     : forward / sqrt(forwardSqrMag);
+        vec3 r = normalize(cross(f, up)); // local right axis (x) made from up and forward
+        vec3 u = cross(r, f); // re-normalized up axis (z) based on resulting f and r axes
         return rot3x3(r, f, u);
     }
 
     inline rot3x3 rot3x3::angleAxis(float angle, const vec3& axis)
     {
-        if (angle == 0.0f) return identity;
+        if (angle == 0.0f || approx(axis, vec3::zero))
+        {
+            return identity;
+        }
         angle *= DEG2RAD;
 
         const vec3 norm = normalize(axis);

@@ -123,7 +123,7 @@ TEST_CASE("Inverse rotation", ROTATION_TEST_TAG)
     }
 }
 
-TEMPLATE_TEST_CASE("Euler angles special cases", ROTATION_TEST_TAG, quaternion, rot3x3)
+TEMPLATE_TEST_CASE("Euler angles", ROTATION_TEST_TAG, quaternion, rot3x3)
 {
     using RotationType = TestType;
 
@@ -198,6 +198,103 @@ TEMPLATE_TEST_CASE("Euler angles special cases", ROTATION_TEST_TAG, quaternion, 
         rot3x3 originalAnglesMatrix = rot3x3::eulerAngles(angles);
         rot3x3 convertedAnglesMatrix = rot3x3::eulerAngles(result);
         CHECK(math::approx(originalAnglesMatrix, convertedAnglesMatrix));
+    }
+
+    SECTION("Composition")
+    {
+        // Verify that euler angle rotation matches rot_z * rot_y * rot_x where rot_# is a rotation about the corresponding cardinal axis
+        vec3 angles = GENERATE(
+            vec3(-30, 20, 56),
+            vec3(34.4f, -89, 32),
+            vec3 (0, 45, 0),
+            vec3(0, 0, -90)
+        );
+
+        RotationType rotExpected = RotationType::eulerAngles(angles);
+
+        RotationType rotX = RotationType::angleAxis(angles.x, vec3(1, 0, 0));
+        RotationType rotY = RotationType::angleAxis(angles.y, vec3(0, 1, 0));
+        RotationType rotZ = RotationType::angleAxis(angles.z, vec3(0, 0, 1));
+
+        RotationType rotResult = rotZ * rotY * rotX;
+        CHECK(math::approx(rotResult, rotExpected));
+    }
+}
+
+TEMPLATE_TEST_CASE("Angle-axis", ROTATION_TEST_TAG, quaternion, rot3x3)
+{
+    using RotationType = TestType;
+
+    SECTION("Zero angle")
+    {
+        // Rotation of 0 returns an identity rotation
+        RotationType rot = RotationType::angleAxis(0, vec3(0, 0, 1));
+        vec3 input = vec3(50, 1, -3.3);
+        vec3 result = math::rotate(rot, input);
+        CHECK(math::approx(result, input));
+    }
+
+    SECTION("Zero axis")
+    {
+        // Rotation around an undefined axis is not legal; this returns an identity rotation
+        RotationType rot = RotationType::angleAxis(180, vec3::zero);
+        vec3 input = vec3(1, 0, 0);
+        vec3 result = math::rotate(rot, input);
+        CHECK(math::approx(result, input));
+    }
+
+    SECTION("Non-normalized axis")
+    {
+        // Using a non-normalized axis should result in that axis being normalized and result in a valid, normalized rotation
+        vec3 axis = GENERATE(
+            vec3(0, 0, 2.34f),
+            vec3(0, 0, 0.103f)
+        );
+
+        RotationType rot = RotationType::angleAxis(90, axis);
+
+        vec3 input = vec3(1, 0, 0);
+        vec3 expected = vec3(0, 1, 0);
+        vec3 result = math::rotate(rot, input);
+        CHECK(math::approx(result, expected));
+    }
+}
+
+TEMPLATE_TEST_CASE("LookRotation", ROTATION_TEST_TAG, quaternion, rot3x3)
+{
+    using RotationType = TestType;
+
+    SECTION("Cardinal axis")
+    {
+        RotationType rot = RotationType::lookRotation(vec3(1, 0, 0), vec3(0, 0, 1));
+        vec3 in = vec3(1, 0, 0);
+        vec3 result = math::rotate(rot, in);
+        CHECK(math::approx(result, vec3(0, -1, 0)));
+    }
+}
+
+TEST_CASE("Rotation matrix orthonormalness", ROTATION_TEST_TAG)
+{
+    vec3 angles = GENERATE(
+        vec3(34, -58, 122),
+        vec3(400, 23.32322, -400),
+        vec3(-0, -10000, 2.22),
+        vec3(0, 0, 0)
+    );
+    rot3x3 rot = rot3x3::eulerAngles(angles);
+
+    SECTION("Basis vectors are orthogonal")
+    {
+        CHECK(math::approx(dot(rot.xBasis, rot.yBasis), 0.f));
+        CHECK(math::approx(dot(rot.xBasis, rot.zBasis), 0.f));
+        CHECK(math::approx(dot(rot.yBasis, rot.zBasis), 0.f));
+    }
+
+    SECTION("Basis vectors are unit length")
+    {
+        CHECK(math::approx(rot.xBasis.length(), 1.f));
+        CHECK(math::approx(rot.yBasis.length(), 1.f));
+        CHECK(math::approx(rot.zBasis.length(), 1.f));
     }
 }
 
