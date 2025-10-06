@@ -24,6 +24,7 @@ namespace math
         [[nodiscard]] float length() const noexcept;
 
         constexpr vec3 xyz() const noexcept;
+        constexpr vec2 xy() const noexcept;
 
         static const vec4 zero;
         static const vec4 one;
@@ -79,6 +80,7 @@ namespace math
     }
 
     constexpr vec3 vec4::xyz() const noexcept { return vec3(x, y, z); }
+    constexpr vec2 vec4::xy() const noexcept { return vec2(x, y); }
 
     constexpr bool approx(vec4 a, vec4 b, float epsilon = EPSILON)
     {

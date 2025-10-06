@@ -184,15 +184,15 @@ TEST_CASE("mat4 transpose", MATRIX_TEST_TAG)
 {
     SECTION("Symmetric matrix is transpose of itself")
     {
-        REQUIRE(mat4::zero.getTranspose() == mat4::zero);
-        REQUIRE(mat4::identity.getTranspose() == mat4::identity);
+        REQUIRE(transpose(mat4::zero) == mat4::zero);
+        REQUIRE(transpose(mat4::identity) == mat4::identity);
 
         mat4 mat = mat4(
             0, 1, 2, 3,
             1, 1, -1, -1,
             2, -1, 2, 0,
             3, -1, 0, 2);
-        REQUIRE(mat.getTranspose() == mat);
+        REQUIRE(transpose(mat) == mat);
     }
 
     mat4 mat = mat4(
@@ -209,13 +209,13 @@ TEST_CASE("mat4 transpose", MATRIX_TEST_TAG)
             4, 3, -3, 9,
             5, 4, -4, 8
         );
-        mat4 result = mat.getTranspose();
+        mat4 result = transpose(mat);
         REQUIRE(result == expected);
     }
 
     SECTION("Double transpose")
     {
-        REQUIRE(mat.getTranspose().getTranspose() == mat);
+        REQUIRE(transpose(transpose(mat)) == mat);
     }
 }
 
@@ -301,7 +301,7 @@ TEST_CASE("mat4 inverse", MATRIX_TEST_TAG)
 {
     SECTION("Identity")
     {
-        REQUIRE(math::approx(mat4::identity, mat4::identity.getInverse()));
+        REQUIRE(math::approx(mat4::identity, inverse(mat4::identity)));
     }
 
     SECTION("Translation matrix")
@@ -319,7 +319,7 @@ TEST_CASE("mat4 inverse", MATRIX_TEST_TAG)
             0, 0, 1, -20.f,
             0, 0, 0, 1);
 
-        mat4 invTranslation = translation.getInverse();
+        mat4 invTranslation = inverse(translation);
         REQUIRE(math::approx(invTranslation, expectedInvTranslation));
     }
 
@@ -333,7 +333,7 @@ TEST_CASE("mat4 inverse", MATRIX_TEST_TAG)
         );
         REQUIRE_THAT(general.getDeterminant(), !WithinAbs(0.0f, EPS));
 
-        mat4 invGeneral = general.getInverse();
+        mat4 invGeneral = inverse(general);
         mat4 result = general * invGeneral;
 
         REQUIRE(math::approx(result, mat4::identity));
@@ -349,7 +349,7 @@ TEST_CASE("mat4 inverse", MATRIX_TEST_TAG)
         );
         REQUIRE_THAT(singular.getDeterminant(), WithinAbs(0.0f, EPS));
 
-        mat4 invSingular = singular.getInverse();
+        mat4 invSingular = inverse(singular);
         REQUIRE(math::approx(invSingular, mat4::zero));
     }
 }
@@ -408,10 +408,10 @@ TEST_CASE("mat4 multiplication", MATRIX_TEST_TAG)
 
     SECTION("Transpose")
     {
-        mat4 transposeA = a.getTranspose();
-        mat4 transposeB = b.getTranspose();
+        mat4 transposeA = transpose(a);
+        mat4 transposeB = transpose(b);
 
-        REQUIRE(math::approx(transposeA * transposeB, (b * a).getTranspose()));
+        REQUIRE(math::approx(transposeA * transposeB, transpose(b * a)));
     }
 
     SECTION("Determinant")
@@ -433,8 +433,8 @@ TEST_CASE("mat4 multiplication", MATRIX_TEST_TAG)
             1, 2, 0, -2,
             4, 0, 6, -3,
             0, 0, 0, 2);
-        CHECK((mat * mat.getInverse()).isIdentity());
-        CHECK(math::approx((mat * mat2).getInverse(), mat2.getInverse() * mat.getInverse()));
+        CHECK((mat * inverse(mat)).isIdentity());
+        CHECK(math::approx(inverse(mat * mat2), inverse(mat2) * inverse(mat)));
     }
 }
 
@@ -477,7 +477,7 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
             // Multiplying a vector by a transformation matrix yields a translated point
             CHECK(math::approx(result, vec4(1 + 2, 1 + .5f, 1 + 18.23f, 1)));
             // Multiplying with the inverse yields the original vector
-            CHECK(math::approx(t.getInverse() * result, point));
+            CHECK(math::approx(inverse(t) * result, point));
         }
         SECTION("Direction")
         {
@@ -494,7 +494,19 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
         vec4 vec = vec4(1, 2, 3, 1);
         vec4 result = s * vec;
         CHECK(math::approx(result, vec4(1 * 4, 2 * 2, 3 * 3, 1)));
-        CHECK(math::approx(s.getInverse() * result, vec));
+        CHECK(math::approx(inverse(s) * result, vec));
+    }
+
+    SECTION("Rotation")
+    {
+        using math::quaternion, math::vec3;
+
+        quaternion q = quaternion::eulerAngles(190, -14, 20.3);
+        mat4 rot = mat4::makeRotation(q);
+        vec3 point = vec3(18, 2, 4);
+        vec4 result = rot * vec4(point, 1.0);
+        vec4 expected = vec4(math::rotate(q, point), 1);
+        CHECK(math::approx(result, expected));
     }
 
     SECTION("Overloads")
@@ -504,5 +516,125 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
         math::vec3 vec = math::vec3(x, y, z);
         CHECK(mat4::makeTranslate(x, y, z) == mat4::makeTranslate(vec));
         CHECK(mat4::makeScale(x, y, z) == mat4::makeScale(vec));
+    }
+
+    SECTION("TRS")
+    {
+        using math::quaternion, math::vec3;
+
+        vec3 translation = vec3(-28, 3, .202);
+        quaternion rotation = quaternion::eulerAngles(30, 2, 10);
+        vec3 scale = vec3(2, 3, 2);
+
+        mat4 trs = mat4::makeTRS(translation, rotation, scale);
+
+        vec4 point = vec4(20, -2, 18, 1);
+
+        mat4 matT = mat4::makeTranslate(translation);
+        mat4 matR = mat4::makeRotation(rotation);
+        mat4 matS = mat4::makeScale(scale);
+
+        mat4 expectedTRS = matT * matR * matS;
+
+        vec4 expected = expectedTRS * point;
+        vec4 result = trs * point;
+
+        CHECK(math::approx(result, expected));
+        CHECK(math::approx(trs, expectedTRS));
+    }
+}
+
+TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
+{
+    using math::rot3x3, math::vec2, math::vec3;
+
+    // The view matrix is for convenience; points in this test will be in the coordinate space with z+ up and y+ forward.
+    // This view matrix transforms that to the opengl convention of y+ up and z- forward.
+    mat4 view = mat4::makeRotation(
+        rot3x3::lookRotation(
+            vec3(0, 0, -1),
+            vec3(0, 1, 0)));
+
+    SECTION("Perspective")
+    {
+        float fov = 90 * math::DEG2RAD;
+        float aspect = 16 / 9.f;
+        float near = 0.1f, far = 100.f;
+        mat4 clipMatrix = mat4::makePerspective(fov, aspect, near, far);
+
+        SECTION("Center")
+        {
+            vec4 worldPoint = vec4(0, 3, 0, 1);
+            vec4 point = view * worldPoint;
+            vec4 result = clipMatrix * point;
+            CHECK(math::approx(result.xy(), vec2::zero));
+        }
+
+        float halfV = tan(fov / 2) * near;
+        float halfH = halfV * aspect;
+
+        SECTION("Edges horizontal")
+        {
+            vec4 pointLeft = view * vec4(-halfH, near, 0, 1);
+            vec4 clip = clipMatrix * pointLeft;
+            vec3 resultLeft = clip.xyz() / clip.w;
+            CHECK(math::approx(resultLeft.x, -1));
+
+            vec4 pointRight = view * vec4(halfH, near, 0, 1);
+            vec4 clipRight = clipMatrix * pointRight;
+            vec3 resultRight = clipRight.xyz() / clipRight.w;
+            CHECK(math::approx(resultRight.x, 1));
+        }
+
+        SECTION("Edges vertical")
+        {
+            vec4 pointTop = view * vec4(0, near, halfV, 1);
+            vec4 clip = clipMatrix * pointTop;
+            vec3 resultTop = clip.xyz() / clip.w;
+            CHECK(math::approx(resultTop.y, 1));
+
+            vec4 pointBottom = view * vec4(0, near, -halfV, 1);
+            vec4 clipBottom = clipMatrix * pointBottom;
+            vec3 resultBottom = clipBottom.xyz() / clipBottom.w;
+            CHECK(math::approx(resultBottom.y, -1));
+        }
+
+        SECTION("Depth planes")
+        {
+            vec4 farPoint = view * vec4(0, far, 0, 1);
+            vec4 nearPoint = view * vec4(0, near, 0, 1);
+
+            vec4 farClip = clipMatrix * farPoint;
+            vec4 nearClip = clipMatrix * nearPoint;
+
+            float zFar = farClip.z / farClip.w;
+            float zNear = nearClip.z / nearClip.w;
+
+            CHECK(math::approx(zFar, 1.f));
+            CHECK(math::approx(zNear, -1.f));
+        }
+    }
+
+    SECTION("Orthographic")
+    {
+        mat4 clipMatrix = mat4::makeOrtho(-2, 2, -1, 1, 0.1f, 10.0f);
+
+        vec4 left(-2, 0, 0, 1);
+        vec4 right(2, 0, 0, 1);
+        vec4 bottom(0, 0, -1, 1);
+        vec4 top(0, 0, 1, 1);
+
+        auto testEdge = [&clipMatrix, &view](vec4 p, float expectedX, float expectedY)
+        {
+            vec4 clip = clipMatrix * view * p;
+            vec3 ndc = clip.xyz() / clip.w;
+            REQUIRE_THAT(ndc.x, Catch::Matchers::WithinRel(expectedX));
+            REQUIRE_THAT(ndc.y, Catch::Matchers::WithinRel(expectedY));
+        };
+
+        testEdge(left, -1, 0);
+        testEdge(right, +1, 0);
+        testEdge(bottom, 0, -1);
+        testEdge(top, 0, +1);
     }
 }

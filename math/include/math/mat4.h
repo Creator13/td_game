@@ -53,10 +53,9 @@ namespace math
         constexpr std::span<const float, 16> asSpan() { return {m}; };
 
         // Properties (as const member functions): getTranspose -> mat4, isIdentity -> bool, getInverse -> mat4, getDeterminant -> float
-        constexpr mat4 getTranspose() const;
+        // constexpr mat4 getTranspose() const;
         constexpr bool isIdentity(float epsilon = EPSILON) const;
         constexpr float getDeterminant() const;
-        constexpr mat4 getInverse() const;
 
         // Setters (mutating member functions): setCol: float4 -> void, setRow: float4 -> void, set: float -> void
 
@@ -73,9 +72,23 @@ namespace math
         constexpr static mat4 makeTRS(vec3 t, const rot3x3& r, vec3 s);
         static mat4 makeTRS(vec3 t, quaternion r, vec3 s);
 
+        static mat4 makeOrtho(float left, float right, float bottom, float top, float near, float far);
+        /**
+         * Creates a perspective matrix to convert from view space to clip space.
+         * View space is assumed to have z- forward and y+ up.
+         * @param fov vertical fov in radians
+         * @param aspect aspect ratio
+         * @param near distance to near plane
+         * @param far distance to far plane
+         */
+        static mat4 makePerspective(float fov, float aspect, float near, float far);
+
         // default matrices: zero, identity
         static const mat4 zero, identity;
     };
+
+    constexpr mat4 transpose(const mat4& m);
+    constexpr mat4 inverse(const mat4& m);
 
     constexpr bool approx(const mat4& a, const mat4& b, float epsilon = EPSILON)
     {
@@ -177,7 +190,7 @@ namespace math
             m[base + 3]);
     }
 
-    constexpr mat4 mat4::getTranspose() const
+    constexpr mat4 transpose(const mat4& m)
     {
         return mat4{
             m[0], m[1], m[2], m[3],
@@ -234,7 +247,7 @@ namespace math
         }
     }
 
-    constexpr mat4 mat4::getInverse() const
+    constexpr mat4 inverse(const mat4& m)
     {
         // Affine variant
         if (approx(m[3], 0) && approx(m[7], 0) && approx(m[11], 0) && approx(m[15], 0))
@@ -244,7 +257,7 @@ namespace math
             const float g = m[2], h = m[6], i = m[10];
 
             const float det3 = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
-            if (approx(det3, 0)) return zero;
+            if (approx(det3, 0)) return mat4::zero;
 
             const float invDet = 1.0f / det3;
 
@@ -275,8 +288,8 @@ namespace math
         // General inverse
         else
         {
-            const float det = getDeterminant();
-            if (approx(det, 0)) return zero;
+            const float det = m.getDeterminant();
+            if (approx(det, 0)) return mat4::zero;
 
             const float a00 = m[0], a01 = m[4], a02 = m[8], a03 = m[12];
             const float a10 = m[1], a11 = m[5], a12 = m[9], a13 = m[13];
@@ -371,5 +384,32 @@ namespace math
     inline mat4 mat4::makeTRS(vec3 t, quaternion r, vec3 s)
     {
         return makeTRS(t, rot3x3::fromQuaternion(r), s);
+    }
+
+    inline mat4 mat4::makeOrtho(float left, float right, float bottom, float top, float near, float far)
+    {
+        float rl = 1.0f / (right - left);
+        float tb = 1.0f / (top - bottom);
+        float fn = 1.0f / (far - near);
+
+        return mat4(
+            2 * rl, 0, 0, -(right + left) * rl,
+            0, 2 * tb, 0, -(top + bottom) * tb,
+            0, 0, -2 * fn, -(far + near) * fn,
+            0, 0, 0, 1
+        );
+    }
+
+    inline mat4 mat4::makePerspective(float fov, float aspect, float near, float far)
+    {
+        float f = 1.0f / tan(fov * 0.5f);
+        float nf = 1.0f / (near - far);
+
+        return mat4(
+            f / aspect, 0, 0, 0,
+            0, f, 0, 0,
+            0, 0, (far + near) * nf, 2 * near * far * nf,
+            0, 0, -1, 0
+        );
     }
 }

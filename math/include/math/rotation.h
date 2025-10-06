@@ -346,6 +346,11 @@ namespace math
     constexpr bool approx(const rot3x3& lhs, const rot3x3& rhs);
 
     constexpr rot3x3 transpose(const rot3x3& mat);
+    /**
+     * Rot3x3 is assumed to be an orthonormal matrix (barring floating point inaccuracy),
+     * therefore inverse() is simply and alias for transpose()
+     */
+    constexpr rot3x3 inverse(const rot3x3& mat);
     inline rot3x3 orthonormalize(const rot3x3& mat);
     inline vec3 toEuler(const rot3x3& mat);
     inline vec3 rotate(const rot3x3& mat, vec3 vec);
@@ -407,6 +412,8 @@ namespace math
         result.zBasis = vec3(mat.xBasis.z, mat.yBasis.z, mat.zBasis.z);
         return result;
     }
+
+    constexpr rot3x3 inverse(const rot3x3& mat) { return transpose(mat); }
 
     constexpr rot3x3 rot3x3::fromQuaternion(quaternion q)
     {
