@@ -546,12 +546,12 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
 
 TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
 {
-    using math::rot3x3, math::vec2, math::vec3;
+    using math::vec3;
 
     // The view matrix is for convenience; points in this test will be in the coordinate space with z+ up and y+ forward.
     // This view matrix transforms that to the opengl convention of y+ up and z- forward.
     mat4 view = mat4::makeRotation(
-        rot3x3::lookRotation(
+        math::rot3x3::lookRotation(
             vec3(0, 0, -1),
             vec3(0, 1, 0)));
 
@@ -567,7 +567,7 @@ TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
             vec4 worldPoint = vec4(0, 3, 0, 1);
             vec4 point = view * worldPoint;
             vec4 result = clipMatrix * point;
-            CHECK(math::approx(result.xy(), vec2::zero));
+            CHECK(math::approx(result.xy(), math::vec2::zero));
         }
 
         float halfV = tan(fov / 2) * near;
