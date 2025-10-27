@@ -12,5 +12,4 @@ if (BUILD_TESTS)
     add_subdirectory(tests)
 endif ()
 
-add_subdirectory(math)
-add_subdirectory(game)
+add_subdirectory(src)
