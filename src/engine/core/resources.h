@@ -11,8 +11,10 @@ namespace fs = std::filesystem;
 
 namespace res
 {
+    void initResources();
+    void unloadResources();
+
     std::optional<std::string> readFileText(const fs::path& path);
 
-    using namespace render;
-    shader::ShaderProgramData loadShader(const fs::path& vertPath, const fs::path& fragPath);
+    render::shader::ShaderProgramData loadShader(const fs::path& vertPath, const fs::path& fragPath);
 }

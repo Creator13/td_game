@@ -13,20 +13,6 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-const char* vert_shader =
-        "#version 460 core\n"
-        "in vec3 vp;"
-        "void main() {"
-        "  gl_Position = vec4(vp, 1.0);"
-        "}";
-
-const char* frag_shader =
-        "#version 460 core\n"
-        "out vec4 frag_color;"
-        "void main() {"
-        "  frag_color = vec4(0.941, 0.808, 0.6, 1.0);"
-        "}";
-
 int Application::run()
 {
     if (!glfwInit())
@@ -56,6 +42,8 @@ int Application::run()
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    res::initResources();
 
     float points[] = {
         0.0f, 0.5f, 0.0f,
@@ -94,6 +82,7 @@ int Application::run()
         glfwSwapBuffers(window);
     }
 
+    res::unloadResources();
     glfwTerminate();
 
     return 0;
