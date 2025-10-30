@@ -17,5 +17,8 @@
   }, {
     "name" : "glad",
     "version>=" : "0.1.36"
+  }, {
+    "name" : "spdlog",
+    "version>=" : "1.15.3"
   } ]
 }

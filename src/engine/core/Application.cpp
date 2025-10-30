@@ -1,8 +1,12 @@
-#include "Game.h"
+#include "Application.h"
 
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include "resources.h"
+#include "rendering/shader.h"
+using namespace render;
 
 void framebuffer_size_callback(GLFWwindow*, int width, int height)
 {
@@ -10,20 +14,20 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
 }
 
 const char* vert_shader =
-    "#version 460 core\n"
-    "in vec3 vp;"
-    "void main() {"
-    "  gl_Position = vec4(vp, 1.0);"
-    "}";
+        "#version 460 core\n"
+        "in vec3 vp;"
+        "void main() {"
+        "  gl_Position = vec4(vp, 1.0);"
+        "}";
 
 const char* frag_shader =
-    "#version 460 core\n"
-    "out vec4 frag_color;"
-    "void main() {"
-    "  frag_color = vec4(0.941, 0.808, 0.6, 1.0);"
-    "}";
+        "#version 460 core\n"
+        "out vec4 frag_color;"
+        "void main() {"
+        "  frag_color = vec4(0.941, 0.808, 0.6, 1.0);"
+        "}";
 
-int Game::run()
+int Application::run()
 {
     if (!glfwInit())
     {
@@ -71,40 +75,10 @@ int Game::run()
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    int sc_success = 0;
-    char sc_infolog[1024];
-
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &vert_shader, nullptr);
-    glCompileShader(vs);
-
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &sc_success);
-    if (!sc_success)
-    {
-        glGetShaderInfoLog(vs, 1024, nullptr, sc_infolog);
-        std::cout << "Failed to compile vertex shader:\n" << sc_infolog << std::endl;
-    }
-
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &frag_shader, nullptr);
-    glCompileShader(fs);
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &sc_success);
-    if (!sc_success)
-    {
-        glGetShaderInfoLog(fs, 1024, nullptr, sc_infolog);
-        std::cout << "Failed to compile fragment shader:\n" << sc_infolog << std::endl;
-    }
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vs);
-    glAttachShader(shaderProgram, fs);
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &sc_success);
-    if (!sc_success)
-    {
-        glGetProgramInfoLog(shaderProgram, 1024, nullptr, sc_infolog);
-        std::cout << "Failed to link shader:\n" << sc_infolog << std::endl;
-    }
+    shader::ShaderProgramData shader = res::loadShader(
+        fs::path("res/shaders/basic.vert"),
+        fs::path("res/shaders/basic.frag")
+    );
 
     while (!glfwWindowShouldClose(window))
     {
@@ -113,7 +87,7 @@ int Game::run()
         glClearColor(.2f, .3f, .4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shader::use(shader);
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 

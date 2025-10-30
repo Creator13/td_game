@@ -2,11 +2,9 @@
 
 #include <cassert>
 
-#include "rotation.h"
-#include "rotation.h"
-#include "rotation.h"
 #include "vec3.h"
 #include "vec4.h"
+#include "func.h"
 #include "trig.h"
 
 namespace math
@@ -348,7 +346,7 @@ namespace math
     constexpr rot3x3 transpose(const rot3x3& mat);
     /**
      * Rot3x3 is assumed to be an orthonormal matrix (barring floating point inaccuracy),
-     * therefore inverse() is simply and alias for transpose()
+     * therefore inverse() is simply an alias for transpose()
      */
     constexpr rot3x3 inverse(const rot3x3& mat);
     inline rot3x3 orthonormalize(const rot3x3& mat);
