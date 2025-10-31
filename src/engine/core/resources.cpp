@@ -3,20 +3,10 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
-constexpr uint32_t INFO_BUF_SIZE = 512;
-
 namespace res::shader_intl
 {
-    using namespace render::shader;
-
-    constexpr std::string_view ERROR_SHADER_VERT = "#version 460 core\nin vec3 pos;void main() {gl_Position = vec4(pos, 1.0);}";
-    constexpr std::string_view ERROR_SHADER_FRAG = "#version 460 core\nout vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
-
     std::optional<GLuint> compileShader(const std::string_view& source, GLenum shaderType)
     {
-        int success;
-        char infoLog[INFO_BUF_SIZE];
-
         const GLuint shaderId = glCreateShader(shaderType);
 
         const char* sourcePtr = source.data();
@@ -25,10 +15,16 @@ namespace res::shader_intl
 
         glCompileShader(shaderId);
 
+        int success;
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
         if (!success)
         {
-            glGetShaderInfoLog(shaderId, INFO_BUF_SIZE, nullptr, infoLog);
+            std::string infoLog;
+            GLint infoLogLength;
+            glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLength);
+            infoLog.resize(infoLogLength);
+
+            glGetShaderInfoLog(shaderId, infoLogLength, nullptr, infoLog.data());
             spdlog::error("Shader compilation failed:\n{}", infoLog);
             glDeleteShader(shaderId);
             return { };
@@ -42,17 +38,15 @@ namespace res::shader_intl
         std::optional<std::string> source = readFileText(path);
         if (!source.has_value())
         {
+            // Propagate no value optional to caller
             return { };
         }
 
         return compileShader(source.value(), shaderType);
     }
 
-    ShaderProgramData makeShaderProgram(std::initializer_list<GLuint> shaderIds)
+    std::optional<GLuint> makeShaderProgram(std::initializer_list<GLuint> shaderIds)
     {
-        int success;
-        char infoLog[INFO_BUF_SIZE];
-
         const GLuint programId = glCreateProgram();
         for (const GLuint shaderId: shaderIds)
         {
@@ -60,11 +54,19 @@ namespace res::shader_intl
         }
         glLinkProgram(programId);
 
+        int success;
         glGetProgramiv(programId, GL_LINK_STATUS, &success);
         if (!success)
         {
-            glGetProgramInfoLog(programId, INFO_BUF_SIZE, nullptr, infoLog);
+            std::string infoLog;
+            GLint infoLogLength;
+            glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &infoLogLength);
+            infoLog.resize(infoLogLength);
+
+            glGetProgramInfoLog(programId, infoLogLength, nullptr, infoLog.data());
+
             spdlog::error("Shader linking failed:\n{}", infoLog);
+            return { };
         }
 
         for (const GLuint shaderId: shaderIds)
@@ -72,11 +74,15 @@ namespace res::shader_intl
             glDeleteShader(shaderId);
         }
 
-        return ShaderProgramData{programId};
+        return programId;
     }
 
-    ShaderProgramData compileErrorShader()
+    GLuint compileErrorShader()
     {
+        // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
+        constexpr std::string_view ERROR_SHADER_VERT = "#version 330 core\nin vec3 pos;void main() {gl_Position = vec4(pos, 1.0);}";
+        constexpr std::string_view ERROR_SHADER_FRAG = "#version 330 core\nout vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
+
         GLuint vId = glCreateShader(GL_VERTEX_SHADER);
         const char* vSrc = ERROR_SHADER_VERT.data();
         const GLint vLen = static_cast<GLint>(ERROR_SHADER_VERT.length());
@@ -97,7 +103,7 @@ namespace res::shader_intl
         glDeleteShader(vId);
         glDeleteShader(fId);
 
-        return ShaderProgramData{pId};
+        return pId;
     }
 }
 
@@ -105,7 +111,7 @@ namespace
 {
     struct DefaultResources
     {
-        render::shader::ShaderProgramData errorShader;
+        GLuint errorShader;
     };
 
     DefaultResources _defaults;
@@ -116,7 +122,10 @@ void res::initResources()
     _defaults.errorShader = shader_intl::compileErrorShader();
 }
 
-void res::unloadResources() { }
+void res::unloadResources()
+{
+    glDeleteProgram(_defaults.errorShader);
+}
 
 std::optional<std::string> res::readFileText(const fs::path& path)
 {
@@ -141,7 +150,8 @@ render::shader::ShaderProgramData res::loadShader(const fs::path& vertPath, cons
 
     if (vert && frag)
     {
-        return shader_intl::makeShaderProgram({vert.value(), frag.value()});
+        GLuint sId = shader_intl::makeShaderProgram({vert.value(), frag.value()}).value_or(_defaults.errorShader);
+        return render::shader::ShaderProgramData{sId};
     }
-    return _defaults.errorShader;
+    return render::shader::ShaderProgramData{_defaults.errorShader};
 }
