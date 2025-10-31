@@ -20,5 +20,8 @@
   }, {
     "name" : "spdlog",
     "version>=" : "1.15.3"
+  }, {
+    "name" : "stb",
+    "version>=" : "2024-07-29#1"
   } ]
 }

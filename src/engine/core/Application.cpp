@@ -3,6 +3,7 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <spdlog/cfg/env.h>
 
 #include "resources.h"
 #include "rendering/shader.h"
@@ -43,7 +44,9 @@ int Application::run()
         return -1;
     }
 
-    res::initResources();
+    spdlog::cfg::load_env_levels();
+
+    res::initResources("res");
 
     float points[] = {
         0.0f, 0.5f, 0.0f,
@@ -64,8 +67,8 @@ int Application::run()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     shader::ShaderProgramData shader = res::loadShader(
-        fs::path("res/shaders/basic.vert"),
-        fs::path("res/shaders/basic.frag")
+        fs::path("shaders/basic.vert"),
+        fs::path("shaders/basic.frag")
     );
 
     while (!glfwWindowShouldClose(window))
