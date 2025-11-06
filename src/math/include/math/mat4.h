@@ -402,6 +402,7 @@ namespace math
 
     inline mat4 mat4::makePerspective(float fov, float aspect, float near, float far)
     {
+        fov = fov * DEG2RAD;
         float f = 1.0f / tan(fov * 0.5f);
         float nf = 1.0f / (near - far);
 

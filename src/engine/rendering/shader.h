@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-namespace render::shader
+namespace graphics::shader
 {
     struct ShaderProgramData
     {

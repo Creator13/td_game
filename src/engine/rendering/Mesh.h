@@ -2,15 +2,19 @@
 
 #include <vector>
 
-#include "math/bounds.h"
 #include "math/vec3.h"
 
-struct Mesh
+namespace graphics
 {
-    std::vector<math::vec3> positions;
-    std::vector<math::vec3> normals;
-    std::vector<math::vec2> texcoords;
-    std::vector<uint16_t> indices;
+    struct Vertex
+    {
+        math::vec3 position;
+        math::vec3 normal;
+    };
 
-    math::bounds3d bounds;
-};
+    struct Mesh
+    {
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+    };
+}

@@ -198,7 +198,7 @@ std::optional<std::string> res::readFileText(const fs::path& path)
     return text;
 }
 
-render::shader::ShaderProgramData res::loadShader(const fs::path& vertPath, const fs::path& fragPath)
+graphics::shader::ShaderProgramData res::loadShader(const fs::path& vertPath, const fs::path& fragPath)
 {
     std::optional<GLuint> vert = _shader::compileShaderFromFile(vertPath, GL_VERTEX_SHADER);
     std::optional<GLuint> frag = _shader::compileShaderFromFile(fragPath, GL_FRAGMENT_SHADER);
@@ -206,7 +206,7 @@ render::shader::ShaderProgramData res::loadShader(const fs::path& vertPath, cons
     if (vert && frag)
     {
         GLuint sId = _shader::makeShaderProgram({vert.value(), frag.value()}).value_or(_defaults.errorShader);
-        return render::shader::ShaderProgramData{sId};
+        return graphics::shader::ShaderProgramData{sId};
     }
-    return render::shader::ShaderProgramData{_defaults.errorShader};
+    return graphics::shader::ShaderProgramData{_defaults.errorShader};
 }

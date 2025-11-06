@@ -2,8 +2,10 @@
 
 layout (location = 1) in vec3 vPos;
 
+layout (location = 50) uniform vec4 _color;
+
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(normalize(vPos) * .5 + .5, 1.f);
+    fragColor = _color;
 }

@@ -17,5 +17,5 @@ namespace res
     fs::path getPath(const fs::path& path);
     std::optional<std::string> readFileText(const fs::path& path);
 
-    render::shader::ShaderProgramData loadShader(const fs::path& vertPath, const fs::path& fragPath);
+    graphics::shader::ShaderProgramData loadShader(const fs::path& vertPath, const fs::path& fragPath);
 }
