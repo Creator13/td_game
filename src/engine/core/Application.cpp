@@ -8,8 +8,7 @@
 
 #include "resources.h"
 #include "rendering/shader.h"
-#include "math/vec3.h"
-#include "math/mat4.h"
+#include "math/math.h"
 #include "rendering/Renderer.h"
 
 void framebuffer_size_callback(GLFWwindow*, int width, int height)
@@ -123,7 +122,7 @@ int Application::run()
         0, 0, 0, 1
     );
     worldToView = coordinateBasis * worldToView;
-    math::mat4 viewToClip = math::mat4::makePerspective(85.f, 800.f / 600.f, .1f, 100.f);
+    math::mat4 viewToClip = math::mat4::makePerspective(65, 800.f / 600.f, .1f, 100.f);
 
     graphics::Renderer renderer;
     renderer.setClearColor(graphics::color(.4, 0.4,0.4, 0));
@@ -138,11 +137,6 @@ int Application::run()
             math::rot3x3::eulerAngles(0, 0, glfwGetTime() * 45),
             math::vec3::one);
 
-        math::mat4 zAxis = math::mat4::makeTRS(
-            math::vec3::zero,
-            math::rot3x3::identity,
-            math::vec3(.01, .01, 10)
-        );
         math::mat4 xAxis = math::mat4::makeTRS(
             math::vec3::zero,
             math::rot3x3::identity,
@@ -152,6 +146,11 @@ int Application::run()
             math::vec3::zero,
             math::rot3x3::identity,
             math::vec3(.01, 10, .01)
+        );
+        math::mat4 zAxis = math::mat4::makeTRS(
+            math::vec3::zero,
+            math::rot3x3::identity,
+            math::vec3(.01, .01, 10)
         );
 
         renderer.submit(graphics::Renderable{localToWorld, meshHandle, shader, {{0, 0 ,0 ,0}}});
