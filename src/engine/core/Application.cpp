@@ -3,7 +3,6 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <spdlog/cfg/env.h>
 #include <spdlog/spdlog.h>
 
 #include "resources.h"
@@ -11,45 +10,35 @@
 #include "math/math.h"
 #include "rendering/Renderer.h"
 
+using namespace core;
+
 void framebuffer_size_callback(GLFWwindow*, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
 
+std::optional<std::unique_ptr<Application>> Application::init(std::string_view resourceRoot, const WindowState& windowState)
+{
+    spdlog::set_level(spdlog::level::debug);
+
+    std::unique_ptr<Application> app(new Application());
+    if (!app->createWindow(windowState))
+    {
+        return { };
+    }
+
+    res::initResources(resourceRoot);
+
+    return app;
+}
+
+Application::~Application()
+{
+    cleanup();
+}
+
 int Application::run()
 {
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Hello World!", nullptr, nullptr);
-    if (!window)
-    {
-        std::cerr << "Failed to create window." << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
-    {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    spdlog::cfg::load_env_levels();
-
-    res::initResources("res");
-
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_CULL_FACE);
@@ -122,13 +111,13 @@ int Application::run()
         0, 0, 0, 1
     );
     worldToView = coordinateBasis * worldToView;
-    math::mat4 viewToClip = math::mat4::makePerspective(65, 800.f / 600.f, .1f, 100.f);
+    math::mat4 viewToClip = math::mat4::makePerspective(75, (float)_windowState.width / (float)_windowState.height, .1f, 100.f);
 
     graphics::Renderer renderer;
-    renderer.setClearColor(graphics::color(.4, 0.4,0.4, 0));
+    renderer.setClearColor(graphics::color(.4, 0.4, 0.4, 0));
     renderer.setVpMatrix(viewToClip * worldToView);
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(_windowPtr))
     {
         glfwPollEvents();
 
@@ -153,17 +142,60 @@ int Application::run()
             math::vec3(.01, .01, 10)
         );
 
-        renderer.submit(graphics::Renderable{localToWorld, meshHandle, shader, {{0, 0 ,0 ,0}}});
-        renderer.submit(graphics::Renderable{xAxis, meshHandle, colorShader, {{1, 0 ,0 ,1}}});
-        renderer.submit(graphics::Renderable{yAxis, meshHandle, colorShader, {{0, 1 ,0 ,1}}});
-        renderer.submit(graphics::Renderable{zAxis, meshHandle, colorShader, {{0, 0 ,1 ,1}}});
+        renderer.submit(graphics::Renderable{localToWorld, meshHandle, shader, {{0, 0, 0, 0}}});
+        renderer.submit(graphics::Renderable{xAxis, meshHandle, colorShader, {{1, 0, 0, 1}}});
+        renderer.submit(graphics::Renderable{yAxis, meshHandle, colorShader, {{0, 1, 0, 1}}});
+        renderer.submit(graphics::Renderable{zAxis, meshHandle, colorShader, {{0, 0, 1, 1}}});
         renderer.render();
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(_windowPtr);
     }
 
-    res::unloadResources();
-    glfwTerminate();
-
     return 0;
+}
+
+bool Application::createWindow(const WindowState& windowState)
+{
+    if (!glfwInit())
+    {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return false;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    _windowPtr = glfwCreateWindow(windowState.width, windowState.height, windowState.title, nullptr, nullptr);
+    if (!_windowPtr)
+    {
+        spdlog::error("Failed to create GLFW window.");
+        glfwTerminate();
+    }
+
+    glfwMakeContextCurrent(_windowPtr);
+    glfwSetFramebufferSizeCallback(_windowPtr, framebuffer_size_callback);
+
+    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
+    {
+        spdlog::error("Failed to initialize GLAD");
+        return false;
+    }
+
+    _windowState = windowState;
+
+    return true;
+}
+
+void Application::cleanup()
+{
+    res::unloadResources();
+    cleanWindow();
+}
+
+void Application::cleanWindow()
+{
+    glfwDestroyWindow(_windowPtr);
+    glfwTerminate();
 }
