@@ -1,12 +1,11 @@
 #pragma once
-
-#include <glad/glad.h>
+#include <cstdint>
 
 namespace graphics::shader
 {
     struct ShaderProgramData
     {
-        GLuint programId;
+        uint32_t programId;
     };
 
     void use(ShaderProgramData data);

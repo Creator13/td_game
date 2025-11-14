@@ -1,6 +1,7 @@
 #include "resources.h"
 
 #include <fstream>
+#include <glad/glad.h>
 #include <spdlog/spdlog.h>
 
 #ifdef _WIN32

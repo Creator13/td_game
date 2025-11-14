@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 
+#include "rendering/Renderer.h"
 #include "rendering/shader.h"
 
 // TODO Might abstract this into a file namespace
@@ -18,4 +19,12 @@ namespace res
     std::optional<std::string> readFileText(const fs::path& path);
 
     graphics::shader::ShaderProgramData loadShader(const fs::path& vertPath, const fs::path& fragPath);
+
+    // Mesh
+    enum MeshPrimitive : uint8_t
+    {
+        Quad, Cube, Cylinder, Icosphere, UVSphere
+    };
+
+    graphics::GpuMesh getMeshPrimitive(MeshPrimitive primitive);
 }

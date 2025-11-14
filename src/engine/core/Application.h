@@ -1,7 +1,10 @@
 #pragma once
 
-#include <complex.h>
+#include <memory>
 #include <optional>
+#include <string_view>
+
+#include "rendering/Renderer.h"
 
 class GLFWwindow;
 
@@ -56,6 +59,7 @@ namespace core
     private: // data
         InputState _inputState;
         WindowState _windowState;
+        graphics::Renderer _renderer;
         GLFWwindow* _windowPtr = nullptr;
     };
 }

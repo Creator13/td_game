@@ -1,26 +1,47 @@
 #include "Renderer.h"
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
 #include "shader.h"
 
-void graphics::Renderer::setClearColor(color c)
+using namespace math;
+using namespace graphics;
+
+// Define a z+ up, y+ forward coordinate system
+constexpr mat4 coordinateBasis = mat4(
+    1, 0, 0, 0,
+    0, 0, 1, 0,
+    0, -1, 0, 0,
+    0, 0, 0, 1
+);
+
+void Renderer::setClearColor(color c)
 {
     clearColor = c;
 }
 
-void graphics::Renderer::setVpMatrix(const math::mat4& m)
+void Renderer::setViewToClipMatrix(const mat4& m)
 {
-    vpMatrix = m;
+    projectionMatrix = m;
 }
 
-void graphics::Renderer::submit(const Renderable& renderable)
+void Renderer::setWorldToViewMatrix(const mat4& m)
+{
+    viewMatrix = m;
+}
+
+void Renderer::submit(const Renderable& renderable)
 {
     renderables.push_back(renderable);
 }
 
-void graphics::Renderer::render()
+void Renderer::render()
 {
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    mat4 vpMatrix = projectionMatrix * coordinateBasis * viewMatrix;
 
     for (size_t i = 0; i < renderables.size(); i++)
     {

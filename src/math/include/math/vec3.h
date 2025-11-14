@@ -168,6 +168,15 @@ namespace math
         };
     }
 
+    constexpr vec3 compMul(vec3 lhs, vec3 rhs) noexcept
+    {
+        return vec3{
+            lhs.x * rhs.x,
+            lhs.y * rhs.y,
+            lhs.z * rhs.z
+        };
+    }
+
     constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept
     {
         return a + (b - a) * t;

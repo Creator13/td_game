@@ -411,7 +411,10 @@ namespace math
         return result;
     }
 
-    constexpr rot3x3 inverse(const rot3x3& mat) { return transpose(mat); }
+    constexpr rot3x3 inverse(const rot3x3& mat)
+    {
+        return transpose(mat);
+    }
 
     constexpr rot3x3 rot3x3::fromQuaternion(quaternion q)
     {
