@@ -1,9 +1,9 @@
 #include "Renderer.h"
 
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
-#include "shader.h"
+#include "rendering/Mesh.h"
+#include "rendering/shader.h"
 
 using namespace math;
 using namespace graphics;
@@ -15,6 +15,11 @@ constexpr mat4 coordinateBasis = mat4(
     0, -1, 0, 0,
     0, 0, 0, 1
 );
+
+void Renderer::setAssetDatabase(const assets::AssetDatabase* db)
+{
+    this->db = db;
+}
 
 void Renderer::setClearColor(color c)
 {
@@ -45,15 +50,17 @@ void Renderer::render()
 
     for (size_t i = 0; i < renderables.size(); i++)
     {
-        const Renderable* rObj = &renderables[i];
-        shader::use(rObj->shader);
+        const Renderable& rObj = renderables[i];
+        shader::use(rObj.shader);
 
-        glBindVertexArray(rObj->model.vao);
-        glUniformMatrix4fv(100, 1, GL_FALSE, rObj->modelMatrix.m);
+        const MeshGpuHandle& handle = db->getMeshGpuHandle(rObj.meshId);
+
+        glBindVertexArray(handle.vao);
+        glUniformMatrix4fv(100, 1, GL_FALSE, rObj.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
-        glUniform4fv(50, 1, &rObj->material.color.r);
+        glUniform4fv(50, 1, &rObj.material.color.r);
 
-        glDrawElements(GL_TRIANGLES, rObj->model.idxCount, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }
 
     renderables.clear();

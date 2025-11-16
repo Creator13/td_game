@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 #include "math/vec3.h"
@@ -13,24 +14,23 @@ namespace graphics
         math::vec3 normal;
     };
 
-    class Mesh
+    struct Mesh
     {
-        uint32_t vao, vbo, ebo;
-
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
+    };
 
-    public:
-        Mesh();
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-        Mesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
-        ~Mesh();
+    struct MeshView
+    {
+        std::span<const Vertex> vertices;
+        std::span<const uint32_t> indices;
 
-    private:
-        void constructBuffers();
-
-    public:
         size_t getIndexCount() const { return indices.size(); }
-        void uploadToGpu();
+    };
+
+    struct MeshGpuHandle
+    {
+        uint32_t vao = 0, vbo = 0, ebo = 0;
+        uint32_t indexCount = 0;
     };
 }

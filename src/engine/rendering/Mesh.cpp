@@ -32,68 +32,68 @@ using namespace math;
 //     addVertex(mesh, {p3, normal});
 // }
 
-graphics::Mesh::Mesh(const std::vector<Vertex>& vertices,const std::vector<uint32_t>& indices)
-    : vertices(vertices), indices(indices)
-{
-    uploadToGpu();
-}
-
-graphics::Mesh::Mesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices)
-    : vertices(std::move(vertices)), indices(std::move(indices))
-{
-    uploadToGpu();
-}
-
-graphics::Mesh::~Mesh()
-{
-    const GLuint buffers[] = {vbo, ebo};
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(2, buffers);
-}
-
-void graphics::Mesh::constructBuffers()
-{
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    // Vertex.position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-        0,
-        3, GL_FLOAT, GL_FALSE,
-        sizeof(Vertex), (void*)offsetof(Vertex, position));
-
-    // Vertex.normal
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(
-        1,
-        3, GL_FLOAT, GL_FALSE,
-        sizeof(Vertex), (void*)offsetof(Vertex, normal));
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
-void graphics::Mesh::uploadToGpu()
-{
-    if (vao == 0)
-    {
-        constructBuffers();
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
+// graphics::Mesh::Mesh(const std::vector<Vertex>& vertices,const std::vector<uint32_t>& indices)
+//     : vertices(vertices), indices(indices)
+// {
+//     uploadToGpu();
+// }
+//
+// graphics::Mesh::Mesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices)
+//     : vertices(std::move(vertices)), indices(std::move(indices))
+// {
+//     uploadToGpu();
+// }
+//
+// graphics::Mesh::~Mesh()
+// {
+//     const GLuint buffers[] = {vbo, ebo};
+//     glDeleteVertexArrays(1, &vao);
+//     glDeleteBuffers(2, buffers);
+// }
+//
+// void graphics::Mesh::constructBuffers()
+// {
+//     glGenVertexArrays(1, &vao);
+//     glGenBuffers(1, &vbo);
+//     glGenBuffers(1, &ebo);
+//
+//     glBindVertexArray(vao);
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+//
+//     // Vertex.position
+//     glEnableVertexAttribArray(0);
+//     glVertexAttribPointer(
+//         0,
+//         3, GL_FLOAT, GL_FALSE,
+//         sizeof(Vertex), (void*)offsetof(Vertex, position));
+//
+//     // Vertex.normal
+//     glEnableVertexAttribArray(1);
+//     glVertexAttribPointer(
+//         1,
+//         3, GL_FLOAT, GL_FALSE,
+//         sizeof(Vertex), (void*)offsetof(Vertex, normal));
+//
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, 0);
+//     glBindVertexArray(0);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+// }
+//
+// void graphics::Mesh::uploadToGpu()
+// {
+//     if (vao == 0)
+//     {
+//         constructBuffers();
+//     }
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+//     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+//     glBindBuffer(GL_ARRAY_BUFFER, 0);
+//
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+// }

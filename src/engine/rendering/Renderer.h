@@ -1,17 +1,16 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
 
 #include "color.h"
 #include "shader.h"
+#include "assets/AssetDatabase.h"
 #include "math/mat4.h"
 
 class GLFWwindow;
 
 namespace graphics
 {
-    struct Mesh;
     struct color;
 }
 
@@ -25,7 +24,7 @@ namespace graphics
     struct Renderable
     {
         math::mat4 modelMatrix;
-        const Mesh* model;
+        assets::AssetId meshId;
         shader::ShaderProgramData shader;
         MaterialData material;
     };
@@ -34,12 +33,15 @@ namespace graphics
 
     class Renderer
     {
+        const assets::AssetDatabase* db = nullptr;
+
         std::vector<Renderable> renderables;
         color clearColor = color(0, 0, 0, 0);
         math::mat4 projectionMatrix;
         math::mat4 viewMatrix;
 
     public:
+        void setAssetDatabase(const assets::AssetDatabase* db);
         void setClearColor(color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);

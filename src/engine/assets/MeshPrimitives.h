@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+
 #include "rendering/Mesh.h"
 
 namespace assets::mesh_primitives
@@ -46,14 +48,14 @@ namespace assets::mesh_primitives
         22, 23, 20,
     };
 
-    inline constexpr graphics::Vertex quadVertices[] =
+    inline constexpr graphics::Vertex QUAD_VERTICES[] =
     {
         {math::vec3(0, 0, 0), math::vec3(0, 1, 0)},
         {math::vec3(1, 0, 0), math::vec3(0, 1, 0)},
         {math::vec3(1, 0, 1), math::vec3(0, 1, 0)},
         {math::vec3(0, 0, 1), math::vec3(0, 1, 0)},
     };
-    inline constexpr uint32_t quadIndices[] =
+    inline constexpr uint32_t QUAD_INDICES[] =
     {
         0, 1, 2, 2, 3, 0
     };

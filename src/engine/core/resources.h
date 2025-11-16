@@ -25,6 +25,4 @@ namespace res
     {
         Quad, Cube, Cylinder, Icosphere, UVSphere
     };
-
-    graphics::GpuMesh getMeshPrimitive(MeshPrimitive primitive);
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <optional>
 #include <string_view>
 
 #include "rendering/Renderer.h"
@@ -33,8 +31,8 @@ namespace core
     class Application
     {
     public: // creation
-        static std::optional<std::unique_ptr<Application>> init(std::string_view resourceRoot, const WindowState& windowState);
-
+        Application() = delete;
+        Application(std::string_view resourceRoot, const WindowState& windowState);
         ~Application();
 
         // No copy (every application is encapsulated and can not exist twice)
@@ -42,11 +40,8 @@ namespace core
         Application& operator=(const Application&) = delete;
 
         // Trivial move
-        Application(Application&&) = default;
-        Application& operator=(Application&&) = default;
-
-    private:
-        Application() = default;
+        Application(Application&&) = delete;
+        Application& operator=(Application&&) = delete;
 
     public:
         int run();
@@ -60,6 +55,7 @@ namespace core
         InputState _inputState;
         WindowState _windowState;
         graphics::Renderer _renderer;
+        assets::AssetDatabase* _assetDb = nullptr;
         GLFWwindow* _windowPtr = nullptr;
     };
 }
