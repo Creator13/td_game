@@ -51,7 +51,7 @@ void Renderer::render()
     for (size_t i = 0; i < renderables.size(); i++)
     {
         const Renderable& rObj = renderables[i];
-        shader::use(rObj.shader);
+        shader::use(db->getShaderProgram(rObj.shaderId));
 
         const MeshGpuHandle& handle = db->getMeshGpuHandle(rObj.meshId);
 

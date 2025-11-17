@@ -1,12 +1,15 @@
 #pragma once
 #include <cstdint>
 
-namespace graphics::shader
+namespace graphics
 {
     struct ShaderProgramData
     {
         uint32_t programId;
     };
 
-    void use(ShaderProgramData data);
+    namespace shader
+    {
+        void use(ShaderProgramData data);
+    }
 }

@@ -1,5 +1,4 @@
 #include "core/Application.h"
-#include "core/resources.h"
 
 int main ()
 {

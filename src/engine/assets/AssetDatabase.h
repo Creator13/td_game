@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -39,6 +40,9 @@ namespace assets
         AssetId loadMeshFromFile(std::string_view path);
         AssetId createRuntimeMesh(std::string_view name);
 
+        const graphics::ShaderProgramData& getShaderProgram(AssetId id) const;
+        AssetId loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath);
+
     private:
         struct MeshGpuAllocator
         {
@@ -49,18 +53,25 @@ namespace assets
             void clean();
         };
 
-        std::string resourceRoot;
+        std::filesystem::path rootPath;
 
         std::unordered_map<AssetId, AssetInfo> metadata;
 
         std::unordered_map<AssetId, graphics::Mesh> meshes;
         MeshGpuAllocator meshAllocator;
-        std::unordered_map<AssetId, graphics::shader::ShaderProgramData> shaders;
+
+        std::unordered_map<AssetId, uint32_t> shaderStageCache;
+        std::unordered_map<AssetId, graphics::ShaderProgramData> shaders;
 
         static std::string makeInternalPath(AssetInfo::AssetType type, std::string_view name);
+
+        std::string resolveResourcePath(std::string_view path) const;
 
         void loadInternalMesh(std::string_view name, const graphics::Vertex* vPtr, uint32_t vCnt, const uint32_t* iPtr, uint32_t iCnt);
         void loadInternalMeshes();
         AssetId createMesh(std::string_view name);
+
+        void loadInternalShaders();
+        std::optional<uint32_t> loadShaderStageFromFile(std::string_view path, uint32_t stageType);
     };
 }

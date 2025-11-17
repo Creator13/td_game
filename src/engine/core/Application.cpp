@@ -5,7 +5,6 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
-#include "resources.h"
 #include "rendering/shader.h"
 #include "math/math.h"
 #include "rendering/Renderer.h"
@@ -22,8 +21,6 @@ Application::Application(std::string_view resourceRoot, const WindowState& windo
     spdlog::set_level(spdlog::level::debug);
 
     createWindow(windowState);
-
-    res::initResources(resourceRoot);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -53,14 +50,13 @@ int Application::run()
     _renderer.setWorldToViewMatrix(worldToView);
     _renderer.setViewToClipMatrix(viewToClip);
 
-    graphics::shader::ShaderProgramData shader = res::loadShader(
-        fs::path("shaders/basic.vert"),
-        fs::path("shaders/basic.frag")
-    );
+    assets::AssetId basicShader = _assetDb->loadShaderFromFiles(
+        "shaders/basic.vert",
+        "shaders/basic.frag");
 
-    graphics::shader::ShaderProgramData colorShader = res::loadShader(
-        fs::path("shaders/basic.vert"),
-        fs::path("shaders/color.frag"));
+    assets::AssetId colorShader = _assetDb->loadShaderFromFiles(
+        "shaders/basic.vert",
+        "shaders/color.frag");
 
     assets::AssetId cube = assets::AssetDatabase::idFromPath("@internal/mesh/cube");
     assets::AssetId quad = assets::AssetDatabase::idFromPath("@internal/mesh/quad");
@@ -92,7 +88,7 @@ int Application::run()
         _renderer.submit({
             localToWorld,
             cube,
-            shader, { }
+            basicShader, { }
         });
 
         _renderer.submit({
@@ -157,7 +153,6 @@ bool Application::createWindow(const WindowState& windowState)
 
 void Application::cleanup()
 {
-    res::unloadResources();
     cleanWindow();
 }
 

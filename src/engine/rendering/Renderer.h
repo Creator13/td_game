@@ -25,7 +25,7 @@ namespace graphics
     {
         math::mat4 modelMatrix;
         assets::AssetId meshId;
-        shader::ShaderProgramData shader;
+        assets::AssetId shaderId;
         MaterialData material;
     };
 
