@@ -106,8 +106,8 @@ namespace
         GLuint compileErrorShader()
         {
             // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
-            constexpr std::string_view ERROR_SHADER_VERT = "#version 330\nin vec3 pos;void main() {gl_Position = vec4(pos, 1.0);}";
-            constexpr std::string_view ERROR_SHADER_FRAG = "#version 330\nout vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
+            constexpr std::string_view ERROR_SHADER_VERT = "#version 430\n layout (location = 0) in vec3 pos;\nlayout (location = 1) in vec3 aNorm;\nlayout (location = 100) uniform mat4 model;\nlayout (location = 101) uniform mat4 vp_mat;void main() {gl_Position = vp_mat * model * vec4(pos, 1.0);}";
+            constexpr std::string_view ERROR_SHADER_FRAG = "#version 430\n out vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
 
             GLuint vId = glCreateShader(GL_VERTEX_SHADER);
             const char* vSrc = ERROR_SHADER_VERT.data();

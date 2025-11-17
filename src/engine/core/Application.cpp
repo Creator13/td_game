@@ -63,6 +63,7 @@ int Application::run()
         fs::path("shaders/color.frag"));
 
     assets::AssetId cube = assets::AssetDatabase::idFromPath("@internal/mesh/cube");
+    assets::AssetId quad = assets::AssetDatabase::idFromPath("@internal/mesh/quad");
 
     while (!glfwWindowShouldClose(_windowPtr))
     {
