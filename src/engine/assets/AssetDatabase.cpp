@@ -6,16 +6,22 @@
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
+#include <fastgltf/core.hpp>
+#include <fastgltf/tools.hpp>
+#include <fastgltf/types.hpp>
 
 #include "rendering/shader.h"
 #include "rendering/Mesh.h"
 #include "assets/MeshPrimitives.h"
+#include "assets/GltfElementTraits.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 
 namespace fs = std::filesystem;
@@ -176,6 +182,8 @@ assets::AssetDatabase::AssetDatabase(std::string_view resourceRoot)
       meshes(64), meshAllocator(),
       shaders(64)
 {
+    gltfParser = std::make_unique<fastgltf::Parser>();
+
     loadInternalMeshes();
 }
 
@@ -213,7 +221,95 @@ graphics::Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
 
 assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 {
-    return 0;
+    fs::path absPath = fs::path(resolveResourcePath(path));
+
+    auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
+    if (data.error() != fastgltf::Error::None)
+    {
+        spdlog::error("Error loading gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
+        return 0;
+    }
+
+    constexpr fastgltf::Options parserOptions =
+            fastgltf::Options::LoadGLBBuffers
+            | fastgltf::Options::LoadExternalBuffers;
+
+    auto load = gltfParser->loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
+    if (auto error = load.error(); error != fastgltf::Error::None)
+    {
+        spdlog::error("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
+    }
+
+    fastgltf::Asset asset = std::move(load.get());
+
+    const fastgltf::Mesh& mesh = asset.meshes[0];
+
+    graphics::Mesh out;
+
+    size_t vertex_base = 0;
+
+    for (const auto& primitive: mesh.primitives)
+    {
+        // position
+        auto posAttribute = primitive.findAttribute("POSITION");
+        if (posAttribute == nullptr)
+        {
+            spdlog::error("No POSITION attribute (TODO add more info)"); // TODO add more info
+            continue;
+        }
+        const fastgltf::Accessor& posAccessor = asset.accessors[posAttribute->accessorIndex];
+
+        size_t count = posAccessor.count;
+        out.vertices.resize(vertex_base + count);
+
+        fastgltf::iterateAccessorWithIndex<math::vec3>(asset, posAccessor,
+            [&](math::vec3 pos, size_t index)
+            {
+                graphics::Vertex v;
+                v.position = pos;
+                v.normal = math::vec3(0.0f, 0.0f, 0.0f);
+                out.vertices[vertex_base + index] = v;
+            });
+
+
+        // normals
+        auto normalAttribute = primitive.findAttribute("NORMAL");
+        if (normalAttribute)
+        {
+            const fastgltf::Accessor& normalAccessor = asset.accessors[normalAttribute->accessorIndex];
+            fastgltf::iterateAccessorWithIndex<math::vec3>(asset, normalAccessor,
+                [&] (math::vec3 normal, size_t index)
+                {
+                    out.vertices[vertex_base + index].normal = normal;
+                });
+        }
+
+        if (primitive.indicesAccessor.has_value())
+        {
+            const fastgltf::Accessor &indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
+            out.indices.resize(indexAccessor.count);
+            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, out.indices.data());
+        }
+
+        vertex_base += count;
+    }
+
+    AssetId id = idFromPath(path);
+
+    AssetInfo info;
+    info.id = id;
+    info.path = path;
+    info.type = AssetInfo::AssetType::Mesh;
+    info.isRuntime = false;
+
+    metadata.insert({info.id, info});
+    graphics::Mesh& new_mesh = meshes.try_emplace(info.id).first->second;
+    new_mesh.vertices = std::move(out.vertices);
+    new_mesh.indices = std::move(out.indices);
+
+    meshAllocator.upload(id, new_mesh);
+
+    return id;
 }
 
 assets::AssetId assets::AssetDatabase::createMesh(std::string_view path)

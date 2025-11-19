@@ -59,7 +59,7 @@ int Application::run()
         "shaders/color.frag");
 
     assets::AssetId cube = assets::AssetDatabase::idFromPath("@internal/mesh/cube");
-    assets::AssetId quad = assets::AssetDatabase::idFromPath("@internal/mesh/quad");
+    assets::AssetId bunny = _assetDb->loadMeshFromFile("mesh/bunny.glb");
 
     while (!glfwWindowShouldClose(_windowPtr))
     {
@@ -87,7 +87,7 @@ int Application::run()
 
         _renderer.submit({
             localToWorld,
-            cube,
+            bunny,
             basicShader, { }
         });
 

@@ -4,15 +4,17 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
+find_package(fastgltf CONFIG REQUIRED)
 
 add_library(engine STATIC ${ENGINE_SOURCES})
 
 target_link_libraries(engine
         PUBLIC math
-        PRIVATE spdlog::spdlog
+        PUBLIC spdlog::spdlog
         PRIVATE glad::glad
         PRIVATE glfw
         PRIVATE xxHash::xxhash
+        PRIVATE fastgltf::fastgltf
 )
 
 include(${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake)

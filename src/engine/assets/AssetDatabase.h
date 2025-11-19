@@ -9,6 +9,10 @@
 #include "rendering/Mesh.h"
 #include "rendering/shader.h"
 
+namespace fastgltf {
+    class Parser;
+}
+
 namespace assets
 {
     typedef uint64_t AssetId;
@@ -52,6 +56,8 @@ namespace assets
             void upload(AssetId id, const graphics::Mesh& mesh);
             void clean();
         };
+
+        std::unique_ptr<fastgltf::Parser> gltfParser;
 
         std::filesystem::path rootPath;
 
