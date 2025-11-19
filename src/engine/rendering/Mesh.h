@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <span>
 #include <vector>
 
 #include "math/vec3.h"
@@ -18,14 +17,6 @@ namespace graphics
     {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
-    };
-
-    struct MeshView
-    {
-        std::span<const Vertex> vertices;
-        std::span<const uint32_t> indices;
-
-        size_t getIndexCount() const { return indices.size(); }
     };
 
     struct MeshGpuHandle

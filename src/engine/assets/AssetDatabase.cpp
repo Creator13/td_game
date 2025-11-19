@@ -1,6 +1,5 @@
 #include "AssetDatabase.h"
 
-#include <fstream>
 #include <optional>
 #include <xxhash.h>
 #include <glad/glad.h>
@@ -10,19 +9,11 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 
+#include "assets/File.h"
 #include "rendering/shader.h"
 #include "rendering/Mesh.h"
 #include "assets/MeshPrimitives.h"
 #include "assets/GltfElementTraits.h"
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
 
 namespace fs = std::filesystem;
 
@@ -51,12 +42,6 @@ namespace
         std::optional<GLuint> compileShader(std::string_view source, GLenum shaderType);
         std::optional<GLuint> makeShaderProgram(std::initializer_list<GLuint> shaderIds);
         GLuint compileErrorShader();
-    }
-
-    namespace _file
-    {
-        fs::path getExecutableDir();
-        std::optional<std::string> readFileText(const fs::path& path);
     }
 
     namespace _shader
@@ -91,7 +76,7 @@ namespace
         std::optional<GLuint> makeShaderProgram(std::initializer_list<GLuint> shaderIds)
         {
             const GLuint programId = glCreateProgram();
-            for (const GLuint shaderId: shaderIds)
+            for (const GLuint shaderId : shaderIds)
             {
                 glAttachShader(programId, shaderId);
             }
@@ -109,11 +94,6 @@ namespace
 
                 spdlog::error("Shader linking failed:\n{}", infoLog);
                 return { };
-            }
-
-            for (const GLuint shaderId: shaderIds)
-            {
-                glDeleteShader(shaderId);
             }
 
             return programId;
@@ -136,48 +116,17 @@ namespace
         }
     }
 
-    namespace _file
+    namespace _mesh
     {
-        fs::path getExecutableDir()
+        constexpr math::vec3 transformGltfToEngineCoordinateSpace(const math::vec3& in)
         {
-#ifdef _WIN32
-            wchar_t buffer[1024];
-            GetModuleFileNameW(nullptr, buffer, 1024);
-            return fs::path(buffer).parent_path();
-#else // Linux
-            char buffer[1024];
-            ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
-            if (len != -1)
-            {
-                buffer[len] = '\0';
-                return fs::path(buffer).parent_path();
-            }
-            else
-            {
-                throw std::runtime_error("Failed to get executable path");
-            }
-#endif
-        }
-
-        std::optional<std::string> readFileText(const fs::path& path)
-        {
-            std::ifstream file(path, std::ios::binary | std::ios::ate);
-            if (!file)
-            {
-                return { };
-            }
-
-            const auto size = file.tellg();
-            std::string text = std::string(size, '\0');
-            file.seekg(0);
-            file.read(text.data(), size);
-            return text;
+            return math::vec3(in.x, -in.z, in.y);
         }
     }
 }
 
 assets::AssetDatabase::AssetDatabase(std::string_view resourceRoot)
-    : rootPath(_file::getExecutableDir() / resourceRoot),
+    : rootPath(file::getExecutableDir() / resourceRoot),
       metadata(128),
       meshes(64), meshAllocator(),
       shaders(64)
@@ -230,9 +179,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
         return 0;
     }
 
-    constexpr fastgltf::Options parserOptions =
-            fastgltf::Options::LoadGLBBuffers
-            | fastgltf::Options::LoadExternalBuffers;
+    constexpr fastgltf::Options parserOptions = fastgltf::Options::LoadExternalBuffers;
 
     auto load = gltfParser->loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
     if (auto error = load.error(); error != fastgltf::Error::None)
@@ -248,7 +195,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 
     size_t vertex_base = 0;
 
-    for (const auto& primitive: mesh.primitives)
+    for (const auto& primitive : mesh.primitives)
     {
         // position
         auto posAttribute = primitive.findAttribute("POSITION");
@@ -266,7 +213,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
             [&](math::vec3 pos, size_t index)
             {
                 graphics::Vertex v;
-                v.position = pos;
+                v.position = _mesh::transformGltfToEngineCoordinateSpace(pos);
                 v.normal = math::vec3(0.0f, 0.0f, 0.0f);
                 out.vertices[vertex_base + index] = v;
             });
@@ -278,15 +225,15 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
         {
             const fastgltf::Accessor& normalAccessor = asset.accessors[normalAttribute->accessorIndex];
             fastgltf::iterateAccessorWithIndex<math::vec3>(asset, normalAccessor,
-                [&] (math::vec3 normal, size_t index)
+                [&](math::vec3 normal, size_t index)
                 {
-                    out.vertices[vertex_base + index].normal = normal;
+                    out.vertices[vertex_base + index].normal = _mesh::transformGltfToEngineCoordinateSpace(normal);
                 });
         }
 
         if (primitive.indicesAccessor.has_value())
         {
-            const fastgltf::Accessor &indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
+            const fastgltf::Accessor& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
             out.indices.resize(indexAccessor.count);
             fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, out.indices.data());
         }
@@ -408,7 +355,7 @@ void assets::AssetDatabase::MeshGpuAllocator::upload(AssetId id, const graphics:
 
 void assets::AssetDatabase::MeshGpuAllocator::clean()
 {
-    for (auto& [id, handle]: handles)
+    for (auto& [id, handle] : handles)
     {
         glDeleteVertexArrays(1, &handle.vao);
         glDeleteBuffers(1, &handle.ebo);
@@ -477,7 +424,7 @@ std::optional<GLuint> assets::AssetDatabase::loadShaderStageFromFile(std::string
     fs::path fullPath = resolveResourcePath(path);
     spdlog::debug("Loading shader stage file from {}", fullPath.generic_string());
 
-    std::optional<std::string> source = _file::readFileText(fullPath);
+    std::optional<std::string> source = file::readFileText(fullPath);
     if (!source.has_value())
     {
         spdlog::error("Failed to load shader stage: {}", path);

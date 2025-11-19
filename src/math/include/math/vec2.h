@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 #include "func.h"
 
 namespace math

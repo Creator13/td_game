@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <span>
 
 #include "rotation.h"
