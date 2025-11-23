@@ -1,0 +1,111 @@
+#include "rendering/EcsRendering.h"
+
+#include <flecs.h>
+
+#include "core/Application.h"
+#include "core/transform.h"
+
+using namespace math;
+using namespace core::ecs;
+
+namespace
+{
+    void registerComponents(flecs::world& ecs)
+    {
+        ecs.component<ActiveCamera>();
+        ecs.component<CameraRenderData>().add(flecs::Singleton);
+
+        ecs.component<PerspectiveCameraData>("Camera (Perspective)")
+            .member<float>("Fov").range(5.f, 150.f)
+            .member<float>("Near plane")
+            .member<float>("Far plane");
+
+        ecs.component<OrthoCameraData>("Camera (orthographic)")
+            .member<float>("Orthographic size")
+            .member<float>("Near plane")
+            .member<float>("Far plane");
+
+        ecs.component<MeshRenderer>()
+            .member<uint64_t>("Mesh id")
+            .member<uint64_t>("Shader id");
+
+        ecs.component<MaterialData>();
+
+        ecs.component<WindowSingleton>().add(flecs::Singleton);
+        ecs.component<RendererSingleton>().add(flecs::Singleton);
+    }
+
+    // TODO find a solution for this that I love more (CurrentActiveCamera with an entity reference?)
+    flecs::entity currentActiveCameraEntity;
+}
+
+rendering::rendering(flecs::world& ecs)
+{
+    ecs.module<rendering>("Rendering");
+
+    registerComponents(ecs);
+
+    ecs.set<CameraRenderData>({ });
+
+    ecs.observer("Active camera uniqueness observer")
+        .with<ActiveCamera>()
+        .event(flecs::OnAdd)
+        .each([](flecs::entity e)
+        {
+            if (currentActiveCameraEntity.is_alive())
+            {
+                currentActiveCameraEntity.remove<ActiveCamera>();
+            }
+            currentActiveCameraEntity = e;
+        });
+
+    ecs.system<const PerspectiveCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Perspective camera update system")
+        .kind(flecs::PreStore)
+        .with<ActiveCamera>()
+        .each([](const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+        {
+            float aspect = window.windowState->getFrameBufferAspect();
+            renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
+            renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+        });
+
+    ecs.system<const OrthoCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Ortho camera update system")
+        .kind(flecs::PreStore)
+        .with<ActiveCamera>()
+        .each([](const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+        {
+            float aspect = window.windowState->getFrameBufferAspect();
+            renderData.projectionMatrix = mat4::makeOrtho(
+                -cameraData.orthoSize * aspect,
+                cameraData.orthoSize * aspect,
+                -cameraData.orthoSize,
+                cameraData.orthoSize,
+                cameraData.near,
+                cameraData.far
+            );
+            renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+        });
+
+    auto cameraSystem = ecs.system<const RendererSingleton, const CameraRenderData>()
+        .kind(flecs::OnStore)
+        .each([](const RendererSingleton& r_ptr, const CameraRenderData& renderData)
+        {
+            graphics::Renderer& renderer = *r_ptr.renderer;
+            renderer.setClearColor(renderData.clearColor);
+            renderer.setWorldToViewMatrix(renderData.viewMatrix);
+            renderer.setViewToClipMatrix(renderData.projectionMatrix);
+        });
+
+    ecs.system<const RendererSingleton, const WorldTransformData, const MeshRenderer, const MaterialData>("Render system")
+        .each([](const RendererSingleton& r_ptr, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat)
+        {
+            graphics::Renderable renderable;
+            renderable.meshId = renderData.meshId;
+            renderable.shaderId = renderData.shaderId;
+            renderable.modelMatrix = transform.worldTransformMatrix;
+            renderable.material = {mat.color};
+
+            r_ptr.renderer->submit(renderable);
+        })
+        .depends_on(cameraSystem);
+}

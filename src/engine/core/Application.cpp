@@ -5,8 +5,8 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
-#include "rendering/shader.h"
-#include "math/math.h"
+#include "core/EcsCore.h"
+#include "rendering/EcsRendering.h"
 #include "rendering/Renderer.h"
 
 using namespace core;
@@ -16,11 +16,18 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-Application::Application(std::string_view resourceRoot, const WindowState& windowState)
+float WindowState::getFrameBufferAspect() const
+{
+    return static_cast<float>(fbWidth) / static_cast<float>(fbHeight);
+}
+
+Application::Application(int argc, char* argv[], std::string_view resourceRoot, const WindowState& windowState)
+    : _ecs(argc, argv), _windowState(windowState)
 {
     spdlog::set_level(spdlog::level::debug);
 
     createWindow(windowState);
+    initFlecs();
 
     glEnable(GL_DEPTH_TEST);
 
@@ -28,10 +35,9 @@ Application::Application(std::string_view resourceRoot, const WindowState& windo
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    _windowState = windowState;
-    _assetDb = new assets::AssetDatabase(resourceRoot);
-    _renderer.setAssetDatabase(_assetDb);
-    _inputState = InputState();
+    // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
+    _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
+    _renderer.setAssetDatabase(_assetDb.get());
 }
 
 Application::~Application()
@@ -41,76 +47,15 @@ Application::~Application()
 
 int Application::run()
 {
-    math::vec3 camPos = math::vec3(1, -4, 2);
-    math::rot3x3 camRot = math::rot3x3::eulerAngles(0, 0, 25);
-    math::mat4 worldToView = inverse(math::mat4::makeTRS(camPos, camRot, math::vec3::one));
-    math::mat4 viewToClip = math::mat4::makePerspective(75, (float) _windowState.width / (float) _windowState.height, .1f, 100.f);
-
-    _renderer.setClearColor(graphics::color(.4, 0.4, 0.4, 0));
-    _renderer.setWorldToViewMatrix(worldToView);
-    _renderer.setViewToClipMatrix(viewToClip);
-
-    assets::AssetId basicShader = _assetDb->loadShaderFromFiles(
-        "shaders/basic.vert",
-        "shaders/basic.frag");
-
-    assets::AssetId colorShader = _assetDb->loadShaderFromFiles(
-        "shaders/basic.vert",
-        "shaders/color.frag");
-
-    assets::AssetId cube = assets::AssetDatabase::idFromPath("@internal/mesh/cube");
-    assets::AssetId bunny = _assetDb->loadMeshFromFile("mesh/bunny.glb");
 
     while (!glfwWindowShouldClose(_windowPtr))
     {
         glfwPollEvents();
-
-        math::mat4 localToWorld = math::mat4::makeTRS(
-            math::vec3::zero,
-            math::rot3x3::eulerAngles(0, 0, glfwGetTime() * 45),
-            math::vec3::one);
-
-        math::mat4 xAxis = math::mat4::makeTRS(
-            math::vec3::zero,
-            math::rot3x3::identity,
-            math::vec3(10, .01, .01)
-        );
-        math::mat4 yAxis = math::mat4::makeTRS(
-            math::vec3::zero,
-            math::rot3x3::identity,
-            math::vec3(.01, 10, .01)
-        );
-        math::mat4 zAxis = math::mat4::makeTRS(
-            math::vec3::zero,
-            math::rot3x3::identity,
-            math::vec3(.01, .01, 10));
-
-        _renderer.submit({
-            localToWorld,
-            bunny,
-            basicShader, { }
-        });
-
-        _renderer.submit({
-            xAxis,
-            cube,
-            colorShader, { graphics::color(1, 0, 0)}
-        });
-
-        _renderer.submit({
-            yAxis,
-            cube,
-            colorShader, { graphics::color(0, 1, 0) }
-        });
-
-        _renderer.submit({
-            zAxis,
-            cube,
-            colorShader, { graphics::color(0, 0, 1) }
-        });
-
+        if (!_ecs.progress())
+        {
+            glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
+        }
         _renderer.render();
-
         glfwSwapBuffers(_windowPtr);
     }
 
@@ -121,7 +66,7 @@ bool Application::createWindow(const WindowState& windowState)
 {
     if (!glfwInit())
     {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
+        spdlog::error("Failed to initialize GLFW");
         return false;
     }
 
@@ -130,7 +75,7 @@ bool Application::createWindow(const WindowState& windowState)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    _windowPtr = glfwCreateWindow(windowState.width, windowState.height, windowState.title, nullptr, nullptr);
+    _windowPtr = glfwCreateWindow(windowState.width, windowState.height, windowState.title.c_str(), nullptr, nullptr);
     if (!_windowPtr)
     {
         spdlog::error("Failed to create GLFW window.");
@@ -146,9 +91,23 @@ bool Application::createWindow(const WindowState& windowState)
         return false;
     }
 
-    _windowState = windowState;
-
     return true;
+}
+
+void Application::initFlecs()
+{
+#ifdef DEBUG_BUILD
+    _ecs.import<flecs::stats>();
+    _ecs.set<flecs::Rest>({ });
+    spdlog::debug("Open flecs explorer at https://flecs.dev/explorer");
+#endif
+
+    _ecs.import<ecs::engine_core>();
+    _ecs.import<ecs::rendering>();
+
+    _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
+    _ecs.set<ecs::WindowSingleton>({&_windowState});
+    _ecs.set<ecs::RendererSingleton>({&_renderer});
 }
 
 void Application::cleanup()

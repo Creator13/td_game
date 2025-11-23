@@ -128,7 +128,7 @@ namespace
 assets::AssetDatabase::AssetDatabase(std::string_view resourceRoot)
     : rootPath(file::getExecutableDir() / resourceRoot),
       metadata(128),
-      meshes(64), meshAllocator(),
+      meshes(64), meshAllocator(64),
       shaders(64)
 {
     gltfParser = std::make_unique<fastgltf::Parser>();
@@ -155,21 +155,27 @@ const assets::AssetInfo& assets::AssetDatabase::getAssetInfo(AssetId id)
 
 const graphics::MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id) const
 {
+    assert(metadata.contains(id));
     return meshAllocator.get(id);
 }
 
 const graphics::Mesh& assets::AssetDatabase::getMeshView(AssetId id) const
 {
+    assert(metadata.contains(id));
     return meshes.at(id);
 }
 
 graphics::Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
 {
+    assert(metadata.contains(id));
     return meshes.at(id);
 }
 
 assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 {
+    AssetId id = idFromPath(path);
+    if (meshes.contains(id)) { return id; }
+
     fs::path absPath = fs::path(resolveResourcePath(path));
 
     auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
@@ -240,8 +246,6 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 
         vertex_base += count;
     }
-
-    AssetId id = idFromPath(path);
 
     AssetInfo info;
     info.id = id;

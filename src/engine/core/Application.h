@@ -1,5 +1,6 @@
 #pragma once
 
+#include <flecs.h>
 #include <string_view>
 
 #include "rendering/Renderer.h"
@@ -16,7 +17,8 @@ namespace core
     struct WindowState
     {
         WindowState() = default;
-        WindowState(int width, int height, const char* title, bool fullscreen)
+
+        WindowState(int width, int height, std::string_view title, bool fullscreen)
             : width(width), height(height),
               fbWidth(width), fbHeight(height),
               title(title),
@@ -24,15 +26,17 @@ namespace core
 
         int width, height;
         int fbWidth, fbHeight;
-        const char* title;
+        std::string title;
         bool fullscreen;
+
+        float getFrameBufferAspect() const;
     };
 
     class Application
     {
     public: // creation
         Application() = delete;
-        Application(std::string_view resourceRoot, const WindowState& windowState);
+        Application(int argc, char* argv[], std::string_view resourceRoot, const WindowState& windowState);
         ~Application();
 
         // No copy (every application is encapsulated and can not exist twice)
@@ -45,17 +49,21 @@ namespace core
 
     public:
         int run();
+        flecs::world& getEcsWorld() { return _ecs; }
+        assets::AssetDatabase& assets() const { return *_assetDb.get(); }
 
     private:
         bool createWindow(const WindowState& windowState);
+        void initFlecs();
         void cleanup();
         void cleanWindow();
 
     private: // data
+        flecs::world _ecs;
         InputState _inputState;
         WindowState _windowState;
         graphics::Renderer _renderer;
-        assets::AssetDatabase* _assetDb = nullptr;
+        std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         GLFWwindow* _windowPtr = nullptr;
     };
 }

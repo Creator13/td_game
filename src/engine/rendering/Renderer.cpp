@@ -21,7 +21,7 @@ void Renderer::setAssetDatabase(const assets::AssetDatabase* db)
     this->db = db;
 }
 
-void Renderer::setClearColor(color c)
+void Renderer::setClearColor(Color c)
 {
     clearColor = c;
 }

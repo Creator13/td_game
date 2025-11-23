@@ -9,7 +9,8 @@
 #include "rendering/Mesh.h"
 #include "rendering/shader.h"
 
-namespace fastgltf {
+namespace fastgltf
+{
     class Parser;
 }
 
@@ -50,6 +51,9 @@ namespace assets
     private:
         struct MeshGpuAllocator
         {
+            MeshGpuAllocator() : handles(8) { }
+            explicit MeshGpuAllocator(int capacity) : handles(capacity) { }
+
             std::unordered_map<AssetId, graphics::MeshGpuHandle> handles;
 
             const graphics::MeshGpuHandle& get(AssetId id) const;

@@ -2,8 +2,7 @@
 
 #include <vector>
 
-#include "color.h"
-#include "shader.h"
+#include "Color.h"
 #include "assets/AssetDatabase.h"
 #include "math/mat4.h"
 
@@ -11,14 +10,14 @@ class GLFWwindow;
 
 namespace graphics
 {
-    struct color;
+    struct Color;
 }
 
 namespace graphics
 {
     struct MaterialData
     {
-        color color;
+        Color color;
     };
 
     struct Renderable
@@ -36,13 +35,13 @@ namespace graphics
         const assets::AssetDatabase* db = nullptr;
 
         std::vector<Renderable> renderables;
-        color clearColor = color(0, 0, 0, 0);
+        Color clearColor = Color(0, 0, 0, 0);
         math::mat4 projectionMatrix;
         math::mat4 viewMatrix;
 
     public:
         void setAssetDatabase(const assets::AssetDatabase* db);
-        void setClearColor(color c);
+        void setClearColor(Color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);
         void submit(const Renderable& renderable);
