@@ -11,9 +11,17 @@
 
 using namespace core;
 
-void framebuffer_size_callback(GLFWwindow*, int width, int height)
+namespace
 {
-    glViewport(0, 0, width, height);
+    void glfw_error_callback(int code, const char* description)
+    {
+        spdlog::error("GLFW Error {}: {}", code, description);
+    }
+
+    void framebuffer_size_callback(GLFWwindow*, int width, int height)
+    {
+        glViewport(0, 0, width, height);
+    }
 }
 
 float WindowState::getFrameBufferAspect() const
@@ -47,16 +55,19 @@ Application::~Application()
 
 int Application::run()
 {
-
     while (!glfwWindowShouldClose(_windowPtr))
     {
-        glfwPollEvents();
         if (!_ecs.progress())
         {
             glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
         }
+
         _renderer.render();
+
         glfwSwapBuffers(_windowPtr);
+        glfwPollEvents();
+
+        currentFrame++;
     }
 
     return 0;
@@ -90,6 +101,9 @@ bool Application::createWindow(const WindowState& windowState)
         spdlog::error("Failed to initialize GLAD");
         return false;
     }
+
+    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetWindowUserPointer(_windowPtr, this);
 
     return true;
 }

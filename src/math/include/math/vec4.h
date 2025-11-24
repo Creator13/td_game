@@ -145,4 +145,14 @@ namespace math
     {
         return a + (b - a) * t;
     }
+
+    constexpr float max(vec4 in) noexcept
+    {
+        return max(max(in.x, in.y), max(in.z, in.w));
+    }
+
+    constexpr float min(vec4 in) noexcept
+    {
+        return min(min(in.x, in.y), min(in.z, in.w));
+    }
 }

@@ -1,3 +1,5 @@
+#include <GLFW/glfw3.h>
+
 #include "core/Application.h"
 #include "core/transform.h"
 #include "rendering/EcsRendering.h"
@@ -15,7 +17,7 @@ int main(int argc, char* argv[])
     world.entity("Camera Test1")
         .set<TransformData>({
             math::vec3(.2, -5, 3) * 2,
-            math::quaternion::eulerAngles(-50, 0, 0),
+            math::quaternion::eulerAngles(-25, 0, 0),
             math::vec3::one
         })
         .set<PerspectiveCameraData>({75, .1, 100})
@@ -39,9 +41,6 @@ int main(int argc, char* argv[])
         })
         .set<MaterialData>({ });
 
-    flecs::entity_t ett = 5;
-    flecs::entity ettt = ett;
-
     auto b1 = world.entity("bunny1")
         .set<TransformData>({math::vec3::zero, math::quaternion::identity, math::vec3::one})
         .is_a(bunny_prefab);
@@ -54,12 +53,14 @@ int main(int argc, char* argv[])
 
     b1.add<RotateTag>();
 
-    world.system<TransformData>("Rotating").with<RotateTag>().each([](flecs::iter& it, size_t idx, TransformData& t)
-    {
-        auto ett = it.entity(idx);
-        t.rotate(math::quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
-        ett.modified<TransformData>();
-    });
+    world.system<TransformData>("Rotating")
+        .with<RotateTag>()
+        .each([](flecs::iter& it, size_t idx, TransformData& t)
+        {
+            auto ett = it.entity(idx);
+            t.rotate(math::quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
+            ett.modified<TransformData>();
+        });
 
     world.entity("x axis")
         .set<TransformData>({

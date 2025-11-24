@@ -20,7 +20,7 @@ namespace math
         constexpr bool operator==(const vec3& rhs) const noexcept;
         constexpr bool operator!=(const vec3& rhs) const noexcept;
 
-        [[nodiscard]] float sqrLength() const noexcept;
+        constexpr float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
 
         constexpr vec2 xy() const noexcept;
@@ -126,7 +126,7 @@ namespace math
         return vec3{-in.x, -in.y, -in.z};
     }
 
-    inline float vec3::sqrLength() const noexcept
+    constexpr float vec3::sqrLength() const noexcept
     {
         return x * x + y * y + z * z;
     }
@@ -142,7 +142,7 @@ namespace math
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec3::zero;
     }
 
-    inline float sqrDistance(vec3 from, vec3 to) noexcept
+    constexpr float sqrDistance(vec3 from, vec3 to) noexcept
     {
         return (to - from).sqrLength();
     }
@@ -178,5 +178,15 @@ namespace math
     constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept
     {
         return a + (b - a) * t;
+    }
+
+    constexpr float max(vec3 in) noexcept
+    {
+        return max(in.x, max(in.y, in.z));
+    }
+
+    constexpr float min(vec3 in) noexcept
+    {
+        return min(in.x, min(in.y, in.z));
     }
 }

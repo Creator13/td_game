@@ -65,5 +65,7 @@ namespace core
         graphics::Renderer _renderer;
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         GLFWwindow* _windowPtr = nullptr;
+
+        uint32_t currentFrame = 0;
     };
 }

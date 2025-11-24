@@ -43,10 +43,19 @@ namespace core::ecs
     struct ActiveCamera { };
 
     // #### RENDER COMPONENTS ####
+    enum class CullReason
+    {
+        None = 0,
+        Frustum = 1,
+        LOD = 2,
+        Inherit = 3,
+    };
+
     struct MeshRenderer
     {
         assets::AssetId meshId;
         assets::AssetId shaderId;
+        CullReason cullReason;
     };
 
     struct MaterialData

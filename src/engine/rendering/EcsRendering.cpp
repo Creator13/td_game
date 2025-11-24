@@ -25,14 +25,25 @@ namespace
             .member<float>("Near plane")
             .member<float>("Far plane");
 
+        ecs.component<CullReason>("Culling reason")
+            .constant("None", CullReason::None)
+            .constant("Frustum", CullReason::Frustum)
+            .constant("LOD", CullReason::LOD);
+
         ecs.component<MeshRenderer>()
             .member<uint64_t>("Mesh id")
-            .member<uint64_t>("Shader id");
+            .member<uint64_t>("Shader id")
+            .member<CullReason>("Culling reason");
 
         ecs.component<MaterialData>();
 
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
+    }
+
+    constexpr vec3 extractPositionFromTRS(const mat4& trs)
+    {
+        return trs.getRow(3).xyz();
     }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity reference?)
@@ -96,6 +107,15 @@ rendering::rendering(flecs::world& ecs)
             renderer.setViewToClipMatrix(renderData.projectionMatrix);
         });
 
+    auto cullingSystem = ecs.system<const WorldTransformData, MeshRenderer, const CameraRenderData>("Culling system")
+        .multi_threaded()
+        .each([](const WorldTransformData& transform, MeshRenderer rend, const CameraRenderData& camera)
+        {
+            rend.cullReason = CullReason::None;
+
+        })
+        .depends_on(cameraSystem);
+
     ecs.system<const RendererSingleton, const WorldTransformData, const MeshRenderer, const MaterialData>("Render system")
         .each([](const RendererSingleton& r_ptr, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat)
         {
@@ -107,5 +127,6 @@ rendering::rendering(flecs::world& ecs)
 
             r_ptr.renderer->submit(renderable);
         })
-        .depends_on(cameraSystem);
+        .depends_on(cameraSystem)
+        .depends_on(cullingSystem);
 }

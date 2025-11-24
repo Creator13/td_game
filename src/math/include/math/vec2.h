@@ -18,7 +18,7 @@ namespace math
         constexpr bool operator==(const vec2& rhs) const noexcept;
         constexpr bool operator!=(const vec2& rhs) const noexcept;
 
-        [[nodiscard]] float sqrLength() const noexcept;
+        constexpr float sqrLength() const noexcept;
         [[nodiscard]] float length() const noexcept;
 
         static const vec2 zero, one;
@@ -105,7 +105,7 @@ namespace math
         return vec2(-in.x, -in.y);
     }
 
-    inline float vec2::sqrLength() const noexcept
+    constexpr float vec2::sqrLength() const noexcept
     {
         return x * x + y * y;
     }
@@ -121,7 +121,7 @@ namespace math
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec2::zero;
     }
 
-    inline float sqrDistance(vec2 from, vec2 to) noexcept
+    constexpr float sqrDistance(vec2 from, vec2 to) noexcept
     {
         return (to - from).sqrLength();
     }
@@ -131,12 +131,12 @@ namespace math
         return (to - from).length();
     }
 
-    inline float dot(vec2 lhs, vec2 rhs) noexcept
+    constexpr float dot(vec2 lhs, vec2 rhs) noexcept
     {
         return lhs.x * rhs.x + lhs.y * rhs.y;
     }
 
-    inline vec2 perp(vec2 in) noexcept
+    constexpr vec2 perp(vec2 in) noexcept
     {
         return vec2(in.y, -in.x);
     }
@@ -144,5 +144,15 @@ namespace math
     constexpr vec2 lerp(vec2 a, vec2 b, float t) noexcept
     {
         return a + (b - a) * t;
+    }
+
+    constexpr float max(vec2 in) noexcept
+    {
+        return max(in.x, in.y);
+    }
+
+    constexpr float min(vec2 in) noexcept
+    {
+        return min(in.x, in.y);
     }
 }
