@@ -5,6 +5,7 @@
 #include "vec3.h"
 #include "vec4.h"
 #include "func.h"
+#include "rotation.h"
 #include "trig.h"
 
 namespace math
@@ -76,6 +77,8 @@ namespace math
 
         constexpr rot3x3& operator*=(const rot3x3& other);
 
+        constexpr bool isReflected() const;
+
         static rot3x3 eulerAngles(float x, float y, float z);
         static rot3x3 eulerAngles(vec3 angles);
         static rot3x3 lookRotation(const vec3& forward, const vec3& up);
@@ -99,6 +102,7 @@ namespace math
     inline vec3 toEuler(quaternion q);
     inline quaternion slerp(quaternion a, quaternion b, float t);
     constexpr vec3 rotate(const quaternion& q, const vec3& vec);
+    constexpr bool isIdentity(const quaternion& q);
 
     // ***************************
     //  QUATERNION IMPLEMENTATION
@@ -335,6 +339,11 @@ namespace math
         return vec + ((uv * q.w) + uuv) * 2.f;
     }
 
+    constexpr bool isIdentity(const quaternion& q)
+    {
+        return approx(q, quaternion::identity);
+    }
+
     // *****************************
     //  ROT3x3 FUNCTION DEFINITIONS
     // *****************************
@@ -352,6 +361,7 @@ namespace math
     inline rot3x3 orthonormalize(const rot3x3& mat);
     inline vec3 toEuler(const rot3x3& mat);
     inline vec3 rotate(const rot3x3& mat, vec3 vec);
+    constexpr bool isIdentity(const rot3x3& mat);
 
     // ***********************
     //  ROT3x3 IMPLEMENTATION
@@ -409,6 +419,11 @@ namespace math
         result.yBasis = vec3(mat.xBasis.y, mat.yBasis.y, mat.zBasis.y);
         result.zBasis = vec3(mat.xBasis.z, mat.yBasis.z, mat.zBasis.z);
         return result;
+    }
+
+    constexpr bool rot3x3::isReflected() const
+    {
+        return approx(dot(xBasis, cross(yBasis, zBasis)), -1.f);
     }
 
     constexpr rot3x3 inverse(const rot3x3& mat)
@@ -565,9 +580,8 @@ namespace math
         sinp = clamp(sinp, -1.0f, 1.0f);
 
         vec3 euler;
-        if (abs(sinp) > .999999f)
+        if (abs(sinp) > .999999f) // gimbal lock
         {
-            // gimbal lock
             euler.x = atan2(-mat.zBasis.y, mat.yBasis.y);
             euler.y = copysign(HALFPI, sinp);
             euler.z = 0.0f;
@@ -584,5 +598,10 @@ namespace math
     inline vec3 rotate(const rot3x3& mat, vec3 vec)
     {
         return mat * vec;
+    }
+
+    constexpr bool isIdentity(const rot3x3& mat)
+    {
+        return approx(mat, rot3x3::identity);
     }
 }

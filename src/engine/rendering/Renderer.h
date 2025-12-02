@@ -1,10 +1,12 @@
 #pragma once
 
+#include <variant>
 #include <vector>
 
-#include "Color.h"
 #include "assets/AssetDatabase.h"
+#include "math/geom.h"
 #include "math/mat4.h"
+#include "rendering/Color.h"
 
 class GLFWwindow;
 
@@ -34,6 +36,8 @@ namespace graphics
     {
         const assets::AssetDatabase* db = nullptr;
 
+        bool drawDebug = false;
+
         std::vector<Renderable> renderables;
         Color clearColor = Color(0, 0, 0, 0);
         math::mat4 projectionMatrix;
@@ -41,10 +45,13 @@ namespace graphics
 
     public:
         void setAssetDatabase(const assets::AssetDatabase* db);
+
         void setClearColor(Color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);
+
         void submit(const Renderable& renderable);
+
         void render();
     };
 }

@@ -23,6 +23,7 @@ namespace
     constexpr std::string_view INTERNAL_PATH = "@internal";
 
     const assets::AssetId ERROR_SHADER_ID = assets::AssetDatabase::idFromPath("@internal/shader/error");
+    const assets::AssetId DEBUG_SHADER_ID = assets::AssetDatabase::idFromPath("@internal/shader/debug");
 
     constexpr std::string_view mapAssetTypeName(assets::AssetInfo::AssetType type)
     {
@@ -108,6 +109,21 @@ namespace
             GLuint vId = compileShader(ERROR_SHADER_VERT, GL_VERTEX_SHADER).value();
             GLuint fId = compileShader(ERROR_SHADER_FRAG, GL_FRAGMENT_SHADER).value();
             GLuint pId = makeShaderProgram({vId, fId}).value();
+
+            glDeleteShader(vId);
+            glDeleteShader(fId);
+
+            return pId;
+        }
+
+        GLuint compileDebugShader()
+        {
+            constexpr std::string_view DEBUG_SHADER_VERT = "#version 430\n layout (location = 0) in vec3 pos;\nlayout (location = 101) uniform mat4 vp_mat;void main() {gl_Position = vp_mat * model * vec4(pos, 1.0);}";
+            constexpr std::string_view DEBUG_SHADER_FRAG = "";
+
+            GLuint vId = compileShader(DEBUG_SHADER_VERT, GL_VERTEX_SHADER).value();
+            GLuint fId = compileShader(DEBUG_SHADER_FRAG, GL_FRAGMENT_SHADER).value();
+            GLuint pId = makeShaderProgram({vId, fId}).value_or(0);
 
             glDeleteShader(vId);
             glDeleteShader(fId);

@@ -7,5 +7,5 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS
 add_executable(tests ${TEST_SOURCES})
 
 target_link_libraries(tests PRIVATE
-        engine_math
+        math
         Catch2::Catch2WithMain)

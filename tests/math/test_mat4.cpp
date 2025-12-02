@@ -517,7 +517,10 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
         CHECK(mat4::makeTranslate(x, y, z) == mat4::makeTranslate(vec));
         CHECK(mat4::makeScale(x, y, z) == mat4::makeScale(vec));
     }
+}
 
+TEST_CASE("TRS", MATRIX_TEST_TAG)
+{
     SECTION("TRS")
     {
         using math::quaternion, math::vec3;
@@ -542,6 +545,70 @@ TEST_CASE("Transformations matrices", MATRIX_TEST_TAG)
         CHECK(math::approx(result, expected));
         CHECK(math::approx(trs, expectedTRS));
     }
+
+    SECTION("From translate")
+    {
+        using math::quaternion, math::vec3;
+        vec3 t = vec3(5, -4.3, 188);
+        mat4 trs = mat4::makeTRS(t, quaternion::identity, vec3::one);
+        mat4 translate = mat4::makeTranslate(t);
+        CHECK(math::approx(trs, translate));
+    }
+
+    SECTION("From rotate (quat)")
+    {
+        using math::quaternion, math::vec3;
+        quaternion q = quaternion::eulerAngles(18, 33, 2);
+        mat4 trs = mat4::makeTRS(vec3::zero, q, vec3::one);
+        mat4 rotate = mat4::makeRotation(q);
+        CHECK(math::approx(trs, rotate));
+    }
+
+    SECTION("From rotate (mat3)")
+    {
+        using math::rot3x3, math::vec3;
+        rot3x3 r = rot3x3::eulerAngles(18, 33, 2);
+        mat4 trs = mat4::makeTRS(vec3::zero, r, vec3::one);
+        mat4 rotate = mat4::makeRotation(r);
+        CHECK(math::approx(trs, rotate));
+    }
+
+    SECTION("From scale")
+    {
+        using math::quaternion, math::vec3;
+        vec3 s = vec3(.5f, 2, 3);
+        mat4 trs = mat4::makeTRS(vec3::zero, quaternion::identity, s);
+        mat4 scale = mat4::makeScale(s);
+        CHECK(math::approx(trs, scale));
+    }
+
+    SECTION("From translate/scale (no rotate, quat)")
+    {
+        using math::quaternion, math::vec3;
+        vec3 t = vec3(5, -4.3, 188);
+        vec3 s = vec3(.5f, 2, 3);
+        mat4 trs = mat4::makeTRS(t, quaternion::identity, s);
+
+        mat4 translate = mat4::makeTranslate(t);
+        mat4 scale = mat4::makeScale(s);
+        mat4 ref_trs = translate * scale;
+
+        CHECK(math::approx(trs, ref_trs));
+    }
+
+    SECTION("From translate/scale (no rotate, mat3)")
+    {
+        using math::rot3x3, math::vec3;
+        vec3 t = vec3(5, -4.3, 188);
+        vec3 s = vec3(.5f, 2, 3);
+        mat4 trs = mat4::makeTRS(t, rot3x3::identity, s);
+
+        mat4 translate = mat4::makeTranslate(t);
+        mat4 scale = mat4::makeScale(s);
+        mat4 ref_trs = translate * scale;
+
+        CHECK(math::approx(trs, ref_trs));
+    }
 }
 
 TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
@@ -550,14 +617,16 @@ TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
 
     // The view matrix is for convenience; points in this test will be in the coordinate space with z+ up and y+ forward.
     // This view matrix transforms that to the opengl convention of y+ up and z- forward.
-    mat4 view = mat4::makeRotation(
-        math::rot3x3::lookRotation(
-            vec3(0, 0, -1),
-            vec3(0, 1, 0)));
+    constexpr mat4 coordinateBasis = mat4(
+        1, 0, 0, 0,
+        0, 0, 1, 0,
+        0, -1, 0, 0,
+        0, 0, 0, 1
+    );
 
     SECTION("Perspective")
     {
-        float fov = 90 * math::DEG2RAD;
+        float fov = 75;
         float aspect = 16 / 9.f;
         float near = 0.1f, far = 100.f;
         mat4 clipMatrix = mat4::makePerspective(fov, aspect, near, far);
@@ -565,44 +634,44 @@ TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
         SECTION("Center")
         {
             vec4 worldPoint = vec4(0, 3, 0, 1);
-            vec4 point = view * worldPoint;
+            vec4 point = coordinateBasis * worldPoint;
             vec4 result = clipMatrix * point;
             CHECK(math::approx(result.xy(), math::vec2::zero));
         }
 
-        float halfV = tan(fov / 2) * near;
+        float halfV = tan((fov * math::DEG2RAD) / 2) * near;
         float halfH = halfV * aspect;
 
         SECTION("Edges horizontal")
         {
-            vec4 pointLeft = view * vec4(-halfH, near, 0, 1);
+            vec4 pointLeft = coordinateBasis * vec4(-halfH, near, 0, 1);
             vec4 clip = clipMatrix * pointLeft;
-            vec3 resultLeft = clip.xyz() / clip.w;
-            CHECK(math::approx(resultLeft.x, -1));
+            vec3 ndcLeft = clip.xyz() / clip.w;
+            CHECK_THAT(ndcLeft.x, Catch::Matchers::WithinRel(-1.f));
 
-            vec4 pointRight = view * vec4(halfH, near, 0, 1);
+            vec4 pointRight = coordinateBasis * vec4(halfH, near, 0, 1);
             vec4 clipRight = clipMatrix * pointRight;
-            vec3 resultRight = clipRight.xyz() / clipRight.w;
-            CHECK(math::approx(resultRight.x, 1));
+            vec3 ndcRight = clipRight.xyz() / clipRight.w;
+            CHECK_THAT(ndcRight.x, Catch::Matchers::WithinRel(1.f));
         }
 
         SECTION("Edges vertical")
         {
-            vec4 pointTop = view * vec4(0, near, halfV, 1);
+            vec4 pointTop = coordinateBasis * vec4(0, near, halfV, 1);
             vec4 clip = clipMatrix * pointTop;
-            vec3 resultTop = clip.xyz() / clip.w;
-            CHECK(math::approx(resultTop.y, 1));
+            vec3 ndcTop = clip.xyz() / clip.w;
+            CHECK_THAT(ndcTop.y, Catch::Matchers::WithinRel(1.f));
 
-            vec4 pointBottom = view * vec4(0, near, -halfV, 1);
+            vec4 pointBottom = coordinateBasis * vec4(0, near, -halfV, 1);
             vec4 clipBottom = clipMatrix * pointBottom;
-            vec3 resultBottom = clipBottom.xyz() / clipBottom.w;
-            CHECK(math::approx(resultBottom.y, -1));
+            vec3 ndcBottom = clipBottom.xyz() / clipBottom.w;
+            CHECK_THAT(ndcBottom.y, Catch::Matchers::WithinRel(-1.f));
         }
 
         SECTION("Depth planes")
         {
-            vec4 farPoint = view * vec4(0, far, 0, 1);
-            vec4 nearPoint = view * vec4(0, near, 0, 1);
+            vec4 farPoint = coordinateBasis * vec4(0, far, 0, 1);
+            vec4 nearPoint = coordinateBasis * vec4(0, near, 0, 1);
 
             vec4 farClip = clipMatrix * farPoint;
             vec4 nearClip = clipMatrix * nearPoint;
@@ -624,9 +693,9 @@ TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
         vec4 bottom(0, 0, -1, 1);
         vec4 top(0, 0, 1, 1);
 
-        auto testEdge = [&clipMatrix, &view](vec4 p, float expectedX, float expectedY)
+        auto testEdge = [&clipMatrix, &coordinateBasis](vec4 p, float expectedX, float expectedY)
         {
-            vec4 clip = clipMatrix * view * p;
+            vec4 clip = clipMatrix * coordinateBasis * p;
             vec3 ndc = clip.xyz() / clip.w;
             REQUIRE_THAT(ndc.x, Catch::Matchers::WithinRel(expectedX));
             REQUIRE_THAT(ndc.y, Catch::Matchers::WithinRel(expectedY));
@@ -638,3 +707,45 @@ TEST_CASE("Projection matrices", MATRIX_TEST_TAG)
         testEdge(top, 0, +1);
     }
 }
+
+// TEST_CASE("Extraction", MATRIX_TEST_TAG)
+// {
+//     using math::vec3;
+//     using math::quaternion;
+//     using math::rot3x3;
+//
+//     SECTION("Direct")
+//     {
+//         vec3 posIn = vec3(3, 1, -3.4);
+//         quaternion quatIn = quaternion::eulerAngles(4, 10, 33);
+//         vec3 scaleIn = vec3(-1, 1, 3);
+//
+//         mat4 mat = mat4::makeTRS(posIn, quatIn, scaleIn);
+//
+//         CHECK(approx(extractPosition(mat), posIn));
+//     }
+//
+//     SECTION("Composed")
+//     {
+//         vec3 posIn1 = vec3(3, 1, -3.4);
+//         quaternion quatIn1 = quaternion::eulerAngles(4, 10, 33);
+//         vec3 scaleIn1 = vec3(1, 1, 3);
+//
+//         vec3 posIn2 = vec3(-33, 2, 3.4);
+//         quaternion quatIn2 = quaternion::eulerAngles(0, 90, 0);
+//         vec3 scaleIn2 = vec3(2, 2, 2);
+//
+//         mat4 mat1 = mat4::makeTRS(posIn1, quatIn1, scaleIn1);
+//         mat4 mat2 = mat4::makeTRS(posIn2, quatIn2, scaleIn2);
+//
+//         mat4 matResult = mat1 * mat2;
+//
+//         vec3 expectedPos = (mat1 * vec4(posIn2, 1)).xyz();
+//         rot3x3 expectedRot = rot3x3::fromQuaternion(quatIn1 * quatIn2);
+//         vec3 expectedScale = compMul(scaleIn1, scaleIn2);
+//
+//         CHECK(approx(extractPosition(matResult), expectedPos));
+//         CHECK(approx(extractRotation(matResult), expectedRot));
+//         // CHECK(approx(extractScale(matResult), expectedScale));
+//     }
+// }

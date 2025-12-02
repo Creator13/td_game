@@ -102,6 +102,23 @@ TEST_CASE("Identity rotation", ROTATION_TEST_TAG)
     }
 }
 
+TEMPLATE_TEST_CASE("isIdentity check", ROTATION_TEST_TAG, quaternion, rot3x3)
+{
+    using RotationType = TestType;
+
+    SECTION("true for identity rotation")
+    {
+        RotationType rot = GENERATE(RotationType::identity, RotationType::eulerAngles(0, 0, 0));
+        CHECK(isIdentity(rot));
+    }
+
+    SECTION("false for arbitrary rotation")
+    {
+        RotationType rot = RotationType::eulerAngles(15, 40, -3);
+        CHECK_FALSE(isIdentity(rot));
+    }
+}
+
 TEST_CASE("Inverse rotation", ROTATION_TEST_TAG)
 {
     vec3 vector = vec3(4, -5.98, 2.3f);

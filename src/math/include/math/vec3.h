@@ -166,6 +166,10 @@ namespace math
         };
     }
 
+    /**
+     * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same position of the other
+     * vector.
+     */
     constexpr vec3 compMul(vec3 lhs, vec3 rhs) noexcept
     {
         return vec3{
