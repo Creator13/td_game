@@ -116,6 +116,10 @@ void Application::initFlecs()
     spdlog::debug("Open flecs explorer at https://flecs.dev/explorer");
 #endif
 
+#ifdef FLECS_LOG
+    flecs::log::enable_colors(false);
+#endif
+
     _ecs.import<ecs::engine_core>();
     _ecs.import<ecs::rendering>();
 

@@ -3,87 +3,65 @@
 using namespace math;
 using namespace core::ecs;
 
-mat4& WorldTransformData::getMatrix(TransformData* local, flecs::entity ett_this)
-{
-    flecs::entity parent = ett_this.parent();
-    if (parent.is_alive())
-    {
-
-    }
-}
-
 void TransformData::setLocal(const vec3& position, const quaternion& rotation, const vec3& scale)
 {
     localPosition = position;
     localRotation = rotation;
     localScale = scale;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::setLocal(const vec3& position, const quaternion& rotation)
 {
     localPosition = position;
     localRotation = rotation;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::setLocalPosition(vec3 position)
 {
     localPosition = position;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::setLocalRotation(quaternion rotation)
 {
     localRotation = rotation;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::setLocalScale(vec3 scale)
 {
     localScale = scale;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::translate(vec3 vec)
 {
     localPosition += vec;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::rotate(quaternion rot)
 {
     localRotation = localRotation * rot;
-    gen++;
+    dirty = true;
 }
 
 void TransformData::scale(vec3 scale)
 {
     localScale = compMul(localScale, scale);
-    gen++;
+    dirty = true;
 }
 
 void TransformData::scale(int scale)
 {
     localScale *= scale;
-    gen++;
+    dirty = true;
 }
 
-vec3 TransformData::getWorldPosition(flecs::entity ett_this, WorldTransformData* world_this)
+mat4 TransformData::ensureTRS()
 {
-    mat4& worldMatrix = world_this->getMatrix(this, ett_this);
-    return extractPosition(worldMatrix);
+    cachedLocalTRS = mat4::makeTRS(localPosition, localRotation, localScale);
+    return cachedLocalTRS;
 }
-
-quaternion TransformData::getWorldRotation(flecs::entity ett_this, WorldTransformData* world_this) { }
-
-vec3 TransformData::getWorldScale(flecs::entity ett_this, WorldTransformData* world_this) { }
-
-vec3 TransformData::getForward(flecs::entity ett_this, WorldTransformData* world_this)
-{
-
-}
-vec3 TransformData::getRight(flecs::entity ett_this, WorldTransformData* world_this) { }
-vec3 TransformData::getUp(flecs::entity ett_this, WorldTransformData* world_this) { }
-void TransformData::setWorldPosition(vec3 position, flecs::entity ett_this, WorldTransformData* world_this) { }
-void TransformData::setWorldRotation(quaternion rotation, flecs::entity ett_this, WorldTransformData* world_this) { }

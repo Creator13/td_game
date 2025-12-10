@@ -46,7 +46,7 @@ namespace
         return trs.getRow(3).xyz();
     }
 
-    // TODO find a solution for this that I love more (CurrentActiveCamera with an entity reference?)
+    // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
     flecs::entity currentActiveCameraEntity;
 }
 
@@ -112,7 +112,6 @@ rendering::rendering(flecs::world& ecs)
         .each([](const WorldTransformData& transform, MeshRenderer rend, const CameraRenderData& camera)
         {
             rend.cullReason = CullReason::None;
-
         })
         .depends_on(cameraSystem);
 

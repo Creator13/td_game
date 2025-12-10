@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
             math::vec3::one
         })
         .set<PerspectiveCameraData>({75, .1, 100})
+        // .set<OrthoCameraData>({4, .1, 50})
         .add<ActiveCamera>();
 
     assets::AssetDatabase& db = game.assets();
@@ -57,38 +58,36 @@ int main(int argc, char* argv[])
         .with<RotateTag>()
         .each([](flecs::iter& it, size_t idx, TransformData& t)
         {
-            auto ett = it.entity(idx);
             t.rotate(math::quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
-            ett.modified<TransformData>();
         });
 
-    world.entity("x axis")
-        .set<TransformData>({
-            math::vec3::zero,
-            math::quaternion::identity,
-            math::vec3(10, .05, .05)
-        })
-        .set<MeshRenderer>({cubeMesh, uniformColorShader})
-        .set<MaterialData>({graphics::Color::red});
-
-    world.entity("y axis")
-        .set<TransformData>({
-            math::vec3::zero,
-            math::quaternion::identity,
-            math::vec3(.05, 10, .05)
-        })
-        .set<MeshRenderer>({cubeMesh, uniformColorShader})
-        .set<MaterialData>({graphics::Color::green});
-
-    world.entity("z axis")
-        .set<TransformData>(
-            {
-                math::vec3::zero,
-                math::quaternion::identity,
-                math::vec3(.05, .05, 10)
-            })
-        .set<MeshRenderer>({cubeMesh, uniformColorShader})
-        .set<MaterialData>({graphics::Color::blue});
+    // world.entity("x axis")
+    //     .set<TransformData>({
+    //         math::vec3::zero,
+    //         math::quaternion::identity,
+    //         math::vec3(10, .05, .05)
+    //     })
+    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
+    //     .set<MaterialData>({graphics::Color::red});
+    //
+    // world.entity("y axis")
+    //     .set<TransformData>({
+    //         math::vec3::zero,
+    //         math::quaternion::identity,
+    //         math::vec3(.05, 10, .05)
+    //     })
+    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
+    //     .set<MaterialData>({graphics::Color::green});
+    //
+    // world.entity("z axis")
+    //     .set<TransformData>(
+    //         {
+    //             math::vec3::zero,
+    //             math::quaternion::identity,
+    //             math::vec3(.05, .05, 10)
+    //         })
+    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
+    //     .set<MaterialData>({graphics::Color::blue});
 
     game.run();
 }

@@ -37,7 +37,34 @@ engine_core::engine_core(flecs::world& ecs)
     ecs.module<engine_core>("Core module");
     registerComponents(ecs);
 
-    ecs.system<const TransformData, const WorldTransformData*, WorldTransformData>("World transform updating")
+    ecs.system<TransformData, const WorldTransformData*, WorldTransformData>("World transform updating")
         .term_at(1).parent().cascade()
-        .each([](flecs::entity e, const TransformData& local, const WorldTransformData* parent, WorldTransformData& world){});
+        .kind(flecs::OnValidate)
+        .run([](flecs::iter& it)
+            {
+                while (it.next())
+                {
+                    it.each();
+                }
+            },
+            [](TransformData& local, const WorldTransformData* parent, WorldTransformData& world)
+            {
+                world.propagateChange = false;
+
+                mat4 localTRS = local.ensureTRS();
+
+                if (parent != nullptr && parent->propagateChange)
+                {
+                    world.worldTransformMatrix = parent->worldTransformMatrix * localTRS;
+                    world.propagateChange = true;
+                }
+                else if (local.isDirty())
+                {
+                    world.worldTransformMatrix = localTRS;
+                    world.propagateChange = true;
+                }
+
+                // We updated the world transform if needed, so the entity transform is clean now
+                local.markClean();
+            });
 }
