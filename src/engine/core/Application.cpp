@@ -57,6 +57,8 @@ int Application::run()
 {
     while (!glfwWindowShouldClose(_windowPtr))
     {
+        glfwPollEvents();
+
         if (!_ecs.progress())
         {
             glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
@@ -65,9 +67,9 @@ int Application::run()
         _renderer.render();
 
         glfwSwapBuffers(_windowPtr);
-        glfwPollEvents();
 
         currentFrame++;
+        _inputState.endFrame();
     }
 
     return 0;
@@ -103,7 +105,12 @@ bool Application::createWindow(const WindowState& windowState)
     }
 
     glfwSetErrorCallback(glfw_error_callback);
-    glfwSetWindowUserPointer(_windowPtr, this);
+
+    _glfwOwnerContext = {&_inputState};
+    glfwSetWindowUserPointer(_windowPtr, &_glfwOwnerContext);
+
+    glfwSetCursorPosCallback(_windowPtr, glfw_cursorPosCallback);
+    glfwSetKeyCallback(_windowPtr, glfw_keyCallback);
 
     return true;
 }
@@ -124,8 +131,10 @@ void Application::initFlecs()
     _ecs.import<ecs::rendering>();
 
     _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
+
     _ecs.set<ecs::WindowSingleton>({&_windowState});
     _ecs.set<ecs::RendererSingleton>({&_renderer});
+    _ecs.set<ecs::GlobalInput>({&_inputState});
 }
 
 void Application::cleanup()

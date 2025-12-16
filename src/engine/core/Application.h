@@ -3,17 +3,14 @@
 #include <flecs.h>
 #include <string_view>
 
+#include "GlfwApplicationOwnerContext.h"
+#include "core/Input.h"
 #include "rendering/Renderer.h"
 
 class GLFWwindow;
 
 namespace core
 {
-    struct InputState
-    {
-        int mousePosX, mousePosY;
-    };
-
     struct WindowState
     {
         WindowState() = default;
@@ -51,6 +48,7 @@ namespace core
         int run();
         flecs::world& getEcsWorld() { return _ecs; }
         assets::AssetDatabase& assets() const { return *_assetDb.get(); }
+        const GLFWwindow* getWindowPtr() const { return _windowPtr; }
 
     private:
         bool createWindow(const WindowState& windowState);
@@ -64,6 +62,8 @@ namespace core
         WindowState _windowState;
         graphics::Renderer _renderer;
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
+
+        GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;
 
         uint32_t currentFrame = 0;
