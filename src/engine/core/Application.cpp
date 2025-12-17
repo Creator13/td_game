@@ -1,10 +1,10 @@
 #include "Application.h"
 
-#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+#include "core/Window.h"
 #include "core/EcsCore.h"
 #include "rendering/EcsRendering.h"
 #include "rendering/Renderer.h"
@@ -17,33 +17,6 @@ namespace
     {
         spdlog::error("GLFW Error {}: {}", code, description);
     }
-
-    void glfw_framebufferSizeCallback(GLFWwindow* _window, int width, int height)
-    {
-        WindowState* window = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(_window))->window;
-        if (window != nullptr)
-        {
-            window->setSize(width, height, true);
-        }
-        glViewport(0, 0, width, height);
-    }
-}
-
-void WindowState::setSize(int newWidth, int newHeight, bool setFrameBuffer)
-{
-    width = newWidth;
-    height = newHeight;
-
-    if (setFrameBuffer)
-    {
-        fbWidth = newWidth;
-        fbHeight = newHeight;
-    }
-}
-
-float WindowState::getFrameBufferAspect() const
-{
-    return static_cast<float>(fbWidth) / static_cast<float>(fbHeight);
 }
 
 Application::Application(int argc, char* argv[], std::string_view resourceRoot, const WindowState& windowState)
@@ -113,7 +86,7 @@ bool Application::createWindow(const WindowState& windowState)
     }
 
     glfwMakeContextCurrent(_windowPtr);
-    glfwSetFramebufferSizeCallback(_windowPtr, glfw_framebufferSizeCallback);
+    glfwSetFramebufferSizeCallback(_windowPtr, core::glfw_framebufferSizeCallback);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {

@@ -4,7 +4,7 @@
   "builtin-baseline" : "b1b19307e2d2ec1eefbdb7ea069de7d4bcd31f01",
   "dependencies" : [ {
     "name" : "catch2",
-    "version>=" : "3.10.0"
+    "version>=" : "3.11.0"
   }, {
     "name" : "vcpkg-cmake-config",
     "version>=" : "2024-05-23"
@@ -19,7 +19,7 @@
     "version>=" : "0.1.36"
   }, {
     "name" : "spdlog",
-    "version>=" : "1.15.3"
+    "version>=" : "1.16.0"
   }, {
     "name" : "stb",
     "version>=" : "2024-07-29#1"
@@ -31,6 +31,6 @@
     "version>=" : "0.9.0"
   }, {
     "name" : "flecs",
-    "version>=" : "4.1.3"
+    "version>=" : "4.1.4"
   } ]
 }

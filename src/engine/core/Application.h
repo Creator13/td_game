@@ -3,6 +3,7 @@
 #include <flecs.h>
 #include <string_view>
 
+#include "core/Window.h"
 #include "core/GlfwApplicationOwnerContext.h"
 #include "core/Input.h"
 #include "rendering/Renderer.h"
@@ -11,25 +12,6 @@ class GLFWwindow;
 
 namespace core
 {
-    struct WindowState
-    {
-        WindowState() = default;
-
-        WindowState(int width, int height, std::string_view title, bool fullscreen)
-            : width(width), height(height),
-              fbWidth(width), fbHeight(height),
-              title(title),
-              fullscreen(fullscreen) { }
-
-        int width, height;
-        int fbWidth, fbHeight;
-        std::string title;
-        bool fullscreen;
-
-        void setSize(int newWidth, int newHeight, bool setFrameBuffer = false);
-        float getFrameBufferAspect() const;
-    };
-
     class Application
     {
     public: // creation

@@ -35,7 +35,6 @@ target_compile_definitions(engine PUBLIC
 
 target_compile_definitions(engine PUBLIC
         FLECS_NO_APP
-        FLECS_
 )
 
 target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

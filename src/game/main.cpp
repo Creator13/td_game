@@ -1,6 +1,5 @@
-#include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 
-#include "../../build/release/vcpkg_installed/x64-windows-static-md-release/include/spdlog/spdlog.h"
 #include "core/Application.h"
 #include "core/transform.h"
 #include "rendering/EcsRendering.h"
@@ -56,7 +55,7 @@ int main(int argc, char* argv[])
 
     world.system<TransformData>("Rotating")
         .with<RotateTag>()
-        .each([](flecs::iter& it, size_t idx, TransformData& t)
+        .each([](flecs::iter& it, size_t, TransformData& t)
         {
             t.rotate(math::quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
         });
@@ -89,34 +88,6 @@ int main(int argc, char* argv[])
                 spdlog::info("left button released");
             }
         });
-
-    // world.entity("x axis")
-    //     .set<TransformData>({
-    //         math::vec3::zero,
-    //         math::quaternion::identity,
-    //         math::vec3(10, .05, .05)
-    //     })
-    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
-    //     .set<MaterialData>({graphics::Color::red});
-    //
-    // world.entity("y axis")
-    //     .set<TransformData>({
-    //         math::vec3::zero,
-    //         math::quaternion::identity,
-    //         math::vec3(.05, 10, .05)
-    //     })
-    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
-    //     .set<MaterialData>({graphics::Color::green});
-    //
-    // world.entity("z axis")
-    //     .set<TransformData>(
-    //         {
-    //             math::vec3::zero,
-    //             math::quaternion::identity,
-    //             math::vec3(.05, .05, 10)
-    //         })
-    //     .set<MeshRenderer>({cubeMesh, uniformColorShader})
-    //     .set<MaterialData>({graphics::Color::blue});
 
     game.run();
 }
