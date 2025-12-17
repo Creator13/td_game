@@ -50,17 +50,24 @@ namespace core
         Unknown,
 
         // COUNT
-        Count
+        _Count
     };
 
-    enum class KeyAction : uint8_t
+    enum class ButtonAction : uint8_t
     {
         Press, Release,
+    };
+
+    enum class MouseButton : uint8_t
+    {
+        // Same mapping as glfw MOUSE_BUTTON_{1-8} which is just 0-7
+        Left, Right, Middle, Mouse4, Mouse5, Mouse6, Mouse7, Mouse8, _Count
     };
 
     // GLFW callbacks
     void glfw_cursorPosCallback(GLFWwindow* window, double x, double y);
     void glfw_keyCallback(GLFWwindow* window, int token, int scancode, int action, int mods);
+    void glfw_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
     // Input manager
     struct InputState
@@ -69,19 +76,27 @@ namespace core
         math::vec2 lastMousePos;
         math::vec2 mouseDelta;
 
-        std::array<bool, 512> keyStatePreviousFrame = {false};
-        std::array<bool, 512> keyStateCurrentFrame = {false};
+        std::array<bool, static_cast<size_t>(MouseButton::_Count)> mouseStatePreviousFrame = {false};
+        std::array<bool, static_cast<size_t>(MouseButton::_Count)> mouseStateCurrentFrame = {false};
+
+        std::array<bool, static_cast<size_t>(Key::_Count)> keyStatePreviousFrame = {false};
+        std::array<bool, static_cast<size_t>(Key::_Count)> keyStateCurrentFrame = {false};
 
         void endFrame();
 
         void handleCursorPosUpdate(math::vec2 newPos);
-        void handleKeyAction(Key key, KeyAction action);
+        void handleKeyAction(Key key, ButtonAction action);
+        void handleMouseAction(MouseButton button, ButtonAction action);
 
         bool isKeyPressed(Key key, int modifiers) const;
         bool isKeyPressed(Key key) const;
         bool isKeyReleased(Key key) const;
         bool isKeyDown(Key key, int modifiers) const;
         bool isKeyDown(Key key) const;
+
+        bool isMousePressed(MouseButton button) const;
+        bool isMouseReleased(MouseButton button) const;
+        bool isMouseDown(MouseButton button) const;
     };
 }
 
@@ -89,6 +104,6 @@ namespace core::ecs
 {
     struct GlobalInput
     {
-        InputState* input;
+        InputState* state;
     };
 }

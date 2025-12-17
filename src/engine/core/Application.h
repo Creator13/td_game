@@ -3,7 +3,7 @@
 #include <flecs.h>
 #include <string_view>
 
-#include "GlfwApplicationOwnerContext.h"
+#include "core/GlfwApplicationOwnerContext.h"
 #include "core/Input.h"
 #include "rendering/Renderer.h"
 
@@ -26,6 +26,7 @@ namespace core
         std::string title;
         bool fullscreen;
 
+        void setSize(int newWidth, int newHeight, bool setFrameBuffer = false);
         float getFrameBufferAspect() const;
     };
 

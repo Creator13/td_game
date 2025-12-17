@@ -63,29 +63,30 @@ int main(int argc, char* argv[])
 
     world.system<TransformData, const GlobalInput>("Camera control")
         .with<ActiveCamera>()
-        .each([&game](flecs::iter& it, size_t, TransformData& transform, const GlobalInput& input)
+        .each([](flecs::iter& it, size_t, TransformData& transform, const GlobalInput& input)
         {
             constexpr float speed = 5;
-            if (input.input->isKeyDown(core::Key::A))
+            if (input.state->isKeyDown(core::Key::A))
             {
                 transform.translate(math::vec3(speed, 0, 0) * it.delta_time());
             }
-            else if (input.input->isKeyDown(core::Key::D))
+            else if (input.state->isKeyDown(core::Key::D))
             {
                 transform.translate(math::vec3(-speed, 0, 0) * it.delta_time());
             }
 
-            int qPressed = glfwGetKey(const_cast<GLFWwindow*>(game.getWindowPtr()), GLFW_KEY_Q);
-            if (qPressed == GLFW_PRESS || qPressed == GLFW_RELEASE)
+            if (input.state->isMouseDown(core::MouseButton::Right))
             {
-                if (input.input->isKeyPressed(core::Key::Q))
-                {
-                    spdlog::info("Q pressed");
-                }
-                if (input.input->isKeyReleased(core::Key::Q))
-                {
-                    spdlog::info("Q released");
-                }
+                transform.translate(math::vec3(0, speed, 0) * it.delta_time());
+            }
+
+            if (input.state->isMousePressed(core::MouseButton::Left))
+            {
+                spdlog::info("left button pressed");
+            }
+            if (input.state->isMouseReleased(core::MouseButton::Left))
+            {
+                spdlog::info("left button released");
             }
         });
 

@@ -12,11 +12,6 @@ class GLFWwindow;
 
 namespace graphics
 {
-    struct Color;
-}
-
-namespace graphics
-{
     struct MaterialData
     {
         Color color;

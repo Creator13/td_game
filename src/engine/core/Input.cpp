@@ -13,7 +13,7 @@ namespace
 {
     constexpr size_t GLFW_KEYMAP_SIZE = 384;
 
-    consteval std::array<Key, GLFW_KEYMAP_SIZE> buildGlfwKeyTokenMap()
+    constexpr std::array<Key, GLFW_KEYMAP_SIZE> buildGlfwKeyTokenMap()
     {
         std::array<Key, GLFW_KEYMAP_SIZE> table;
 
@@ -151,6 +151,7 @@ namespace
 void InputState::endFrame()
 {
     keyStatePreviousFrame = keyStateCurrentFrame;
+    mouseStatePreviousFrame = mouseStateCurrentFrame;
 }
 
 void InputState::handleCursorPosUpdate(vec2 newPos)
@@ -160,9 +161,14 @@ void InputState::handleCursorPosUpdate(vec2 newPos)
     mouseDelta = currentMousePos - lastMousePos;
 }
 
-void InputState::handleKeyAction(Key key, KeyAction action)
+void InputState::handleKeyAction(Key key, ButtonAction action)
 {
-    keyStateCurrentFrame[static_cast<size_t>(key)] = action == KeyAction::Press;
+    keyStateCurrentFrame[static_cast<size_t>(key)] = action == ButtonAction::Press;
+}
+
+void InputState::handleMouseAction(MouseButton button, ButtonAction action)
+{
+    mouseStateCurrentFrame[static_cast<size_t>(button)] = action == ButtonAction::Press;
 }
 
 bool InputState::isKeyPressed(Key key, int modifiers) const
@@ -195,9 +201,26 @@ bool InputState::isKeyDown(Key key) const
     return keyStateCurrentFrame[static_cast<size_t>(key)];
 }
 
+bool InputState::isMousePressed(MouseButton button) const
+{
+    const size_t i = static_cast<size_t>(button);
+    return mouseStateCurrentFrame[i] && !mouseStatePreviousFrame[i];
+}
+
+bool InputState::isMouseReleased(MouseButton button) const
+{
+    const size_t i = static_cast<size_t>(button);
+    return !mouseStateCurrentFrame[i] && mouseStatePreviousFrame[i];
+}
+
+bool InputState::isMouseDown(MouseButton button) const
+{
+    return mouseStateCurrentFrame[static_cast<size_t>(button)];
+}
+
 void core::glfw_cursorPosCallback(GLFWwindow* window, double x, double y)
 {
-    InputState* input = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(window))->inputState;
+    InputState* input = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(window))->input;
     if (input != nullptr)
     {
         input->handleCursorPosUpdate(vec2(static_cast<float>(x), static_cast<float>(y)));
@@ -216,18 +239,22 @@ void core::glfw_keyCallback(GLFWwindow* window, int token, int scancode, int act
     if (action == GLFW_REPEAT)
     {
         // TODO Are you sure this shouldn't be forwarded to the input abstraction first?
-        // TODO warning see other warning
+        // TODO warning: before you change this if statement, see other warning
         return;
     }
 
-    InputState* input = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(window))->inputState;
+    InputState* input = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(window))->input;
 
     if (input != nullptr)
     {
-        // TODO warning: we can only assume action is either press or release because earlier we catch and return if
-        //  action = repeat. This could cause a problem if that ever changes.
         // TODO map scancodes instead of keys?
-        input->handleKeyAction(glfwKeyTokenMap[token], action == GLFW_PRESS ? KeyAction::Press : KeyAction::Release);
+        const Key key = glfwKeyTokenMap[token];
+        if (key != Key::Unknown) // as long as we can't map the action to a meaningful key, there should be no state change
+        {
+            // TODO warning: we can only assume action is either press or release because earlier we catch and return if
+            //  action = repeat. This could cause a problem if that ever changes.
+            input->handleKeyAction(key, action == GLFW_PRESS ? ButtonAction::Press : ButtonAction::Release);
+        }
     }
 #ifdef DEBUG_BUILD
     // TODO replace with runtime assert
@@ -236,4 +263,18 @@ void core::glfw_keyCallback(GLFWwindow* window, int token, int scancode, int act
         spdlog::error("Key input callback was called on a window with a nullptr input manager");
     }
 #endif
+}
+
+void core::glfw_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    InputState* input = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(window))->input;
+    if (input != nullptr)
+    {
+        // GLFW maps values for buttons [0-7] to Mouse[1-8], though this is no guarantee
+        // There is little reason to believe it would ever change though, so let's just static_cast to MouseButton...
+        input->handleMouseAction(
+            static_cast<MouseButton>(button),
+            action == GLFW_PRESS ? ButtonAction::Press : ButtonAction::Release
+        );
+    }
 }

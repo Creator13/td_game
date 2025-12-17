@@ -2,10 +2,12 @@
 
 namespace core
 {
-struct InputState;
+    struct WindowState;
+    struct InputState;
 
-struct GlfwApplicationOwnerContext
-{
-    InputState* inputState;
-};
+    struct GlfwApplicationOwnerContext
+    {
+        InputState* input;
+        WindowState* window;
+    };
 }

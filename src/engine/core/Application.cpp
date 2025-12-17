@@ -13,14 +13,31 @@ using namespace core;
 
 namespace
 {
-    void glfw_error_callback(int code, const char* description)
+    void glfw_errorCallback(int code, const char* description)
     {
         spdlog::error("GLFW Error {}: {}", code, description);
     }
 
-    void framebuffer_size_callback(GLFWwindow*, int width, int height)
+    void glfw_framebufferSizeCallback(GLFWwindow* _window, int width, int height)
     {
+        WindowState* window = static_cast<GlfwApplicationOwnerContext*>(glfwGetWindowUserPointer(_window))->window;
+        if (window != nullptr)
+        {
+            window->setSize(width, height, true);
+        }
         glViewport(0, 0, width, height);
+    }
+}
+
+void WindowState::setSize(int newWidth, int newHeight, bool setFrameBuffer)
+{
+    width = newWidth;
+    height = newHeight;
+
+    if (setFrameBuffer)
+    {
+        fbWidth = newWidth;
+        fbHeight = newHeight;
     }
 }
 
@@ -96,7 +113,7 @@ bool Application::createWindow(const WindowState& windowState)
     }
 
     glfwMakeContextCurrent(_windowPtr);
-    glfwSetFramebufferSizeCallback(_windowPtr, framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(_windowPtr, glfw_framebufferSizeCallback);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {
@@ -104,13 +121,16 @@ bool Application::createWindow(const WindowState& windowState)
         return false;
     }
 
-    glfwSetErrorCallback(glfw_error_callback);
+    glfwSetErrorCallback(glfw_errorCallback);
 
-    _glfwOwnerContext = {&_inputState};
+    _glfwOwnerContext = {
+        &_inputState, &_windowState
+    };
     glfwSetWindowUserPointer(_windowPtr, &_glfwOwnerContext);
 
     glfwSetCursorPosCallback(_windowPtr, glfw_cursorPosCallback);
     glfwSetKeyCallback(_windowPtr, glfw_keyCallback);
+    glfwSetMouseButtonCallback(_windowPtr, glfw_mouseButtonCallback);
 
     return true;
 }
