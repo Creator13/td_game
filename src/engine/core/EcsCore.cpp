@@ -33,6 +33,11 @@ namespace
 
         ecs.component<GlobalInput>().add(flecs::Singleton);
     }
+
+    namespace _systems
+    {
+
+    }
 }
 
 engine_core::engine_core(flecs::world& ecs)
@@ -44,30 +49,58 @@ engine_core::engine_core(flecs::world& ecs)
         .term_at(1).parent().cascade()
         .kind(flecs::OnValidate)
         .run([](flecs::iter& it)
+        {
+            while (it.next())
             {
-                while (it.next())
-                {
-                    it.each();
-                }
-            },
-            [](TransformData& local, const WorldTransformData* parent, WorldTransformData& world)
-            {
-                world.propagateChange = false;
+                flecs::field<TransformData> f_local = it.field<TransformData>(0);
+                flecs::untyped_field f_parent = it.field(1);
+                flecs::field<WorldTransformData> f_world = it.field<WorldTransformData>(2);
 
-                mat4 localTRS = local.ensureTRS();
-
-                if (parent != nullptr && parent->propagateChange)
+                for (auto i : it)
                 {
-                    world.worldTransformMatrix = parent->worldTransformMatrix * localTRS;
-                    world.propagateChange = true;
-                }
-                else if (local.isDirty())
-                {
-                    world.worldTransformMatrix = localTRS;
-                    world.propagateChange = true;
-                }
+                    TransformData& local = f_local[i];
+                    const WorldTransformData* parent = static_cast<const WorldTransformData*>(f_parent[i]);
+                    WorldTransformData& world = f_world[i];
 
-                // We updated the world transform if needed, so the entity transform is clean now
-                local.markClean();
-            });
+                    world.propagateChange = false;
+
+                    mat4 localTRS = local.ensureTRS();
+
+
+                    if (parent != nullptr && parent->propagateChange)
+                    {
+                        world.worldTransformMatrix = parent->worldTransformMatrix * localTRS;
+                        world.propagateChange = true;
+                    }
+                    else if (local.isDirty())
+                    {
+                        world.worldTransformMatrix = localTRS;
+                        world.propagateChange = true;
+                    }
+
+                    // We updated the world transform if needed, so the entity transform is clean now
+                    local.markClean();
+                }
+            }
+        });
+    // [](TransformData& local, const WorldTransformData* parent, WorldTransformData& world)
+    // {
+    // world.propagateChange = false;
+    //
+    // mat4 localTRS = local.ensureTRS();
+    //
+    // if (parent != nullptr && parent->propagateChange)
+    // {
+    //     world.worldTransformMatrix = parent->worldTransformMatrix * localTRS;
+    //     world.propagateChange = true;
+    // }
+    // else if (local.isDirty())
+    // {
+    //     world.worldTransformMatrix = localTRS;
+    //     world.propagateChange = true;
+    // }
+    //
+    // // We updated the world transform if needed, so the entity transform is clean now
+    // local.markClean();
+    // });
 }

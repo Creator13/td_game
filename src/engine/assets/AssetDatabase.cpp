@@ -1,7 +1,6 @@
 #include "AssetDatabase.h"
 
 #include <optional>
-#include <xxhash.h>
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
@@ -22,8 +21,8 @@ namespace
     constexpr std::string_view RUNTIME_PATH = "@runtime";
     constexpr std::string_view INTERNAL_PATH = "@internal";
 
-    const assets::AssetId ERROR_SHADER_ID = assets::AssetDatabase::idFromPath("@internal/shader/error");
-    const assets::AssetId DEBUG_SHADER_ID = assets::AssetDatabase::idFromPath("@internal/shader/debug");
+    const assets::AssetId ERROR_SHADER_ID = assets::idFromPath("@internal/shader/error");
+    const assets::AssetId DEBUG_SHADER_ID = assets::idFromPath("@internal/shader/debug");
 
     constexpr std::string_view mapAssetTypeName(assets::AssetInfo::AssetType type)
     {
@@ -157,15 +156,10 @@ assets::AssetDatabase::~AssetDatabase()
     meshAllocator.clean();
 }
 
-assets::AssetId assets::AssetDatabase::idFromPath(std::string_view path)
-{
-    return static_cast<AssetId>(XXH3_64bits(path.data(), path.size()));
-}
-
 const assets::AssetInfo& assets::AssetDatabase::getAssetInfo(AssetId id)
 {
     assert(metadata.contains(id));
-    // Returns a copy; no outside influence is allowed
+    // Returns a copy; no outside influence is allowed // EDIT does it really?? const&?
     return metadata.at(id);
 }
 

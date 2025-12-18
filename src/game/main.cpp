@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     assets::AssetId bunny = db.loadMeshFromFile("mesh/bunny.glb");
     assets::AssetId basicShader = db.loadShaderFromFiles("shaders/basic.vert", "shaders/basic.frag");
     assets::AssetId uniformColorShader = db.loadShaderFromFiles("shaders/basic.vert", "shaders/color.frag");
-    assets::AssetId cubeMesh = assets::AssetDatabase::idFromPath("@internal/mesh/cube");
+    assets::AssetId cubeMesh = assets::idFromPath("@internal/mesh/cube");
 
     auto bunny_prefab = world.prefab("Bunny")
         .set<TransformData>({

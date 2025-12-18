@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "assets/AssetDatabase.h"
-#include "math/geom.h"
 #include "math/mat4.h"
 #include "rendering/Color.h"
 

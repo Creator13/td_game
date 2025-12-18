@@ -2,8 +2,9 @@
 
 #include <flecs.h>
 
-#include "core/Application.h"
 #include "core/transform.h"
+#include "core/Window.h"
+#include "rendering/Renderer.h"
 
 using namespace math;
 using namespace core::ecs;
@@ -15,7 +16,7 @@ namespace
         ecs.component<ActiveCamera>();
         ecs.component<CameraRenderData>().add(flecs::Singleton);
 
-        ecs.component<PerspectiveCameraData>("Camera (Perspective)")
+        ecs.component<PerspectiveCameraData>("Camera (perspective)")
             .member<float>("Fov").range(5.f, 150.f)
             .member<float>("Near plane")
             .member<float>("Far plane");
@@ -73,39 +74,16 @@ rendering::rendering(flecs::world& ecs)
     ecs.system<const PerspectiveCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
-        .each([](const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
-        {
-            float aspect = window.windowState->getFrameBufferAspect();
-            renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
-            renderData.viewMatrix = inverse(transform.worldTransformMatrix);
-        });
+        .each(updateActivePerspectiveCamera);
 
     ecs.system<const OrthoCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
-        .each([](const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
-        {
-            float aspect = window.windowState->getFrameBufferAspect();
-            renderData.projectionMatrix = mat4::makeOrtho(
-                -cameraData.orthoSize * aspect,
-                cameraData.orthoSize * aspect,
-                -cameraData.orthoSize,
-                cameraData.orthoSize,
-                cameraData.near,
-                cameraData.far
-            );
-            renderData.viewMatrix = inverse(transform.worldTransformMatrix);
-        });
+        .each(updateActiveOrthoCamera);
 
     auto cameraSystem = ecs.system<const RendererSingleton, const CameraRenderData>()
         .kind(flecs::OnStore)
-        .each([](const RendererSingleton& r_ptr, const CameraRenderData& renderData)
-        {
-            graphics::Renderer& renderer = *r_ptr.renderer;
-            renderer.setClearColor(renderData.clearColor);
-            renderer.setWorldToViewMatrix(renderData.viewMatrix);
-            renderer.setViewToClipMatrix(renderData.projectionMatrix);
-        });
+        .each(syncRendererToActiveCamera);
 
     auto cullingSystem = ecs.system<const WorldTransformData, MeshRenderer, const CameraRenderData>("Culling system")
         .multi_threaded()
@@ -116,16 +94,47 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(cameraSystem);
 
     ecs.system<const RendererSingleton, const WorldTransformData, const MeshRenderer, const MaterialData>("Render system")
-        .each([](const RendererSingleton& r_ptr, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat)
-        {
-            graphics::Renderable renderable;
-            renderable.meshId = renderData.meshId;
-            renderable.shaderId = renderData.shaderId;
-            renderable.modelMatrix = transform.worldTransformMatrix;
-            renderable.material = {mat.color};
-
-            r_ptr.renderer->submit(renderable);
-        })
+        .each(submitRenderable)
         .depends_on(cameraSystem)
         .depends_on(cullingSystem);
+}
+
+void rendering::submitRenderable(const RendererSingleton& renderer, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat)
+{
+    graphics::Renderable renderable;
+    renderable.meshId = renderData.meshId;
+    renderable.shaderId = renderData.shaderId;
+    renderable.modelMatrix = transform.worldTransformMatrix;
+    renderable.material = {mat.color};
+
+    renderer.ptr->submit(renderable);
+}
+
+void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+{
+    float aspect = window.state->getFrameBufferAspect();
+    renderData.projectionMatrix = mat4::makeOrtho(
+        -cameraData.orthoSize * aspect,
+        cameraData.orthoSize * aspect,
+        -cameraData.orthoSize,
+        cameraData.orthoSize,
+        cameraData.near,
+        cameraData.far
+    );
+    renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+}
+
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+{
+    float aspect = window.state->getFrameBufferAspect();
+    renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
+    renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+}
+
+void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData)
+{
+    graphics::Renderer& renderer = *r_ptr.ptr;
+    renderer.setClearColor(renderData.clearColor);
+    renderer.setWorldToViewMatrix(renderData.viewMatrix);
+    renderer.setViewToClipMatrix(renderData.projectionMatrix);
 }

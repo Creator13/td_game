@@ -1,10 +1,11 @@
 #pragma once
 
-#include "assets/AssetDatabase.h"
+#include "assets/AssetId.h"
 #include "math/mat4.h"
 #include "rendering/Color.h"
 
-namespace core {
+namespace core
+{
     struct WindowState;
 }
 
@@ -20,6 +21,8 @@ namespace flecs
 
 namespace core::ecs
 {
+    struct WorldTransformData;
+
     // #### CAMERA ####
     struct PerspectiveCameraData
     {
@@ -67,16 +70,22 @@ namespace core::ecs
     // #### SINGLETON ####
     struct WindowSingleton
     {
-        const WindowState* windowState;
+        const WindowState* state;
     };
 
     struct RendererSingleton
     {
-        graphics::Renderer* renderer;
+        graphics::Renderer* ptr;
     };
 
     struct rendering
     {
-        rendering(flecs::world& ecs);
+        explicit rendering(flecs::world& ecs);
+
+    private:
+        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData);
+        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void submitRenderable(const RendererSingleton& renderer, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat);
     };
 }

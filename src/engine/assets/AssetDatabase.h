@@ -6,6 +6,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "assets/AssetId.h"
 #include "rendering/Mesh.h"
 #include "rendering/shader.h"
 
@@ -16,7 +17,6 @@ namespace fastgltf
 
 namespace assets
 {
-    typedef uint64_t AssetId;
 
     struct AssetInfo
     {
@@ -34,8 +34,6 @@ namespace assets
         AssetDatabase() = delete;
         explicit AssetDatabase(std::string_view resourceRoot = "res");
         ~AssetDatabase();
-
-        static AssetId idFromPath(std::string_view path);
 
         const AssetInfo& getAssetInfo(AssetId id);
 
