@@ -1,7 +1,7 @@
 #include <spdlog/spdlog.h>
 
 #include "core/Application.h"
-#include "core/transform.h"
+#include "core/Transform.h"
 #include "rendering/EcsRendering.h"
 
 using namespace core::ecs;
@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     flecs::world& world = game.getEcsWorld();
 
     world.entity("Camera Test1")
-        .set<TransformData>({
+        .set<TransformHandle>({
             math::vec3(.2, -5, 3) * 2,
             math::quaternion::eulerAngles(-25, 0, 0),
             math::vec3::one
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     assets::AssetId cubeMesh = assets::idFromPath("@internal/mesh/cube");
 
     auto bunny_prefab = world.prefab("Bunny")
-        .set<TransformData>({
+        .set<TransformHandle>({
             math::vec3::right * 3,
             math::quaternion::identity,
             math::vec3::one
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
         .set<MaterialData>({ });
 
     auto b1 = world.entity("bunny1")
-        .set<TransformData>({math::vec3::zero, math::quaternion::identity, math::vec3::one})
+        .set<TransformHandle>({math::vec3::zero, math::quaternion::identity, math::vec3::one})
         .is_a(bunny_prefab);
     auto b2 = world.entity("bunny2")
         .child_of(b1)
@@ -53,16 +53,16 @@ int main(int argc, char* argv[])
 
     b1.add<RotateTag>();
 
-    world.system<TransformData>("Rotating")
+    world.system<TransformHandle>("Rotating")
         .with<RotateTag>()
-        .each([](flecs::iter& it, size_t, TransformData& t)
+        .each([](flecs::iter& it, size_t, TransformHandle& t)
         {
             t.rotate(math::quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
         });
 
-    world.system<TransformData, const GlobalInput>("Camera control")
+    world.system<TransformHandle, const GlobalInput>("Camera control")
         .with<ActiveCamera>()
-        .each([](flecs::iter& it, size_t, TransformData& transform, const GlobalInput& input)
+        .each([](flecs::iter& it, size_t, TransformHandle& transform, const GlobalInput& input)
         {
             constexpr float speed = 5;
             if (input.state->isKeyDown(core::Key::A))

@@ -2,7 +2,7 @@
 
 #include <flecs.h>
 
-#include "core/transform.h"
+#include "core/Transform.h"
 #include "core/Window.h"
 #include "rendering/Renderer.h"
 
@@ -93,13 +93,13 @@ rendering::rendering(flecs::world& ecs)
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const WorldTransformData, const MeshRenderer, const MaterialData>("Render system")
+    ecs.system<const RendererSingleton, const TransformHandle, const MeshRenderer, const MaterialData>("Render system")
         .each(submitRenderable)
         .depends_on(cameraSystem)
         .depends_on(cullingSystem);
 }
 
-void rendering::submitRenderable(const RendererSingleton& renderer, const WorldTransformData& transform, const MeshRenderer& renderData, const MaterialData& mat)
+void rendering::submitRenderable(const RendererSingleton& renderer, const TransformHandle& transform, const MeshRenderer& renderData, const MaterialData& mat)
 {
     graphics::Renderable renderable;
     renderable.meshId = renderData.meshId;

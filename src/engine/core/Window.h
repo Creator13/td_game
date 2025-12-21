@@ -16,8 +16,8 @@ namespace core
               title(title),
               fullscreen(fullscreen) { }
 
-        int width, height;
-        int fbWidth, fbHeight;
+        uint16_t width, height;
+        uint16_t fbWidth, fbHeight;
         std::string title;
         bool fullscreen;
 
