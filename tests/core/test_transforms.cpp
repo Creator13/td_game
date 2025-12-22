@@ -12,6 +12,6 @@ TEST_CASE("")
     flecs::world world;
     TransformSystem t(&world);
 
-    auto e = t.placeEntity();
+    auto e = t.addTransform(TODO);
     CHECK(e.has<ecs::TransformHandle>());
 }

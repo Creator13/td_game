@@ -14,7 +14,7 @@ namespace
     }
 }
 
-flecs::entity TransformSystem::placeEntity(TransformHandle parent)
+TransformHandle TransformSystem::addTransform(flecs::entity e, TransformHandle parent)
 {
     assert(isAlive(parent));
 
@@ -23,16 +23,17 @@ flecs::entity TransformSystem::placeEntity(TransformHandle parent)
     transforms[handle.id] = Transform();
     worldNodes[handle.id] = WorldNode{parent.id, worldNodes[parent.id].worldMatrix, 0};
 
-    return world->entity().set<TransformHandle>(handle);
+    e.set<TransformHandle>(handle);
+    return handle;
 }
 
-flecs::entity TransformSystem::placeEntity(TransformHandle parent, vec3 pos, quaternion rot, vec3 scale, bool worldSpace)
+TransformHandle TransformSystem::addTransform(flecs::entity e, TransformHandle parent, vec3 pos, quaternion rot, bool worldSpace)
 {
     assert(isAlive(parent)); // todo replace c assert
 
     const TransformHandle handle = claimHandle();
 
-    const mat4 localTRS = mat4::makeTRS(pos, rot, scale);
+    const mat4 localTRS = mat4::makeTRS(pos, rot, vec3::one);
 
     if (worldSpace)
     {
@@ -40,31 +41,39 @@ flecs::entity TransformSystem::placeEntity(TransformHandle parent, vec3 pos, qua
     }
     else
     {
-        transforms[handle.id] = Transform{pos, rot, scale};
+        transforms[handle.id] = Transform{pos, rot, vec3::one};
         worldNodes[handle.id] = WorldNode{parent.id, worldNodes[parent.id].worldMatrix * localTRS, 0};
     }
 
-    return world->entity().set<TransformHandle>(handle);
+    e.set<TransformHandle>(handle);
+    return handle;
 }
 
-flecs::entity TransformSystem::placeEntity(vec3 pos, quaternion rot, vec3 scale)
+TransformHandle TransformSystem::addTransform(flecs::entity e, vec3 pos, quaternion rot)
 {
     const TransformHandle handle = claimHandle();
 
-    transforms[handle.id] = Transform{pos, rot, scale};
-    worldNodes[handle.id] = WorldNode{0, mat4::makeTRS(pos, rot, scale), 0};
+    transforms[handle.id] = Transform{pos, rot, vec3::one};
+    worldNodes[handle.id] = WorldNode{0, mat4::makeTRS(pos, rot, vec3::one), 0};
 
-    return world->entity().set<TransformHandle>(handle);
+    e.set<TransformHandle>(handle);
+    return handle;
 }
 
-flecs::entity TransformSystem::placeEntity()
+TransformHandle TransformSystem::addTransform(flecs::entity e)
 {
-    return world->entity().set<TransformHandle>({claimHandle()});
+    const TransformHandle handle = claimHandle();
+
+    transforms[handle.id] = Transform{ };
+    worldNodes[handle.id] = WorldNode{ };
+
+    e.set<TransformHandle>(handle);
+    return handle;
 }
 
 bool TransformSystem::isAlive(TransformHandle handle) const
 {
-    return handle.id > 0 && handle.id < globalTail && worldNodes[handle.id].gen == handle.gen;
+    return handle.id > 0 && handle.id < globalHead && worldNodes[handle.id].gen == handle.gen;
 }
 
 void TransformSystem::releaseHandle(TransformHandle handle)
@@ -72,8 +81,10 @@ void TransformSystem::releaseHandle(TransformHandle handle)
     assert(isAlive(handle)); // TODO replace c assert
 
     worldNodes[handle.id].gen++;
-    worldNodes[handle.id].parent = freeListTail;
-    freeListTail = handle.id;
+    worldNodes[handle.id].parent = freeListHead;
+    freeListHead = handle.id;
+
+    // TODO handle children that point to this parent (implement strategy in a public api function, this place is more low-level)
 
     count--;
     freeListCount++;
@@ -82,28 +93,31 @@ void TransformSystem::releaseHandle(TransformHandle handle)
 TransformSystem::TransformSystem(flecs::world* world)
     : world(world)
 {
-    transforms[0] = {};
+    // Zero-initialize first element.
+    // Note that it uses an absolute zero matrix instead of identity to cement its invalidity.
+    transforms[0] = { };
     worldNodes[0] = {0, mat4::zero, 0};
-    globalTail = 1;
+    globalHead = 1;
 }
 
 TransformHandle TransformSystem::claimHandle()
 {
     TransformIndex next;
-    if (freeListTail > 0)
+    if (freeListHead > 0)
     {
-        next = freeListTail;
-        freeListTail = worldNodes[freeListTail].parent;
+        next = freeListHead;
+        freeListHead = worldNodes[freeListHead].parent;
 
         freeListCount--;
     }
     else
     {
-        next = globalTail;
-        globalTail++;
+        next = globalHead;
+        worldNodes[next].gen = 0;
+        globalHead++;
 
         // TODO vector implementation needs to be able to grow, should be removed once vector is replaced
-        if (globalTail >= worldNodes.size())
+        if (globalHead >= worldNodes.size())
         {
             size_t newSize = worldNodes.size() + 50'000;
             transforms.resize(newSize);
@@ -186,10 +200,27 @@ void TransformSystem::setWorldPosition(TransformHandle handle, vec3 pos)
     assert(isAlive(handle));
     // todo
 }
+
 void TransformSystem::setWorldRotation(TransformHandle handle, quaternion rot)
 {
     assert(isAlive(handle));
     //todo
+}
+
+void TransformSystem::translate(TransformHandle handle, vec3 offset)
+{
+    assert(isAlive(handle));
+
+    transforms[handle.id].localPosition = transforms[handle.id].localPosition + offset;
+    // TODO dirty
+}
+
+void TransformSystem::rotate(TransformHandle handle, quaternion rot)
+{
+    assert(isAlive(handle));
+
+    transforms[handle.id].localRotation = transforms[handle.id].localRotation * rot;
+    // TODO dirty
 }
 
 vec3 TransformSystem::getLocalPosition(TransformHandle handle) const
@@ -222,6 +253,13 @@ quaternion TransformSystem::getWorldRotation(TransformHandle handle) const
     assert(isAlive(handle));
     //todo
     return quaternion::identity;
+}
+
+math::mat4 TransformSystem::getWorldMatrix(TransformHandle handle) const
+{
+    assert(isAlive(handle));
+
+    return worldNodes[handle.id].worldMatrix;
 }
 
 vec3 TransformSystem::getRight(TransformHandle handle) const

@@ -53,8 +53,8 @@ namespace core
         std::vector<Transform> transforms = std::vector<Transform>(100'000);
         std::vector<WorldNode> worldNodes = std::vector<WorldNode>(100'000);
 
-        TransformIndex globalTail = 1;
-        TransformIndex freeListTail = 0;
+        TransformIndex globalHead = 1;
+        TransformIndex freeListHead = 0;
 
         uint32_t count = 0;
         uint32_t freeListCount = 0;
@@ -68,33 +68,32 @@ namespace core
 
         //## Creation/destruction ##//
 
-        // TODO add name
+        /**
+         * Creates an unparented transform on an entity at the world origin.
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle addTransform(flecs::entity e);
+
+        /**
+         * Creates an unparented transform on an entity with TRS values.
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle addTransform(flecs::entity e, math::vec3 pos, math::quaternion rot);
+
         /**
          * Create a parented entity in the world, with a 'zero' transform relative to the parent (ie in the same
          * location as the parent).
          * This entity is created with a TransformData component holding the transform index.
          */
-        flecs::entity placeEntity(TransformHandle parent);
+        TransformHandle addTransform(flecs::entity e, TransformHandle parent);
 
         /**
-         * Create a parented entity in the world. When the worldSpace parameter is set to true, the transform values will
+         * Creates a parented transform on an entity. When the worldSpace parameter is set to true, the transform values will
          * be interpreted in world space (ie relative to the world origin), else (default) they will be interpreted in
          * local space (ie relative to the parent).
          * This entity is created with a TransformData component holding the transform index.
          */
-        flecs::entity placeEntity(TransformHandle parent, math::vec3 pos, math::quaternion rot, math::vec3 scale, bool worldSpace = false);
-
-        /**
-         * Create an unparented entity in the world.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        flecs::entity placeEntity(math::vec3 pos, math::quaternion rot, math::vec3 scale);
-
-        /**
-         * Creates an unparented entity in the world with 'zero' transform.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        flecs::entity placeEntity();
+        TransformHandle addTransform(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
 
         bool isAlive(TransformHandle handle) const;
 
@@ -112,12 +111,17 @@ namespace core
         void setWorldPosition(TransformHandle handle, math::vec3 pos);
         void setWorldRotation(TransformHandle handle, math::quaternion rot);
 
+        void translate(TransformHandle handle, math::vec3 offset);
+        void rotate(TransformHandle handle, math::quaternion rot);
+
         math::vec3 getLocalPosition(TransformHandle handle) const;
         math::quaternion getLocalRotation(TransformHandle handle) const;
         math::vec3 getLocalScale(TransformHandle handle) const;
 
         math::vec3 getWorldPosition(TransformHandle handle) const;
         math::quaternion getWorldRotation(TransformHandle handle) const;
+
+        math::mat4 getWorldMatrix(TransformHandle handle) const;
 
         math::vec3 getRight(TransformHandle handle) const;
         math::vec3 getUp(TransformHandle handle) const;

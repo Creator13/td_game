@@ -36,6 +36,8 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
     _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
     _renderer.setAssetDatabase(_assetDb.get());
+
+    _transformSystem = std::make_unique<TransformSystem>(&_ecs);
 }
 
 Application::~Application()

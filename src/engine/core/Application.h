@@ -3,6 +3,7 @@
 #include <flecs.h>
 #include <string_view>
 
+#include "Transform.h"
 #include "core/Window.h"
 #include "core/GlfwApplicationOwnerContext.h"
 #include "core/Input.h"
@@ -31,6 +32,7 @@ namespace core
         int run();
         flecs::world& getEcsWorld() { return _ecs; }
         assets::AssetDatabase& assets() const { return *_assetDb.get(); }
+        TransformSystem& getTransformSys() const { return *_transformSystem.get(); }
         const GLFWwindow* getWindowPtr() const { return _windowPtr; }
 
     private:
@@ -45,6 +47,7 @@ namespace core
         WindowState _windowState;
         graphics::Renderer _renderer;
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
+        std::unique_ptr<TransformSystem> _transformSystem = nullptr;
 
         GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;
