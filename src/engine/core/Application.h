@@ -46,6 +46,7 @@ namespace core
         InputState _inputState;
         WindowState _windowState;
         graphics::Renderer _renderer;
+
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         std::unique_ptr<TransformSystem> _transformSystem = nullptr;
 

@@ -22,8 +22,6 @@ namespace flecs
 
 namespace core::ecs
 {
-    struct WorldTransformData;
-
     // #### CAMERA ####
     struct PerspectiveCameraData
     {
@@ -85,8 +83,8 @@ namespace core::ecs
 
     private:
         static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData);
-        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData);
-        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData);
         static void submitRenderable(const RendererSingleton& renderer, const TransformHandle& transform, const MeshRenderer& renderData, const MaterialData& mat);
     };
 }

@@ -35,16 +35,16 @@ namespace assets
         explicit AssetDatabase(std::string_view resourceRoot = "res");
         ~AssetDatabase();
 
-        const AssetInfo& getAssetInfo(AssetId id);
+        static const AssetInfo& getAssetInfo(AssetId id);
 
-        const graphics::MeshGpuHandle& getMeshGpuHandle(AssetId id) const;
-        const graphics::Mesh& getMeshView(AssetId id) const;
-        graphics::Mesh& getMeshMut(AssetId id);
-        AssetId loadMeshFromFile(std::string_view path);
-        AssetId createRuntimeMesh(std::string_view name);
+        static const graphics::MeshGpuHandle& getMeshGpuHandle(AssetId id);
+        static const graphics::Mesh& getMeshView(AssetId id);
+        static graphics::Mesh& getMeshMut(AssetId id);
+        static AssetId loadMeshFromFile(std::string_view path);
+        static AssetId createRuntimeMesh(std::string_view name);
 
-        const graphics::ShaderProgramData& getShaderProgram(AssetId id) const;
-        AssetId loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath);
+        static const graphics::ShaderProgramData& getShaderProgram(AssetId id);
+        static AssetId loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath);
 
     private:
         struct MeshGpuAllocator
@@ -82,4 +82,6 @@ namespace assets
         void loadInternalShaders();
         std::optional<uint32_t> loadShaderStageFromFile(std::string_view path, uint32_t stageType);
     };
+
+    void bindAssetDatabase(AssetDatabase& db);
 }

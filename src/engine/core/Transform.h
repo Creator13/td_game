@@ -9,12 +9,48 @@
 
 namespace core
 {
+    struct TransformSystem;
+
     typedef uint32_t TransformIndex;
+
+    void bindTransformSystem(TransformSystem& ts);
 
     struct TransformHandle
     {
         TransformIndex id;
         uint32_t gen;
+
+        bool isAlive() const;
+
+        //## Hierarchy ##//
+        void setParent(TransformHandle parent, bool keepWorldTransform = true) const;
+        TransformHandle getParent() const;
+        bool hasParent() const;
+
+        //## Spatial value getters/setters ##//
+        void setLocalPosition(math::vec3 pos) const;
+        void setLocalRotation(math::quaternion rot) const;
+        void setLocalScale(math::vec3 scale) const;
+        void setLocalPosRot(math::vec3 pos, math::quaternion rot) const;
+
+        void setWorldPosition(math::vec3 pos) const;
+        void setWorldRotation(math::quaternion rot) const;
+
+        void translate(math::vec3 offset) const;
+        void rotate(math::quaternion rot) const;
+
+        math::vec3 getLocalPosition() const;
+        math::quaternion getLocalRotation() const;
+        math::vec3 getLocalScale() const;
+
+        math::vec3 getWorldPosition() const;
+        math::quaternion getWorldRotation() const;
+
+        math::mat4 getWorldMatrix() const;
+
+        math::vec3 getRight() const;
+        math::vec3 getUp() const;
+        math::vec3 getForward() const;
 
         static const TransformHandle nullHandle;
     };
@@ -108,8 +144,8 @@ namespace core
         void setLocalScale(TransformHandle handle, math::vec3 scale);
         void setLocalPosRot(TransformHandle handle, math::vec3 pos, math::quaternion rot);
 
-        void setWorldPosition(TransformHandle handle, math::vec3 pos);
-        void setWorldRotation(TransformHandle handle, math::quaternion rot);
+        void setWorldPosition(TransformHandle handle, math::vec3 pos) const;
+        void setWorldRotation(TransformHandle handle, math::quaternion rot) const;
 
         void translate(TransformHandle handle, math::vec3 offset);
         void rotate(TransformHandle handle, math::quaternion rot);
@@ -127,4 +163,36 @@ namespace core
         math::vec3 getUp(TransformHandle handle) const;
         math::vec3 getForward(TransformHandle handle) const;
     };
+
+    namespace transform
+    {
+        //## Creation/destruction ##//
+
+        /**
+         * Creates an unparented transform on an entity at the world origin.
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle add(flecs::entity e);
+
+        /**
+         * Creates an unparented transform on an entity with TRS values.
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle add(flecs::entity e, math::vec3 pos, math::quaternion rot);
+
+        /**
+         * Create a parented entity in the world, with a 'zero' transform relative to the parent (ie in the same
+         * location as the parent).
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle add(flecs::entity e, TransformHandle parent);
+
+        /**
+         * Creates a parented transform on an entity. When the worldSpace parameter is set to true, the transform values will
+         * be interpreted in world space (ie relative to the world origin), else (default) they will be interpreted in
+         * local space (ie relative to the parent).
+         * This entity is created with a TransformData component holding the transform index.
+         */
+        TransformHandle add(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
+    }
 }

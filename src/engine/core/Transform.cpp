@@ -12,6 +12,14 @@ namespace
     {
         return mat4::makeTRS(t.localPosition, t.localRotation, t.localScale);
     }
+
+    // Pointer to transform system that resolves for all global/static calls
+    TransformSystem* globalTransformSystem;
+}
+
+void core::bindTransformSystem(TransformSystem& ts)
+{
+    globalTransformSystem = &ts;
 }
 
 TransformHandle TransformSystem::addTransform(flecs::entity e, TransformHandle parent)
@@ -195,13 +203,13 @@ void TransformSystem::setLocalPosRot(TransformHandle handle, vec3 pos, quaternio
     // Todo modify/dirty
 }
 
-void TransformSystem::setWorldPosition(TransformHandle handle, vec3 pos)
+void TransformSystem::setWorldPosition(TransformHandle handle, vec3 pos) const
 {
     assert(isAlive(handle));
     // todo
 }
 
-void TransformSystem::setWorldRotation(TransformHandle handle, quaternion rot)
+void TransformSystem::setWorldRotation(TransformHandle handle, quaternion rot) const
 {
     assert(isAlive(handle));
     //todo
@@ -255,7 +263,7 @@ quaternion TransformSystem::getWorldRotation(TransformHandle handle) const
     return quaternion::identity;
 }
 
-math::mat4 TransformSystem::getWorldMatrix(TransformHandle handle) const
+mat4 TransformSystem::getWorldMatrix(TransformHandle handle) const
 {
     assert(isAlive(handle));
 
@@ -281,4 +289,133 @@ vec3 TransformSystem::getForward(TransformHandle handle) const
     assert(isAlive(handle));
     //todo
     return vec3::zero;
+}
+
+TransformHandle transform::add(flecs::entity e)
+{
+    return globalTransformSystem->addTransform(e);
+}
+
+TransformHandle transform::add(flecs::entity e, vec3 pos, quaternion rot)
+{
+    return globalTransformSystem->addTransform(e, pos, rot);
+}
+
+TransformHandle transform::add(flecs::entity e, TransformHandle parent)
+{
+    return globalTransformSystem->addTransform(e, parent);
+}
+
+TransformHandle transform::add(flecs::entity e, TransformHandle parent, vec3 pos, quaternion rot, bool worldSpace)
+{
+    return globalTransformSystem->addTransform(e, parent, pos, rot, worldSpace);
+}
+
+// ##############################
+// ##  GLOBAL ALIAS FUNCTIONS  ##
+// ##############################
+
+bool TransformHandle::isAlive() const
+{
+    return globalTransformSystem->isAlive(*this);
+}
+
+void TransformHandle::setParent(TransformHandle parent, bool keepWorldTransform) const
+{
+    globalTransformSystem->setParent(*this, parent, keepWorldTransform);
+}
+
+TransformHandle TransformHandle::getParent() const
+{
+    return globalTransformSystem->getParent(*this);
+}
+
+bool TransformHandle::hasParent() const
+{
+    return globalTransformSystem->hasParent(*this);
+}
+
+void TransformHandle::setLocalPosition(vec3 pos) const
+{
+    globalTransformSystem->setLocalPosition(*this, pos);
+}
+
+void TransformHandle::setLocalRotation(quaternion rot) const
+{
+    globalTransformSystem->setLocalRotation(*this, rot);
+}
+
+void TransformHandle::setLocalScale(vec3 scale) const
+{
+    globalTransformSystem->setLocalScale(*this, scale);
+}
+
+void TransformHandle::setLocalPosRot(vec3 pos, quaternion rot) const
+{
+    globalTransformSystem->setLocalPosRot(*this, pos, rot);
+}
+
+void TransformHandle::setWorldPosition(vec3 pos) const
+{
+    globalTransformSystem->setWorldPosition(*this, pos);
+}
+
+void TransformHandle::setWorldRotation(quaternion rot) const
+{
+    globalTransformSystem->setWorldRotation(*this, rot);
+}
+
+void TransformHandle::translate(vec3 offset) const
+{
+    globalTransformSystem->translate(*this, offset);
+}
+
+void TransformHandle::rotate(quaternion rot) const
+{
+    globalTransformSystem->rotate(*this, rot);
+}
+
+vec3 TransformHandle::getLocalPosition() const
+{
+    return globalTransformSystem->getLocalPosition(*this);
+}
+
+quaternion TransformHandle::getLocalRotation() const
+{
+    return globalTransformSystem->getLocalRotation(*this);
+}
+
+vec3 TransformHandle::getLocalScale() const
+{
+    return globalTransformSystem->getLocalScale(*this);
+}
+
+vec3 TransformHandle::getWorldPosition() const
+{
+    return globalTransformSystem->getWorldPosition(*this);
+}
+
+quaternion TransformHandle::getWorldRotation() const
+{
+    return globalTransformSystem->getWorldRotation(*this);
+}
+
+mat4 TransformHandle::getWorldMatrix() const
+{
+    return globalTransformSystem->getWorldMatrix(*this);
+}
+
+vec3 TransformHandle::getRight() const
+{
+    return globalTransformSystem->getRight(*this);
+}
+
+vec3 TransformHandle::getUp() const
+{
+    return globalTransformSystem->getUp(*this);
+}
+
+vec3 TransformHandle::getForward() const
+{
+    return globalTransformSystem->getForward(*this);
 }

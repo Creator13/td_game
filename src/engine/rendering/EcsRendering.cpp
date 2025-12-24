@@ -71,12 +71,12 @@ rendering::rendering(flecs::world& ecs)
             currentActiveCameraEntity = e;
         });
 
-    ecs.system<const PerspectiveCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Perspective camera update system")
+    ecs.system<const PerspectiveCameraData, const TransformHandle, const WindowSingleton, CameraRenderData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActivePerspectiveCamera);
 
-    ecs.system<const OrthoCameraData, const WorldTransformData, const WindowSingleton, CameraRenderData>("Ortho camera update system")
+    ecs.system<const OrthoCameraData, const TransformHandle, const WindowSingleton, CameraRenderData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
@@ -85,9 +85,9 @@ rendering::rendering(flecs::world& ecs)
         .kind(flecs::OnStore)
         .each(syncRendererToActiveCamera);
 
-    auto cullingSystem = ecs.system<const WorldTransformData, MeshRenderer, const CameraRenderData>("Culling system")
+    auto cullingSystem = ecs.system<const TransformHandle, MeshRenderer, const CameraRenderData>("Culling system")
         .multi_threaded()
-        .each([](const WorldTransformData& transform, MeshRenderer rend, const CameraRenderData& camera)
+        .each([](const TransformHandle& transform, MeshRenderer rend, const CameraRenderData& camera)
         {
             rend.cullReason = CullReason::None;
         })
@@ -104,13 +104,13 @@ void rendering::submitRenderable(const RendererSingleton& renderer, const Transf
     graphics::Renderable renderable;
     renderable.meshId = renderData.meshId;
     renderable.shaderId = renderData.shaderId;
-    renderable.modelMatrix = transform.worldTransformMatrix;
+    renderable.modelMatrix = transform.getWorldMatrix();
     renderable.material = {mat.color};
 
     renderer.ptr->submit(renderable);
 }
 
-void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
     renderData.projectionMatrix = mat4::makeOrtho(
@@ -121,14 +121,14 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
         cameraData.near,
         cameraData.far
     );
-    renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+    renderData.viewMatrix = inverse(transform.getWorldMatrix());
 }
 
-void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const WorldTransformData& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
     renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
-    renderData.viewMatrix = inverse(transform.worldTransformMatrix);
+    renderData.viewMatrix = inverse(transform.getWorldMatrix());
 }
 
 void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData)

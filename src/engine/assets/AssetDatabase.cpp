@@ -138,6 +138,8 @@ namespace
             return math::vec3(in.x, -in.z, in.y);
         }
     }
+
+    assets::AssetDatabase* globalAssetDatabase;
 }
 
 assets::AssetDatabase::AssetDatabase(std::string_view resourceRoot)
@@ -158,35 +160,35 @@ assets::AssetDatabase::~AssetDatabase()
 
 const assets::AssetInfo& assets::AssetDatabase::getAssetInfo(AssetId id)
 {
-    assert(metadata.contains(id));
+    assert(globalAssetDatabase->metadata.contains(id));
     // Returns a copy; no outside influence is allowed // EDIT does it really?? const&?
-    return metadata.at(id);
+    return globalAssetDatabase->metadata.at(id);
 }
 
-const graphics::MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id) const
+const graphics::MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id)
 {
-    assert(metadata.contains(id));
-    return meshAllocator.get(id);
+    assert(globalAssetDatabase->metadata.contains(id));
+    return globalAssetDatabase->meshAllocator.get(id);
 }
 
-const graphics::Mesh& assets::AssetDatabase::getMeshView(AssetId id) const
+const graphics::Mesh& assets::AssetDatabase::getMeshView(AssetId id)
 {
-    assert(metadata.contains(id));
-    return meshes.at(id);
+    assert(globalAssetDatabase->metadata.contains(id));
+    return globalAssetDatabase->meshes.at(id);
 }
 
 graphics::Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
 {
-    assert(metadata.contains(id));
-    return meshes.at(id);
+    assert(globalAssetDatabase->metadata.contains(id));
+    return globalAssetDatabase->meshes.at(id);
 }
 
 assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 {
     AssetId id = idFromPath(path);
-    if (meshes.contains(id)) { return id; }
+    if (globalAssetDatabase->meshes.contains(id)) { return id; }
 
-    fs::path absPath = fs::path(resolveResourcePath(path));
+    fs::path absPath = fs::path(globalAssetDatabase->resolveResourcePath(path));
 
     auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
     if (data.error() != fastgltf::Error::None)
@@ -197,7 +199,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 
     constexpr fastgltf::Options parserOptions = fastgltf::Options::LoadExternalBuffers;
 
-    auto load = gltfParser->loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
+    auto load = globalAssetDatabase->gltfParser->loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
     if (auto error = load.error(); error != fastgltf::Error::None)
     {
         spdlog::error("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
@@ -263,12 +265,12 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
     info.type = AssetInfo::AssetType::Mesh;
     info.isRuntime = false;
 
-    metadata.insert({info.id, info});
-    graphics::Mesh& new_mesh = meshes.try_emplace(info.id).first->second;
+    globalAssetDatabase->metadata.insert({info.id, info});
+    graphics::Mesh& new_mesh = globalAssetDatabase->meshes.try_emplace(info.id).first->second;
     new_mesh.vertices = std::move(out.vertices);
     new_mesh.indices = std::move(out.indices);
 
-    meshAllocator.upload(id, new_mesh);
+    globalAssetDatabase->meshAllocator.upload(id, new_mesh);
 
     return id;
 }
@@ -293,18 +295,18 @@ assets::AssetId assets::AssetDatabase::createMesh(std::string_view path)
 
 assets::AssetId assets::AssetDatabase::createRuntimeMesh(std::string_view name)
 {
-    return createMesh(fmt::format("{}/{}/{}", RUNTIME_PATH, mapAssetTypeName(AssetInfo::AssetType::Mesh), name));
+    return globalAssetDatabase->createMesh(fmt::format("{}/{}/{}", RUNTIME_PATH, mapAssetTypeName(AssetInfo::AssetType::Mesh), name));
 }
 
-const graphics::ShaderProgramData& assets::AssetDatabase::getShaderProgram(AssetId id) const
+const graphics::ShaderProgramData& assets::AssetDatabase::getShaderProgram(AssetId id)
 {
-    return shaders.at(id);
+    return globalAssetDatabase->shaders.at(id);
 }
 
 assets::AssetId assets::AssetDatabase::loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath)
 {
-    std::optional<GLuint> vert = loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
-    std::optional<GLuint> frag = loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
+    std::optional<GLuint> vert = globalAssetDatabase->loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
+    std::optional<GLuint> frag = globalAssetDatabase->loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
     if (!(vert && frag)) return ERROR_SHADER_ID;
 
     std::optional<GLuint> sId = _shader::makeShaderProgram({vert.value(), frag.value()});
@@ -316,9 +318,9 @@ assets::AssetId assets::AssetDatabase::loadShaderFromFiles(std::string_view vert
     info.isRuntime = true;
     info.type = AssetInfo::AssetType::Shader;
 
-    metadata.insert({info.id, info});
+    globalAssetDatabase->metadata.insert({info.id, info});
 
-    shaders.insert({info.id, {sId.value()}});
+    globalAssetDatabase->shaders.insert({info.id, {sId.value()}});
 
     return info.id;
 }
@@ -452,4 +454,9 @@ std::optional<GLuint> assets::AssetDatabase::loadShaderStageFromFile(std::string
         return glShaderId;
     }
     return { };
+}
+
+void assets::bindAssetDatabase(AssetDatabase& db)
+{
+    globalAssetDatabase = &db;
 }

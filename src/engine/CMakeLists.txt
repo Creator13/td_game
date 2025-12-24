@@ -1,4 +1,8 @@
-file(GLOB_RECURSE ENGINE_SOURCES "*.cpp" "*.h")
+file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
+        "assets/*.cpp" "assets/*.h"
+        "core/*.cpp" "core/*.h"
+        "rendering/*.cpp" "rendering/*.h"
+)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
@@ -7,9 +11,9 @@ find_package(xxHash CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(flecs CONFIG REQUIRED)
 
-add_library(engine STATIC ${ENGINE_SOURCES})
+add_library(engine_core STATIC ${ENGINE_SOURCES})
 
-target_link_libraries(engine
+target_link_libraries(engine_core
         PUBLIC math
         PUBLIC spdlog::spdlog
         PUBLIC $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>
@@ -20,21 +24,38 @@ target_link_libraries(engine
 )
 
 include(${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake)
-add_dependencies(engine copy_resources)
+add_dependencies(engine_core copy_resources)
 
-target_compile_definitions(engine PUBLIC
+target_compile_definitions(engine_core PUBLIC
         $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>
         $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>
 )
 
-target_compile_definitions(engine PUBLIC
+target_compile_definitions(engine_core PUBLIC
         $<$<CONFIG:Debug>:DEBUG_BUILD>
         $<$<CONFIG:RelWithDebInfo>:DEBUG_BUILD>
         $<$<CONFIG:Release>:RELEASE>
 )
 
-target_compile_definitions(engine PUBLIC
+target_compile_definitions(engine_core PUBLIC
         FLECS_NO_APP
 )
 
-target_include_directories(engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(engine::core ALIAS engine_core)
+
+# =============================
+# engine entry point target
+# =============================
+
+add_library(engine STATIC engine.h engine.cpp)
+
+if (MSVC)
+    target_link_options(engine PRIVATE
+            "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>"
+            "$<$<CONFIG:Release>:/ENTRY:mainCRTStartup>"
+    )
+endif ()
+
+target_link_libraries(engine PUBLIC engine::core)
+
