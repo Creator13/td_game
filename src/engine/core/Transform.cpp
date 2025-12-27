@@ -17,7 +17,7 @@ namespace
     TransformSystem* globalTransformSystem;
 }
 
-void core::bindTransformSystem(TransformSystem& ts)
+void transform::bindTransformSystem(TransformSystem& ts)
 {
     globalTransformSystem = &ts;
 }
@@ -79,6 +79,13 @@ TransformHandle TransformSystem::addTransform(flecs::entity e)
     return handle;
 }
 
+void TransformSystem::remove(TransformHandle t)
+{
+    assert(isAlive(t));
+
+    releaseHandle(t);
+}
+
 bool TransformSystem::isAlive(TransformHandle handle) const
 {
     return handle.id > 0 && handle.id < globalHead && worldNodes[handle.id].gen == handle.gen;
@@ -92,8 +99,6 @@ void TransformSystem::releaseHandle(TransformHandle handle)
     worldNodes[handle.id].parent = freeListHead;
     freeListHead = handle.id;
 
-    // TODO handle children that point to this parent (implement strategy in a public api function, this place is more low-level)
-
     count--;
     freeListCount++;
 }
@@ -104,7 +109,7 @@ TransformSystem::TransformSystem(flecs::world* world)
     // Zero-initialize first element.
     // Note that it uses an absolute zero matrix instead of identity to cement its invalidity.
     transforms[0] = { };
-    worldNodes[0] = {0, mat4::zero, 0};
+    worldNodes[0] = {0, 0, 0, mat4::zero, 0};
     globalHead = 1;
 }
 
@@ -291,6 +296,10 @@ vec3 TransformSystem::getForward(TransformHandle handle) const
     return vec3::zero;
 }
 
+// ##############################
+// ##  GLOBAL ALIAS FUNCTIONS  ##
+// ##############################
+
 TransformHandle transform::add(flecs::entity e)
 {
     return globalTransformSystem->addTransform(e);
@@ -311,9 +320,10 @@ TransformHandle transform::add(flecs::entity e, TransformHandle parent, vec3 pos
     return globalTransformSystem->addTransform(e, parent, pos, rot, worldSpace);
 }
 
-// ##############################
-// ##  GLOBAL ALIAS FUNCTIONS  ##
-// ##############################
+void transform::remove(TransformHandle t)
+{
+    globalTransformSystem->remove(t);
+}
 
 bool TransformHandle::isAlive() const
 {

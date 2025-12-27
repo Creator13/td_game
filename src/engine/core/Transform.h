@@ -9,11 +9,7 @@
 
 namespace core
 {
-    struct TransformSystem;
-
     typedef uint32_t TransformIndex;
-
-    void bindTransformSystem(TransformSystem& ts);
 
     struct TransformHandle
     {
@@ -71,14 +67,15 @@ namespace core
     struct WorldNode
     {
         TransformIndex parent = 0;
+        TransformIndex firstChild = 0;
+        TransformIndex nextSibling = 0;
 
         math::mat4 worldMatrix = math::mat4::identity;
         uint32_t gen = 0;
     };
 
-    struct TransformSystem
+    class TransformSystem
     {
-    private:
         flecs::world* world;
 
         // TODO replace storage solution (paged storage? custom vector allocator? Memory arena?)
@@ -131,6 +128,8 @@ namespace core
          */
         TransformHandle addTransform(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
 
+        void remove(TransformHandle t);
+
         bool isAlive(TransformHandle handle) const;
 
         //## Hierarchy ##//
@@ -166,6 +165,8 @@ namespace core
 
     namespace transform
     {
+        void bindTransformSystem(TransformSystem& ts);
+
         //## Creation/destruction ##//
 
         /**
@@ -194,5 +195,7 @@ namespace core
          * This entity is created with a TransformData component holding the transform index.
          */
         TransformHandle add(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
+
+        void remove(TransformHandle t);
     }
 }
