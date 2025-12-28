@@ -1,431 +1,327 @@
 #include "core/Transform.h"
 
-#include <cassert>
-#include <spdlog/spdlog.h>
+#include <fastgltf/math.hpp>
 
-using namespace math;
 using namespace core;
+using namespace math;
 
-namespace
+vec3 FreeTransform::getPosition() const
 {
-    mat4 localTrsFromTransform(const Transform& t)
+    return pos;
+}
+
+quaternion FreeTransform::getOrientation() const
+{
+    return rot;
+}
+
+vec3 FreeTransform::getScale() const
+{
+    return scale;
+}
+
+void FreeTransform::setPosition(vec3 newPos)
+{
+    this->pos = newPos;
+}
+
+void FreeTransform::setOrientation(quaternion newRot)
+{
+    this->rot = newRot;
+    this->rotMatx = rot3x3::fromQuaternion(newRot);
+}
+
+void FreeTransform::setScale(vec3 scl)
+{
+    this->scale = scl;
+}
+
+void FreeTransform::rotate(quaternion rotation)
+{
+    rot = rot * rotation;
+    this->rotMatx = rot3x3::fromQuaternion(rot);
+}
+
+void FreeTransform::translate(vec3 offset)
+{
+    pos += offset;
+}
+
+vec3 FreeTransform::getRight() const
+{
+    return rotMatx.xBasis;
+}
+
+vec3 FreeTransform::getUp() const
+{
+    return rotMatx.zBasis;
+}
+
+vec3 FreeTransform::getForward() const
+{
+    return rotMatx.yBasis;
+}
+
+mat4 FreeTransform::getWorldMatrix() const
+{
+    return mat4::makeTRS(pos, rotMatx, scale);
+}
+
+vec3 HierarchyTransform::getWorldPosition() const
+{
+    return worldMatrix.getCol(3).xyz();
+}
+
+quaternion HierarchyTransform::getGlobalOrientation() const
+{
+    vec3 col0 = worldMatrix.getCol(0).xyz();
+    vec3 col1 = worldMatrix.getCol(1).xyz();
+    vec3 col2 = worldMatrix.getCol(2).xyz();
+
+    vec3 scale = vec3(
+        col0.length(),
+        col1.length(),
+        col2.length()
+    );
+
+    if (scale.x > 0e-4f) col0 /= scale.x;
+    if (scale.y > 0e-4f) col1 /= scale.y;
+    if (scale.z > 0e-4f) col2 /= scale.z;
+
+    const float det = dot(col0, cross(col1, col2));
+    if (det < 0)
     {
-        return mat4::makeTRS(t.localPosition, t.localRotation, t.localScale);
+        scale.x = -scale.x;
     }
 
-    // Pointer to transform system that resolves for all global/static calls
-    TransformSystem* globalTransformSystem;
+    return quaternion::fromRot3x3(rot3x3(col0, col1, col2));
 }
 
-void transform::bindTransformSystem(TransformSystem& ts)
+vec3 HierarchyTransform::getGlobalScale() const
 {
-    globalTransformSystem = &ts;
-}
+    const vec3 col0 = worldMatrix.getCol(0).xyz();
+    const vec3 col1 = worldMatrix.getCol(1).xyz();
+    const vec3 col2 = worldMatrix.getCol(2).xyz();
 
-TransformHandle TransformSystem::addTransform(flecs::entity e, TransformHandle parent)
-{
-    assert(isAlive(parent));
+    vec3 scale = vec3(
+        col0.length(),
+        col1.length(),
+        col2.length()
+    );
 
-    const TransformHandle handle = claimHandle();
-
-    transforms[handle.id] = Transform();
-    worldNodes[handle.id] = WorldNode{parent.id, worldNodes[parent.id].worldMatrix, 0};
-
-    e.set<TransformHandle>(handle);
-    return handle;
-}
-
-TransformHandle TransformSystem::addTransform(flecs::entity e, TransformHandle parent, vec3 pos, quaternion rot, bool worldSpace)
-{
-    assert(isAlive(parent)); // todo replace c assert
-
-    const TransformHandle handle = claimHandle();
-
-    const mat4 localTRS = mat4::makeTRS(pos, rot, vec3::one);
-
-    if (worldSpace)
+    const float det = dot(col0, cross(col1, col2));
+    if (det < 0)
     {
-        // TODO [transform = local * invParent] but then extract the values back into local??
+        scale.x = -scale.x;
+    }
+
+    return scale;
+}
+
+vec3 HierarchyTransform::getLocalPosition() const
+{
+    return localPos;
+}
+
+quaternion HierarchyTransform::getLocalOrientation() const
+{
+    return localRot;
+}
+
+vec3 HierarchyTransform::getLocalScale() const
+{
+    return localScale;
+}
+
+void HierarchyTransform::setWorldPosition(flecs::entity e, vec3 pos)
+{
+    if (hasParentTransform(e))
+    {
+        const mat4& parentMatx = e.parent().get<HierarchyTransform>().worldMatrix;
+        localPos = (inverse(parentMatx) * vec4(pos, 1.0f)).xyz();
     }
     else
     {
-        transforms[handle.id] = Transform{pos, rot, vec3::one};
-        worldNodes[handle.id] = WorldNode{parent.id, worldNodes[parent.id].worldMatrix * localTRS, 0};
+        localPos = pos;
     }
-
-    e.set<TransformHandle>(handle);
-    return handle;
+    applyModified(e);
 }
 
-TransformHandle TransformSystem::addTransform(flecs::entity e, vec3 pos, quaternion rot)
+void HierarchyTransform::setGlobalOrientation(flecs::entity e, quaternion rot)
 {
-    const TransformHandle handle = claimHandle();
-
-    transforms[handle.id] = Transform{pos, rot, vec3::one};
-    worldNodes[handle.id] = WorldNode{0, mat4::makeTRS(pos, rot, vec3::one), 0};
-
-    e.set<TransformHandle>(handle);
-    return handle;
-}
-
-TransformHandle TransformSystem::addTransform(flecs::entity e)
-{
-    const TransformHandle handle = claimHandle();
-
-    transforms[handle.id] = Transform{ };
-    worldNodes[handle.id] = WorldNode{ };
-
-    e.set<TransformHandle>(handle);
-    return handle;
-}
-
-void TransformSystem::remove(TransformHandle t)
-{
-    assert(isAlive(t));
-
-    releaseHandle(t);
-}
-
-bool TransformSystem::isAlive(TransformHandle handle) const
-{
-    return handle.id > 0 && handle.id < globalHead && worldNodes[handle.id].gen == handle.gen;
-}
-
-void TransformSystem::releaseHandle(TransformHandle handle)
-{
-    assert(isAlive(handle)); // TODO replace c assert
-
-    worldNodes[handle.id].gen++;
-    worldNodes[handle.id].parent = freeListHead;
-    freeListHead = handle.id;
-
-    count--;
-    freeListCount++;
-}
-
-TransformSystem::TransformSystem(flecs::world* world)
-    : world(world)
-{
-    // Zero-initialize first element.
-    // Note that it uses an absolute zero matrix instead of identity to cement its invalidity.
-    transforms[0] = { };
-    worldNodes[0] = {0, 0, 0, mat4::zero, 0};
-    globalHead = 1;
-}
-
-TransformHandle TransformSystem::claimHandle()
-{
-    TransformIndex next;
-    if (freeListHead > 0)
+    if (hasParentTransform(e))
     {
-        next = freeListHead;
-        freeListHead = worldNodes[freeListHead].parent;
-
-        freeListCount--;
+        const HierarchyTransform& parentTransform = e.parent().get<HierarchyTransform>();
+        quaternion parentWorldRot = parentTransform.getGlobalOrientation();
+        localRot = inverse(parentWorldRot) * rot;
     }
     else
     {
-        next = globalHead;
-        worldNodes[next].gen = 0;
-        globalHead++;
+        localRot = rot;
+    }
+    applyModified(e);
+}
 
-        // TODO vector implementation needs to be able to grow, should be removed once vector is replaced
-        if (globalHead >= worldNodes.size())
+void HierarchyTransform::setLocalPosition(flecs::entity e, vec3 pos)
+{
+    localPos = pos;
+    applyModified(e);
+}
+
+void HierarchyTransform::setLocalOrientation(flecs::entity e, quaternion rot)
+{
+    localRot = rot;
+    applyModified(e);
+}
+
+void HierarchyTransform::setLocalScale(flecs::entity e, vec3 scl)
+{
+    localScale = scl;
+    applyModified(e);
+}
+
+void HierarchyTransform::rotate(flecs::entity e, quaternion rotation)
+{
+    localRot = localRot * rotation;
+    applyModified(e);
+}
+
+void HierarchyTransform::translate(flecs::entity e, vec3 offset)
+{
+    localPos += offset;
+    applyModified(e);
+}
+
+vec3 HierarchyTransform::getRight() const
+{
+    return normalize(worldMatrix.getCol(0).xyz());
+}
+
+vec3 HierarchyTransform::getUp() const
+{
+    return normalize(worldMatrix.getCol(1).xyz());
+}
+
+vec3 HierarchyTransform::getForward() const
+{
+    return normalize(worldMatrix.getCol(2).xyz());
+}
+
+const mat4& HierarchyTransform::getWorldMatrix() const
+{
+    return worldMatrix;
+}
+
+bool HierarchyTransform::hasParentEntity(flecs::entity e)
+{
+    return e.has(flecs::ChildOf, flecs::Wildcard);
+}
+
+bool HierarchyTransform::hasParentTransform(flecs::entity e)
+{
+    return hasParentEntity(e) && e.parent().has<HierarchyTransform>();
+}
+
+void HierarchyTransform::applyModified(flecs::entity e_self)
+{
+    const mat4* parentMatx = nullptr;
+
+    if (hasParentEntity(e_self))
+    {
+        const HierarchyTransform* t_parent = e_self.parent().try_get<HierarchyTransform>();
+        if (t_parent)
         {
-            size_t newSize = worldNodes.size() + 50'000;
-            transforms.resize(newSize);
-            worldNodes.resize(newSize);
-            spdlog::warn("Reallocating transform memory! New size is {}.", newSize);
+            parentMatx = &t_parent->worldMatrix;
         }
     }
-    count++;
 
-    return {next, worldNodes[next].gen};
+    propagateMatrixToChildren(e_self, parentMatx);
 }
 
-void TransformSystem::setParent(TransformHandle handle, TransformHandle parent, bool keepWorldTransform)
+void HierarchyTransform::propagateMatrixToChildren(flecs::entity e_self, const mat4* parentMatrix)
 {
-    assert(isAlive(handle));
-    assert(isAlive(parent));
-
-    if (keepWorldTransform)
+    if (parentMatrix)
     {
-        // Change local transform to match the current world position based on new parent's transform, world matrix doesn't change
-        // TODO
+        worldMatrix = *parentMatrix * mat4::makeTRS(localPos, localRot, localScale);
     }
     else
     {
-        // Local transform remains unchanged, so reinterpret it based on the new parent transform
-        worldNodes[handle.id].parent = parent.id;
-        worldNodes[handle.id].worldMatrix = worldNodes[parent.id].worldMatrix * localTrsFromTransform(transforms[handle.id]);
+        worldMatrix = mat4::makeTRS(localPos, localRot, localScale);
     }
+
+    e_self.children([this](flecs::entity e_child)
+    {
+        HierarchyTransform* t_child = e_child.try_get_mut<HierarchyTransform>();
+        t_child->propagateMatrixToChildren(e_child, &worldMatrix);
+    });
 }
 
-TransformHandle TransformSystem::getParent(TransformHandle handle) const
+void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quaternion rot, vec3 scale)
 {
-    assert(isAlive(handle));
+    assert(parent.is_alive());
+    assert(parent.has<HierarchyTransform>());
+    assert(!target.has<HierarchyTransform>());
 
-    // Note: if parent is zero, this will index nodes[0] which is an invalid node by definition, defined with gen = 0.
-    // So this implicitly returns handle{0,0} aka handle::invalid, which is a conscious safety-performance tradeoff.
-    const TransformIndex parent = worldNodes[handle.id].parent;
-    return {parent, worldNodes[parent].gen};
+    target.child_of(parent);
+    const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
+    const mat4 localMatx = mat4::makeTRS(pos, rot, scale);
+    target.set<HierarchyTransform>({pos, rot, scale, parentMatx * localMatx});
 }
 
-bool TransformSystem::hasParent(TransformHandle handle) const
+void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quaternion rot)
 {
-    assert(isAlive(handle));
+    assert(parent.is_alive());
+    assert(parent.has<HierarchyTransform>());
+    assert(!target.has<HierarchyTransform>());
 
-    return worldNodes[handle.id].parent > 0;
+    target.child_of(parent);
+    const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
+    const mat4 localMatx = mat4::makeTRS(pos, rot, vec3::one);
+    target.set<HierarchyTransform>({pos, rot, vec3::one, parentMatx * localMatx});
 }
 
-void TransformSystem::setLocalPosition(TransformHandle handle, vec3 pos)
+void transform::add(flecs::entity target, flecs::entity parent, vec3 pos)
 {
-    assert(isAlive(handle));
+    assert(parent.is_alive());
+    assert(parent.has<HierarchyTransform>());
+    assert(!target.has<HierarchyTransform>());
 
-    transforms[handle.id].localPosition = pos;
-    // TODO modify/dirty
+    target.child_of(parent);
+    const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
+    const mat4 localMatx = mat4::makeTRS(pos, quaternion::identity, vec3::one);
+    target.set<HierarchyTransform>({pos, quaternion::identity, vec3::one, parentMatx * localMatx});
 }
 
-void TransformSystem::setLocalRotation(TransformHandle handle, quaternion rot)
+void transform::add(flecs::entity target, flecs::entity parent)
 {
-    assert(isAlive(handle));
-    transforms[handle.id].localRotation = rot;
-    // TODO modify/dirty
+    assert(parent.is_alive());
+    assert(parent.has<HierarchyTransform>());
+    assert(!target.has<HierarchyTransform>());
+
+    target.set<HierarchyTransform>({ }); // Struct defaults to identity transform, so identity values are not explicitly set here
+    target.child_of(parent);
 }
 
-void TransformSystem::setLocalScale(TransformHandle handle, vec3 scale)
+void transform::add(flecs::entity target, vec3 pos, quaternion rot, vec3 scale)
 {
-    assert(isAlive(handle));
-    transforms[handle.id].localScale = scale;
-    // Todo modify/dirty
+    assert(!target.has<HierarchyTransform>());
+
+    const mat4 localMatx = mat4::makeTRS(pos, rot, scale);
+    target.set<HierarchyTransform>({pos, rot, scale, localMatx});
 }
 
-void TransformSystem::setLocalPosRot(TransformHandle handle, vec3 pos, quaternion rot)
+void transform::add(flecs::entity target, vec3 pos, quaternion rot)
 {
-    assert(isAlive(handle));
-    transforms[handle.id].localPosition = pos;
-    transforms[handle.id].localRotation = rot;
-    // Todo modify/dirty
+    assert(!target.has<HierarchyTransform>());
+
+    const mat4 localMatx = mat4::makeTRS(pos, rot, vec3::one);
+    target.set<HierarchyTransform>({pos, rot, vec3::one, localMatx});
 }
 
-void TransformSystem::setWorldPosition(TransformHandle handle, vec3 pos) const
+void transform::add(flecs::entity target, vec3 pos)
 {
-    assert(isAlive(handle));
-    // todo
-}
+    assert(!target.has<HierarchyTransform>());
 
-void TransformSystem::setWorldRotation(TransformHandle handle, quaternion rot) const
-{
-    assert(isAlive(handle));
-    //todo
-}
-
-void TransformSystem::translate(TransformHandle handle, vec3 offset)
-{
-    assert(isAlive(handle));
-
-    transforms[handle.id].localPosition = transforms[handle.id].localPosition + offset;
-    // TODO dirty
-}
-
-void TransformSystem::rotate(TransformHandle handle, quaternion rot)
-{
-    assert(isAlive(handle));
-
-    transforms[handle.id].localRotation = transforms[handle.id].localRotation * rot;
-    // TODO dirty
-}
-
-vec3 TransformSystem::getLocalPosition(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    return transforms[handle.id].localPosition;
-}
-
-quaternion TransformSystem::getLocalRotation(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    return transforms[handle.id].localRotation;
-}
-
-vec3 TransformSystem::getLocalScale(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    return transforms[handle.id].localScale;
-}
-
-vec3 TransformSystem::getWorldPosition(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    //todo
-    return vec3::zero;
-}
-
-quaternion TransformSystem::getWorldRotation(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    //todo
-    return quaternion::identity;
-}
-
-mat4 TransformSystem::getWorldMatrix(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-
-    return worldNodes[handle.id].worldMatrix;
-}
-
-vec3 TransformSystem::getRight(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    //todo
-    return vec3::zero;
-}
-
-vec3 TransformSystem::getUp(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    //todo
-    return vec3::zero;
-}
-
-vec3 TransformSystem::getForward(TransformHandle handle) const
-{
-    assert(isAlive(handle));
-    //todo
-    return vec3::zero;
-}
-
-// ##############################
-// ##  GLOBAL ALIAS FUNCTIONS  ##
-// ##############################
-
-TransformHandle transform::add(flecs::entity e)
-{
-    return globalTransformSystem->addTransform(e);
-}
-
-TransformHandle transform::add(flecs::entity e, vec3 pos, quaternion rot)
-{
-    return globalTransformSystem->addTransform(e, pos, rot);
-}
-
-TransformHandle transform::add(flecs::entity e, TransformHandle parent)
-{
-    return globalTransformSystem->addTransform(e, parent);
-}
-
-TransformHandle transform::add(flecs::entity e, TransformHandle parent, vec3 pos, quaternion rot, bool worldSpace)
-{
-    return globalTransformSystem->addTransform(e, parent, pos, rot, worldSpace);
-}
-
-void transform::remove(TransformHandle t)
-{
-    globalTransformSystem->remove(t);
-}
-
-bool TransformHandle::isAlive() const
-{
-    return globalTransformSystem->isAlive(*this);
-}
-
-void TransformHandle::setParent(TransformHandle parent, bool keepWorldTransform) const
-{
-    globalTransformSystem->setParent(*this, parent, keepWorldTransform);
-}
-
-TransformHandle TransformHandle::getParent() const
-{
-    return globalTransformSystem->getParent(*this);
-}
-
-bool TransformHandle::hasParent() const
-{
-    return globalTransformSystem->hasParent(*this);
-}
-
-void TransformHandle::setLocalPosition(vec3 pos) const
-{
-    globalTransformSystem->setLocalPosition(*this, pos);
-}
-
-void TransformHandle::setLocalRotation(quaternion rot) const
-{
-    globalTransformSystem->setLocalRotation(*this, rot);
-}
-
-void TransformHandle::setLocalScale(vec3 scale) const
-{
-    globalTransformSystem->setLocalScale(*this, scale);
-}
-
-void TransformHandle::setLocalPosRot(vec3 pos, quaternion rot) const
-{
-    globalTransformSystem->setLocalPosRot(*this, pos, rot);
-}
-
-void TransformHandle::setWorldPosition(vec3 pos) const
-{
-    globalTransformSystem->setWorldPosition(*this, pos);
-}
-
-void TransformHandle::setWorldRotation(quaternion rot) const
-{
-    globalTransformSystem->setWorldRotation(*this, rot);
-}
-
-void TransformHandle::translate(vec3 offset) const
-{
-    globalTransformSystem->translate(*this, offset);
-}
-
-void TransformHandle::rotate(quaternion rot) const
-{
-    globalTransformSystem->rotate(*this, rot);
-}
-
-vec3 TransformHandle::getLocalPosition() const
-{
-    return globalTransformSystem->getLocalPosition(*this);
-}
-
-quaternion TransformHandle::getLocalRotation() const
-{
-    return globalTransformSystem->getLocalRotation(*this);
-}
-
-vec3 TransformHandle::getLocalScale() const
-{
-    return globalTransformSystem->getLocalScale(*this);
-}
-
-vec3 TransformHandle::getWorldPosition() const
-{
-    return globalTransformSystem->getWorldPosition(*this);
-}
-
-quaternion TransformHandle::getWorldRotation() const
-{
-    return globalTransformSystem->getWorldRotation(*this);
-}
-
-mat4 TransformHandle::getWorldMatrix() const
-{
-    return globalTransformSystem->getWorldMatrix(*this);
-}
-
-vec3 TransformHandle::getRight() const
-{
-    return globalTransformSystem->getRight(*this);
-}
-
-vec3 TransformHandle::getUp() const
-{
-    return globalTransformSystem->getUp(*this);
-}
-
-vec3 TransformHandle::getForward() const
-{
-    return globalTransformSystem->getForward(*this);
+    const mat4 localMatx = mat4::makeTRS(pos, quaternion::identity, vec3::one);
+    target.set<HierarchyTransform>({pos, quaternion::identity, vec3::one, localMatx});
 }

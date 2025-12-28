@@ -32,7 +32,7 @@ namespace core
         int run();
         flecs::world& getEcsWorld() { return _ecs; }
         assets::AssetDatabase& assets() const { return *_assetDb.get(); }
-        TransformSystem& getTransformSys() const { return *_transformSystem.get(); }
+        // TransformSystem& getTransformSys() const { return *_transformSystem.get(); }
         const GLFWwindow* getWindowPtr() const { return _windowPtr; }
 
     private:
@@ -48,7 +48,7 @@ namespace core
         graphics::Renderer _renderer;
 
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
-        std::unique_ptr<TransformSystem> _transformSystem = nullptr;
+        // std::unique_ptr<TransformSystem> _transformSystem = nullptr;
 
         GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;

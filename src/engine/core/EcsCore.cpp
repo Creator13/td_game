@@ -23,12 +23,10 @@ namespace
             .member<float>("z")
             .member<float>("w");
 
-        ecs.component<TransformHandle>()
-            .on_remove([](flecs::entity e, TransformHandle& t)
-            {
-                // TODO return id to pool
-            })
-            .member<TransformIndex>("Transform ID");
+        ecs.component<HierarchyTransform>()
+            .member<vec3>("Local position")
+            .member<quaternion>("Local rotation")
+            .member<vec3>("Local scale");
 
         ecs.component<ecs::GlobalInput>().add(flecs::Singleton);
     }
@@ -38,11 +36,4 @@ ecs::engine_core::engine_core(flecs::world& ecs)
 {
     ecs.module<engine_core>("Core module");
     registerComponents(ecs);
-
-    ecs.observer<const TransformHandle>()
-        .event(flecs::OnRemove)
-        .each([](flecs::entity e, const TransformHandle& t)
-        {
-            transform::remove(t);
-        });
 }

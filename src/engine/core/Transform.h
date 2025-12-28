@@ -1,7 +1,6 @@
 #pragma once
 
 #include <flecs.h>
-#include <vector>
 
 #include "math/mat4.h"
 #include "math/rotation.h"
@@ -9,193 +8,80 @@
 
 namespace core
 {
-    typedef uint32_t TransformIndex;
-
-    struct TransformHandle
+    struct FreeTransform
     {
-        TransformIndex id;
-        uint32_t gen;
+        math::vec3 pos;
+        math::quaternion rot;
+        math::vec3 scale;
 
-        bool isAlive() const;
+        math::rot3x3 rotMatx;
 
-        //## Hierarchy ##//
-        void setParent(TransformHandle parent, bool keepWorldTransform = true) const;
-        TransformHandle getParent() const;
-        bool hasParent() const;
+        math::vec3 getPosition() const;
+        math::quaternion getOrientation() const;
+        math::vec3 getScale() const;
 
-        //## Spatial value getters/setters ##//
-        void setLocalPosition(math::vec3 pos) const;
-        void setLocalRotation(math::quaternion rot) const;
-        void setLocalScale(math::vec3 scale) const;
-        void setLocalPosRot(math::vec3 pos, math::quaternion rot) const;
+        void setPosition(math::vec3 newPos);
+        void setOrientation(math::quaternion newRot);
+        void setScale(math::vec3 scl);
 
-        void setWorldPosition(math::vec3 pos) const;
-        void setWorldRotation(math::quaternion rot) const;
-
-        void translate(math::vec3 offset) const;
-        void rotate(math::quaternion rot) const;
-
-        math::vec3 getLocalPosition() const;
-        math::quaternion getLocalRotation() const;
-        math::vec3 getLocalScale() const;
-
-        math::vec3 getWorldPosition() const;
-        math::quaternion getWorldRotation() const;
-
-        math::mat4 getWorldMatrix() const;
+        void rotate(math::quaternion rotation);
+        void translate(math::vec3 offset);
 
         math::vec3 getRight() const;
         math::vec3 getUp() const;
         math::vec3 getForward() const;
 
-        static const TransformHandle nullHandle;
+        math::mat4 getWorldMatrix() const;
     };
 
-    inline const TransformHandle TransformHandle::nullHandle = {0, 0};
-}
-
-namespace core
-{
-    struct Transform
+    struct HierarchyTransform
     {
-        math::vec3 localPosition = math::vec3::zero;
-        math::quaternion localRotation = math::quaternion::identity;
+        math::vec3 localPos = math::vec3::zero;
+        math::quaternion localRot = math::quaternion::identity;
         math::vec3 localScale = math::vec3::one;
-        bool dirty = false;
-    };
-
-    struct WorldNode
-    {
-        TransformIndex parent = 0;
-        TransformIndex firstChild = 0;
-        TransformIndex nextSibling = 0;
 
         math::mat4 worldMatrix = math::mat4::identity;
-        uint32_t gen = 0;
-    };
 
-    class TransformSystem
-    {
-        flecs::world* world;
+        math::vec3 getWorldPosition() const;
+        math::quaternion getGlobalOrientation() const;
+        math::vec3 getGlobalScale() const;
 
-        // TODO replace storage solution (paged storage? custom vector allocator? Memory arena?)
-        //  paged storage is pointer-stable which could introduce some nice performance benefit (less indirection)
-        //  Child pages are also an interesting idea: Larger pages 4k-32k entity pages for root objects and then smaller
-        //  pages pages for children. Either smaller pages for direct children at every level, or larger pages for all
-        //  the children at every level under a single root.
-        std::vector<Transform> transforms = std::vector<Transform>(100'000);
-        std::vector<WorldNode> worldNodes = std::vector<WorldNode>(100'000);
+        math::vec3 getLocalPosition() const;
+        math::quaternion getLocalOrientation() const;
+        math::vec3 getLocalScale() const;
 
-        TransformIndex globalHead = 1;
-        TransformIndex freeListHead = 0;
+        void setWorldPosition(flecs::entity e, math::vec3 pos);
+        void setGlobalOrientation(flecs::entity e, math::quaternion rot);
 
-        uint32_t count = 0;
-        uint32_t freeListCount = 0;
+        void setLocalPosition(flecs::entity e, math::vec3 pos);
+        void setLocalOrientation(flecs::entity e, math::quaternion rot);
+        void setLocalScale(flecs::entity e, math::vec3 scl);
 
-        // Id handle management
-        TransformHandle claimHandle();
-        void releaseHandle(TransformHandle handle);
+        void rotate(flecs::entity e, math::quaternion rotation);
+        void translate(flecs::entity e, math::vec3 offset);
 
-    public:
-        explicit TransformSystem(flecs::world* world);
+        math::vec3 getRight() const;
+        math::vec3 getUp() const;
+        math::vec3 getForward() const;
 
-        //## Creation/destruction ##//
+        const math::mat4& getWorldMatrix() const;
 
-        /**
-         * Creates an unparented transform on an entity at the world origin.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle addTransform(flecs::entity e);
+        bool hasParentEntity(flecs::entity e);
+        bool hasParentTransform(flecs::entity e);
 
-        /**
-         * Creates an unparented transform on an entity with TRS values.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle addTransform(flecs::entity e, math::vec3 pos, math::quaternion rot);
-
-        /**
-         * Create a parented entity in the world, with a 'zero' transform relative to the parent (ie in the same
-         * location as the parent).
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle addTransform(flecs::entity e, TransformHandle parent);
-
-        /**
-         * Creates a parented transform on an entity. When the worldSpace parameter is set to true, the transform values will
-         * be interpreted in world space (ie relative to the world origin), else (default) they will be interpreted in
-         * local space (ie relative to the parent).
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle addTransform(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
-
-        void remove(TransformHandle t);
-
-        bool isAlive(TransformHandle handle) const;
-
-        //## Hierarchy ##//
-        void setParent(TransformHandle handle, TransformHandle parent, bool keepWorldTransform = true);
-        TransformHandle getParent(TransformHandle handle) const;
-        bool hasParent(TransformHandle handle) const;
-
-        //## Spatial value getters/setters ##//
-        void setLocalPosition(TransformHandle handle, math::vec3 pos);
-        void setLocalRotation(TransformHandle handle, math::quaternion rot);
-        void setLocalScale(TransformHandle handle, math::vec3 scale);
-        void setLocalPosRot(TransformHandle handle, math::vec3 pos, math::quaternion rot);
-
-        void setWorldPosition(TransformHandle handle, math::vec3 pos) const;
-        void setWorldRotation(TransformHandle handle, math::quaternion rot) const;
-
-        void translate(TransformHandle handle, math::vec3 offset);
-        void rotate(TransformHandle handle, math::quaternion rot);
-
-        math::vec3 getLocalPosition(TransformHandle handle) const;
-        math::quaternion getLocalRotation(TransformHandle handle) const;
-        math::vec3 getLocalScale(TransformHandle handle) const;
-
-        math::vec3 getWorldPosition(TransformHandle handle) const;
-        math::quaternion getWorldRotation(TransformHandle handle) const;
-
-        math::mat4 getWorldMatrix(TransformHandle handle) const;
-
-        math::vec3 getRight(TransformHandle handle) const;
-        math::vec3 getUp(TransformHandle handle) const;
-        math::vec3 getForward(TransformHandle handle) const;
+    private:
+        void applyModified(flecs::entity e_self);
+        void propagateMatrixToChildren(flecs::entity e_self, const math::mat4* parentMatrix);
     };
 
     namespace transform
     {
-        void bindTransformSystem(TransformSystem& ts);
-
-        //## Creation/destruction ##//
-
-        /**
-         * Creates an unparented transform on an entity at the world origin.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle add(flecs::entity e);
-
-        /**
-         * Creates an unparented transform on an entity with TRS values.
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle add(flecs::entity e, math::vec3 pos, math::quaternion rot);
-
-        /**
-         * Create a parented entity in the world, with a 'zero' transform relative to the parent (ie in the same
-         * location as the parent).
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle add(flecs::entity e, TransformHandle parent);
-
-        /**
-         * Creates a parented transform on an entity. When the worldSpace parameter is set to true, the transform values will
-         * be interpreted in world space (ie relative to the world origin), else (default) they will be interpreted in
-         * local space (ie relative to the parent).
-         * This entity is created with a TransformData component holding the transform index.
-         */
-        TransformHandle add(flecs::entity e, TransformHandle parent, math::vec3 pos, math::quaternion rot, bool worldSpace = false);
-
-        void remove(TransformHandle t);
+        void add(flecs::entity target, flecs::entity parent, math::vec3 pos, math::quaternion rot, math::vec3 scale);
+        void add(flecs::entity target, flecs::entity parent, math::vec3 pos, math::quaternion rot);
+        void add(flecs::entity target, flecs::entity parent, math::vec3 pos);
+        void add(flecs::entity target, flecs::entity parent);
+        void add(flecs::entity target, math::vec3 pos, math::quaternion rot, math::vec3 scale);
+        void add(flecs::entity target, math::vec3 pos, math::quaternion rot);
+        void add(flecs::entity target, math::vec3 pos);
     }
 }

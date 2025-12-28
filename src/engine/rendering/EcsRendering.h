@@ -83,8 +83,8 @@ namespace core::ecs
 
     private:
         static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData);
-        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData);
-        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData);
-        static void submitRenderable(const RendererSingleton& renderer, const TransformHandle& transform, const MeshRenderer& renderData, const MaterialData& mat);
+        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderer& renderData, const MaterialData& mat);
     };
 }

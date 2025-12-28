@@ -71,12 +71,12 @@ rendering::rendering(flecs::world& ecs)
             currentActiveCameraEntity = e;
         });
 
-    ecs.system<const PerspectiveCameraData, const TransformHandle, const WindowSingleton, CameraRenderData>("Perspective camera update system")
+    ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, CameraRenderData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActivePerspectiveCamera);
 
-    ecs.system<const OrthoCameraData, const TransformHandle, const WindowSingleton, CameraRenderData>("Ortho camera update system")
+    ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, CameraRenderData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
@@ -85,21 +85,21 @@ rendering::rendering(flecs::world& ecs)
         .kind(flecs::OnStore)
         .each(syncRendererToActiveCamera);
 
-    auto cullingSystem = ecs.system<const TransformHandle, MeshRenderer, const CameraRenderData>("Culling system")
+    auto cullingSystem = ecs.system<const HierarchyTransform, MeshRenderer, const CameraRenderData>("Culling system")
         .multi_threaded()
-        .each([](const TransformHandle& transform, MeshRenderer rend, const CameraRenderData& camera)
+        .each([](const HierarchyTransform& transform, MeshRenderer rend, const CameraRenderData& camera)
         {
             rend.cullReason = CullReason::None;
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const TransformHandle, const MeshRenderer, const MaterialData>("Render system")
+    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderer, const MaterialData>("Render system")
         .each(submitRenderable)
         .depends_on(cameraSystem)
         .depends_on(cullingSystem);
 }
 
-void rendering::submitRenderable(const RendererSingleton& renderer, const TransformHandle& transform, const MeshRenderer& renderData, const MaterialData& mat)
+void rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderer& renderData, const MaterialData& mat)
 {
     graphics::Renderable renderable;
     renderable.meshId = renderData.meshId;
@@ -110,7 +110,7 @@ void rendering::submitRenderable(const RendererSingleton& renderer, const Transf
     renderer.ptr->submit(renderable);
 }
 
-void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
     renderData.projectionMatrix = mat4::makeOrtho(
@@ -124,7 +124,7 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
     renderData.viewMatrix = inverse(transform.getWorldMatrix());
 }
 
-void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const TransformHandle& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
     renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);

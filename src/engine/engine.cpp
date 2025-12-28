@@ -9,7 +9,7 @@ int main(int argc, char** argv)
     Application game = Application(argc, argv, "res", engine::initial_window_state());
 
     // Setup
-    transform::bindTransformSystem(game.getTransformSys());
+    // transform::bindTransformSystem(game.getTransformSys());
     assets::bindAssetDatabase(game.assets());
 
     // Game hook!!1

@@ -37,7 +37,7 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
     _renderer.setAssetDatabase(_assetDb.get());
 
-    _transformSystem = std::make_unique<TransformSystem>(&_ecs);
+    // _transformSystem = std::make_unique<TransformSystem>(&_ecs);
 }
 
 Application::~Application()

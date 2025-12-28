@@ -40,42 +40,44 @@ void engine::register_flecs(const flecs::world& world)
 
     auto b1 = world.entity("bunny1")
         .is_a(bunny_prefab);
-    auto t1 = transform::add(b1, vec3::zero, quaternion::identity);
+    transform::add(b1, vec3::zero, quaternion::identity);
 
     auto b2 = world.entity("bunny2")
         .is_a(bunny_prefab);
-    auto t2 = transform::add(b2, t1, vec3::right * 3, quaternion::identity);
+    transform::add(b2, b1, vec3::right * 3, quaternion::identity);
 
     auto b3 = world.entity("bunny3")
         .is_a(bunny_prefab);
-    auto t3 = transform::add(b3, t2, vec3::right * 3, quaternion::identity);
+    transform::add(b3, b2, vec3::right * 5, quaternion::identity);
 
     b1.add<RotateTag>();
 
-    world.system<const TransformHandle>("Rotating")
+    world.system<HierarchyTransform>("Rotating")
         .with<RotateTag>()
-        .each([](flecs::iter& it, size_t, const TransformHandle& transform)
+        .each([](flecs::iter& it, size_t i, HierarchyTransform& transform)
         {
-            transform.rotate(quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
+            transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, 30 * it.delta_time()));
         });
 
-    world.system<const TransformHandle, const GlobalInput>("Camera control")
+    world.system<HierarchyTransform, const GlobalInput>("Camera control")
         .with<ActiveCamera>()
-        .each([](flecs::iter& it, size_t, const TransformHandle& transform, const GlobalInput& input)
+        .each([](flecs::iter& it, size_t i, HierarchyTransform& transform, const GlobalInput& input)
         {
+            flecs::entity e = it.entity(i);
+
             constexpr float speed = 5;
             if (input.state->isKeyDown(Key::A))
             {
-                transform.translate(vec3(speed, 0, 0) * it.delta_time());
+                transform.translate(e, vec3(speed, 0, 0) * it.delta_time());
             }
             else if (input.state->isKeyDown(Key::D))
             {
-                transform.translate(vec3(-speed, 0, 0) * it.delta_time());
+                transform.translate(e, vec3(-speed, 0, 0) * it.delta_time());
             }
 
             if (input.state->isMouseDown(MouseButton::Right))
             {
-                transform.translate(vec3(0, speed, 0) * it.delta_time());
+                transform.translate(e, vec3(0, speed, 0) * it.delta_time());
             }
 
             if (input.state->isMousePressed(MouseButton::Left))
