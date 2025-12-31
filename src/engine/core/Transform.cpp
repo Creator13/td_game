@@ -135,7 +135,7 @@ vec3 HierarchyTransform::getLocalScale() const
 
 void HierarchyTransform::setWorldPosition(flecs::entity e, vec3 pos)
 {
-    if (hasParentTransform(e))
+    if (transform::hasParentTransform(e))
     {
         const mat4& parentMatx = e.parent().get<HierarchyTransform>().worldMatrix;
         localPos = (inverse(parentMatx) * vec4(pos, 1.0f)).xyz();
@@ -149,7 +149,7 @@ void HierarchyTransform::setWorldPosition(flecs::entity e, vec3 pos)
 
 void HierarchyTransform::setGlobalOrientation(flecs::entity e, quaternion rot)
 {
-    if (hasParentTransform(e))
+    if (transform::hasParentTransform(e))
     {
         const HierarchyTransform& parentTransform = e.parent().get<HierarchyTransform>();
         quaternion parentWorldRot = parentTransform.getGlobalOrientation();
@@ -212,12 +212,12 @@ const mat4& HierarchyTransform::getWorldMatrix() const
     return worldMatrix;
 }
 
-bool HierarchyTransform::hasParentEntity(flecs::entity e)
+bool transform::hasParentEntity(flecs::entity e)
 {
     return e.has(flecs::ChildOf, flecs::Wildcard);
 }
 
-bool HierarchyTransform::hasParentTransform(flecs::entity e)
+bool transform::hasParentTransform(flecs::entity e)
 {
     return hasParentEntity(e) && e.parent().has<HierarchyTransform>();
 }
@@ -226,7 +226,7 @@ void HierarchyTransform::applyModified(flecs::entity e_self)
 {
     const mat4* parentMatx = nullptr;
 
-    if (hasParentEntity(e_self))
+    if (transform::hasParentEntity(e_self))
     {
         const HierarchyTransform* t_parent = e_self.parent().try_get<HierarchyTransform>();
         if (t_parent)

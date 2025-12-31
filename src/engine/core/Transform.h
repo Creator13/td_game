@@ -66,9 +66,6 @@ namespace core
 
         const math::mat4& getWorldMatrix() const;
 
-        bool hasParentEntity(flecs::entity e);
-        bool hasParentTransform(flecs::entity e);
-
     private:
         void applyModified(flecs::entity e_self);
         void propagateMatrixToChildren(flecs::entity e_self, const math::mat4* parentMatrix);
@@ -83,5 +80,8 @@ namespace core
         void add(flecs::entity target, math::vec3 pos, math::quaternion rot, math::vec3 scale);
         void add(flecs::entity target, math::vec3 pos, math::quaternion rot);
         void add(flecs::entity target, math::vec3 pos);
+
+        bool hasParentEntity(flecs::entity e);
+        bool hasParentTransform(flecs::entity e);
     }
 }

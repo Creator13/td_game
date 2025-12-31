@@ -93,4 +93,5 @@ fabric.properties
 
 ### CUSTOM ADDITIONS
 build/
-
+build_clang/
+build_msvc/
