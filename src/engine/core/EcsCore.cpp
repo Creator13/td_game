@@ -1,12 +1,13 @@
 #include "core/EcsCore.h"
 
 #include <flecs.h>
+#include <spdlog/spdlog.h>
 
 #include "Input.h"
 #include "core/Transform.h"
 
 using namespace math;
-using namespace core;
+using namespace core::ecs;
 
 namespace
 {
@@ -28,12 +29,21 @@ namespace
             .member<quaternion>("Local rotation")
             .member<vec3>("Local scale");
 
-        ecs.component<ecs::GlobalInput>().add(flecs::Singleton);
+        ecs.component<GlobalInput>().add(flecs::Singleton);
     }
 }
 
-ecs::engine_core::engine_core(flecs::world& ecs)
+engine_core::engine_core(flecs::world& ecs)
 {
     ecs.module<engine_core>("Core module");
     registerComponents(ecs);
+
+    ecs.observer<const HierarchyTransform, FreeLookCameraControlData>()
+        .event(flecs::OnSet)
+        .each([](flecs::entity e, const HierarchyTransform& transform, FreeLookCameraControlData& cam)
+        {
+            const vec3 euler = toEuler(transform.getGlobalOrientation());
+            cam.yaw = euler.z;
+            cam.pitch = euler.x;
+        });
 }

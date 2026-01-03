@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -18,7 +16,6 @@ namespace fastgltf
 
 namespace assets
 {
-
     struct AssetInfo
     {
         enum class AssetType { Mesh, Shader };

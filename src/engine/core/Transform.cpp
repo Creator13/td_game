@@ -1,8 +1,7 @@
 #include "core/Transform.h"
 
-#include <fastgltf/math.hpp>
-
 using namespace core;
+using namespace core::ecs;
 using namespace math;
 
 vec3 FreeTransform::getPosition() const
@@ -197,12 +196,12 @@ vec3 HierarchyTransform::getRight() const
     return normalize(worldMatrix.getCol(0).xyz());
 }
 
-vec3 HierarchyTransform::getUp() const
+vec3 HierarchyTransform::getForward() const
 {
     return normalize(worldMatrix.getCol(1).xyz());
 }
 
-vec3 HierarchyTransform::getForward() const
+vec3 HierarchyTransform::getUp() const
 {
     return normalize(worldMatrix.getCol(2).xyz());
 }

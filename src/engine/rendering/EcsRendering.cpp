@@ -4,6 +4,7 @@
 
 #include "core/Transform.h"
 #include "core/Window.h"
+#include "math/geom.h"
 #include "rendering/Renderer.h"
 
 using namespace math;
@@ -42,9 +43,9 @@ namespace
         ecs.component<RendererSingleton>().add(flecs::Singleton);
     }
 
-    constexpr vec3 extractPositionFromTRS(const mat4& trs)
+    Frustum constructFrustumFromPerspectiveCamera(const HierarchyTransform& transform, const PerspectiveCameraData& camera, float aspect)
     {
-        return trs.getRow(3).xyz();
+        return {};
     }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)

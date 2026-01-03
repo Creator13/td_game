@@ -38,4 +38,16 @@ namespace math
         vec3 start;
         vec3 dir;
     };
+
+    struct Frustum
+    {
+        Plane top;
+        Plane bottom;
+
+        Plane right;
+        Plane left;
+
+        Plane far;
+        Plane near;
+    };
 }

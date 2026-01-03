@@ -152,6 +152,7 @@ void InputState::endFrame()
 {
     keyStatePreviousFrame = keyStateCurrentFrame;
     mouseStatePreviousFrame = mouseStateCurrentFrame;
+    mouseDelta = vec2(0,0);
 }
 
 void InputState::handleCursorPosUpdate(vec2 newPos)

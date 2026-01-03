@@ -28,8 +28,6 @@ namespace graphics
 
     class Renderer
     {
-        const assets::AssetDatabase* db = nullptr;
-
         bool drawDebug = false;
 
         std::vector<Renderable> renderables;
@@ -38,8 +36,6 @@ namespace graphics
         math::mat4 viewMatrix;
 
     public:
-        void setAssetDatabase(const assets::AssetDatabase* db);
-
         void setClearColor(Color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);
