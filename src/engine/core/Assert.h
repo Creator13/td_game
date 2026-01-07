@@ -2,6 +2,7 @@
 
 #include <source_location>
 #include <string>
+#include <fmt/core.h>
 
 namespace core::debug
 {

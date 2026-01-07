@@ -34,7 +34,7 @@ void Renderer::render()
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mat4 vpMatrix = projectionMatrix * core::COORDINATE_BASIS * viewMatrix;
+    mat4 vpMatrix = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
 
     for (size_t i = 0; i < renderables.size(); i++)
     {

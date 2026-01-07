@@ -73,7 +73,7 @@ namespace assets
 
         std::string resolveResourcePath(std::string_view path) const;
 
-        void loadInternalMesh(std::string_view name, const graphics::Vertex* vPtr, uint32_t vCnt, const uint32_t* iPtr, uint32_t iCnt);
+        void loadInternalMesh(std::string_view name, const graphics::Vertex* vPtr, uint32_t vCnt, const uint32_t* iPtr, uint32_t iCnt, const math::AABB& bounds);
         void loadInternalMeshes();
         AssetId createMesh(std::string_view name);
 

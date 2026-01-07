@@ -46,6 +46,7 @@ namespace assets::mesh_primitives
         20, 21, 22,
         22, 23, 20,
     };
+    inline constexpr math::AABB CUBE_BOUNDS = graphics::boundsFromVertices(CUBE_VERTICES);
 
     inline constexpr graphics::Vertex QUAD_VERTICES[] =
     {
@@ -58,4 +59,5 @@ namespace assets::mesh_primitives
     {
         0, 1, 2, 2, 3, 0
     };
+    inline constexpr math::AABB QUAD_BOUNDS = graphics::boundsFromVertices(QUAD_VERTICES);
 };

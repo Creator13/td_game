@@ -11,7 +11,8 @@
     <excludeRoots>
       <file path="$PROJECT_DIR$/build" />
       <file path="$PROJECT_DIR$/build_clang" />
+      <file path="$PROJECT_DIR$/build_msvc" />
     </excludeRoots>
   </component>
-  <component name="WestSettings"><![CDATA[{}]]></component>
+  <component name="WestSettings">{}</component>
 </project>

@@ -1,7 +1,9 @@
 #include "rendering/EcsRendering.h"
 
 #include <flecs.h>
+#include <spdlog/spdlog.h>
 
+#include "core/Constants.h"
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "math/geom.h"
@@ -12,10 +14,28 @@ using namespace core::ecs;
 
 namespace
 {
+    constexpr bool isAABBBehindPlane(const AABB& aabb, const plane& plane)
+    {
+        const float r = dot(comptAbs(plane.normal), aabb.halfExtents);
+        const float dist = dot(plane.normal, aabb.center) + plane.dist;
+        return dist < -r;
+    }
+
+    constexpr bool isAABBInFrustum(const AABB& aabb, const frustum& frustum)
+    {
+        if (isAABBBehindPlane(aabb, frustum.near))   return false;
+        if (isAABBBehindPlane(aabb, frustum.far))    return false;
+        if (isAABBBehindPlane(aabb, frustum.left))   return false;
+        if (isAABBBehindPlane(aabb, frustum.right))  return false;
+        if (isAABBBehindPlane(aabb, frustum.top))    return false;
+        if (isAABBBehindPlane(aabb, frustum.bottom)) return false;
+
+        return true;
+    }
+
     void registerComponents(flecs::world& ecs)
     {
         ecs.component<ActiveCamera>();
-        ecs.component<CameraRenderData>().add(flecs::Singleton);
 
         ecs.component<PerspectiveCameraData>("Camera (perspective)")
             .member<float>("Fov").range(5.f, 150.f)
@@ -32,20 +52,16 @@ namespace
             .constant("Frustum", CullReason::Frustum)
             .constant("LOD", CullReason::LOD);
 
-        ecs.component<MeshRenderer>()
+        ecs.component<MeshRenderData>()
             .member<uint64_t>("Mesh id")
             .member<uint64_t>("Shader id")
             .member<CullReason>("Culling reason");
 
         ecs.component<MaterialData>();
 
+        ecs.component<CameraRenderData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
-    }
-
-    Frustum constructFrustumFromPerspectiveCamera(const HierarchyTransform& transform, const PerspectiveCameraData& camera, float aspect)
-    {
-        return {};
     }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
@@ -72,6 +88,14 @@ rendering::rendering(flecs::world& ecs)
             currentActiveCameraEntity = e;
         });
 
+    ecs.observer<const MeshRenderData>("Bounding volume matcher observer")
+        .event(flecs::OnSet)
+        .each([](flecs::entity e, const MeshRenderData& renderData)
+        {
+            const AABB& bounds = assets::AssetDatabase::getMeshView(renderData.meshId).bounds;
+            e.set<BoxBoundsData>({bounds});
+        });
+
     ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, CameraRenderData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
@@ -86,22 +110,91 @@ rendering::rendering(flecs::world& ecs)
         .kind(flecs::OnStore)
         .each(syncRendererToActiveCamera);
 
-    auto cullingSystem = ecs.system<const HierarchyTransform, MeshRenderer, const CameraRenderData>("Culling system")
+    auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .multi_threaded()
-        .each([](const HierarchyTransform& transform, MeshRenderer rend, const CameraRenderData& camera)
+        .run([](flecs::iter& it)
         {
-            rend.cullReason = CullReason::None;
+            auto& camera = it.world().get<const CameraRenderData>();
+            const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
+
+            while (it.next())
+            {
+                auto f_transform = it.field<const HierarchyTransform>(0);
+                auto f_bounds = it.field<const BoxBoundsData>(1);
+                auto f_renderer = it.field<MeshRenderData>(2);
+
+                for (auto i : it)
+                {
+                    const HierarchyTransform& transform = f_transform[i];
+                    const BoxBoundsData& bounds = f_bounds[i];
+                    MeshRenderData& renderer = f_renderer[i];
+
+                    renderer.cullReason = CullReason::None;
+
+                    const mat4& worldMat = transform.getWorldMatrix();
+
+                    AABB worldBounds;
+                    worldBounds.center = (worldMat * vec4(bounds.localBounds.center, 1.0f)).xyz();
+                    worldBounds.halfExtents.x =
+                        math::abs(worldMat.get(0, 0)) * bounds.localBounds.halfExtents.x +
+                        math::abs(worldMat.get(0, 1)) * bounds.localBounds.halfExtents.y +
+                        math::abs(worldMat.get(0, 2)) * bounds.localBounds.halfExtents.z;
+
+                    worldBounds.halfExtents.y =
+                        math::abs(worldMat.get(1, 0)) * bounds.localBounds.halfExtents.x +
+                        math::abs(worldMat.get(1, 1)) * bounds.localBounds.halfExtents.y +
+                        math::abs(worldMat.get(1, 2)) * bounds.localBounds.halfExtents.z;
+
+                    worldBounds.halfExtents.z =
+                        math::abs(worldMat.get(2, 0)) * bounds.localBounds.halfExtents.x +
+                        math::abs(worldMat.get(2, 1)) * bounds.localBounds.halfExtents.y +
+                        math::abs(worldMat.get(2, 2)) * bounds.localBounds.halfExtents.z;
+
+                    // Cull entity if it falls outside the frustum
+                    if (!isAABBInFrustum(worldBounds, frustum))
+                    {
+                        renderer.cullReason = CullReason::Frustum;
+                    }
+                }
+            }
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderer, const MaterialData>("Render system")
-        .each(submitRenderable)
+    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData, const MaterialData>("Render system")
+        .run([](flecs::iter& it)
+        {
+            const auto& renderer = it.world().get<const RendererSingleton>();
+
+            int total = 0;
+            int rendered = 0;
+
+            while (it.next())
+            {
+                auto f_transform = it.field<const HierarchyTransform>(1);
+                auto f_renderData = it.field<const MeshRenderData>(2);
+                auto f_material = it.field<const MaterialData>(3);
+
+                for (auto i : it)
+                {
+                    if (submitRenderable(renderer, f_transform[i], f_renderData[i], f_material[i]))
+                    {
+                        rendered++;
+                    }
+                    total++;
+                }
+            }
+
+            spdlog::info("Rendering {} out of {} entities.", rendered, total);
+        })
         .depends_on(cameraSystem)
         .depends_on(cullingSystem);
 }
 
-void rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderer& renderData, const MaterialData& mat)
+bool rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData, const MaterialData& mat)
 {
+    // Do not render culled objects
+    if (renderData.cullReason != CullReason::None) return false;
+
     graphics::Renderable renderable;
     renderable.meshId = renderData.meshId;
     renderable.shaderId = renderData.shaderId;
@@ -109,6 +202,7 @@ void rendering::submitRenderable(const RendererSingleton& renderer, const Hierar
     renderable.material = {mat.color};
 
     renderer.ptr->submit(renderable);
+    return true;
 }
 
 void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData)

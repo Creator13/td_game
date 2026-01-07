@@ -12,6 +12,7 @@ namespace math
         constexpr vec3() noexcept : x(0.0f), y(0.0f), z(0.0f) { }
         constexpr vec3(float x, float y, float z) noexcept : x(x), y(y), z(z) { }
         constexpr vec3(vec2 vec, float z) noexcept : x(vec.x), y(vec.y), z(z) { }
+        explicit constexpr vec3(float a) : x(a), y(a), z(a) { }
 
         constexpr vec3& operator+=(const vec3& rhs) noexcept;
         constexpr vec3& operator-=(const vec3& rhs) noexcept;
@@ -170,7 +171,7 @@ namespace math
      * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same position of the other
      * vector.
      */
-    constexpr vec3 compMul(vec3 lhs, vec3 rhs) noexcept
+    constexpr vec3 comptMul(vec3 lhs, vec3 rhs) noexcept
     {
         return vec3{
             lhs.x * rhs.x,
@@ -179,9 +180,28 @@ namespace math
         };
     }
 
+    constexpr vec3 comptAbs(const vec3& in) noexcept
+    {
+        return vec3{
+            std::abs(in.x),
+            std::abs(in.y),
+            std::abs(in.z)
+        };
+    }
+
     constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept
     {
         return a + (b - a) * t;
+    }
+
+    constexpr vec3 comptMin(vec3 a, vec3 b) noexcept
+    {
+        return vec3{min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
+    }
+
+    constexpr vec3 comptMax(vec3 a, vec3 b) noexcept
+    {
+        return vec3{max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
     }
 
     constexpr float max(vec3 in) noexcept

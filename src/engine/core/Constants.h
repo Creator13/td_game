@@ -1,7 +1,7 @@
 #pragma once
 #include "math/mat4.h"
 
-namespace core
+namespace constants
 {
     // Define a z+ up, y+ forward coordinate system
     constexpr math::mat4 COORDINATE_BASIS = math::mat4(

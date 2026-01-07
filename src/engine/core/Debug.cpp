@@ -43,7 +43,7 @@ DebugRenderer::DebugRenderer() : vertCount(0)
 DebugRenderer::~DebugRenderer()
 {
     glUnmapNamedBuffer(vbo);
-    mappedVertexBuffer = {};
+    mappedVertexBuffer = { };
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
 }
@@ -67,6 +67,37 @@ void DebugRenderer::submitLine(const DebugVertex& a, const DebugVertex& b)
     vertCount += 2;
 }
 
+void DebugRenderer::submitRect(const DebugVertex& a, const DebugVertex& b, const DebugVertex& c, const DebugVertex& d)
+{
+    if (vertCount + 8 >= MAX_VERTICES)
+    {
+        spdlog::warn("Max debug elements reached");
+        return;
+    }
+
+    // edges
+    mappedVertexBuffer[vertCount] = a;
+    mappedVertexBuffer[vertCount + 1] = b;
+
+    mappedVertexBuffer[vertCount + 2] = b;
+    mappedVertexBuffer[vertCount + 3] = c;
+
+    mappedVertexBuffer[vertCount + 4] = c;
+    mappedVertexBuffer[vertCount + 5] = d;
+
+    mappedVertexBuffer[vertCount + 6] = d;
+    mappedVertexBuffer[vertCount + 7] = a;
+
+    // diags
+    mappedVertexBuffer[vertCount + 8] = a;
+    mappedVertexBuffer[vertCount + 9] = c;
+
+    mappedVertexBuffer[vertCount + 10] = b;
+    mappedVertexBuffer[vertCount + 11] = d;
+
+    vertCount += 12;
+}
+
 void DebugRenderer::render()
 {
     if (vertCount == 0) return;
@@ -74,7 +105,7 @@ void DebugRenderer::render()
     glUseProgram(debugShader.programId);
     glBindVertexArray(vao);
 
-    const mat4 viewProjection = projectionMatrix * COORDINATE_BASIS * viewMatrix;
+    const mat4 viewProjection = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
     const GLint vpLocation = glGetUniformLocation(debugShader.programId, "uViewProjection");
     glUniformMatrix4fv(vpLocation, 1, GL_FALSE, viewProjection.m);
 
@@ -99,7 +130,14 @@ void debug::drawLine(vec3 start, vec3 end, Color color)
 {
     globalDebugRenderer->submitLine({start, color}, {end, color});
 }
+
 void debug::drawRay(vec3 origin, vec3 direction, Color color)
 {
     globalDebugRenderer->submitLine({origin, color}, {origin + direction, color});
+}
+
+void debug::drawPlane(plane plane, Color color) { }
+void debug::drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera)
+{
+
 }

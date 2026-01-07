@@ -2,10 +2,15 @@
 #include <vector>
 #include <glad/glad.h>
 
+#include "math/geom.h"
 #include "math/mat4.h"
 #include "math/vec3.h"
 #include "rendering/Color.h"
 #include "rendering/shader.h"
+
+namespace core::ecs {
+    struct PerspectiveCameraData;
+}
 
 namespace core::debug
 {
@@ -35,6 +40,7 @@ namespace core::debug
 
         void setMatrices(const math::mat4& view, const math::mat4& projection);
         void submitLine(const DebugVertex& a, const DebugVertex& b);
+        void submitRect(const DebugVertex& a, const DebugVertex& b, const DebugVertex& c, const DebugVertex& d);
         void render();
     };
 
@@ -42,5 +48,7 @@ namespace core::debug
 
     void drawLine(math::vec3 start, math::vec3 end, graphics::Color color);
     void drawRay(math::vec3 origin, math::vec3 direction, graphics::Color color);
+    void drawPlane(math::plane, graphics::Color color);
+    void drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera);
 }
 

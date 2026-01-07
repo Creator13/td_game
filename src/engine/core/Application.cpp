@@ -66,6 +66,8 @@ namespace
                 level = spdlog::level::warn;
                 break;
             case GL_DEBUG_SEVERITY_NOTIFICATION:
+                level = spdlog::level::debug;
+                break;
             default:
                 level = spdlog::level::info;
                 break;
@@ -139,6 +141,7 @@ bool Application::createWindow(const WindowState& windowState)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+
 #ifdef DEBUG_BUILD
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #endif
@@ -173,6 +176,7 @@ bool Application::createWindow(const WindowState& windowState)
     }
 #endif
 
+    glfwSwapInterval(0);
 
     _glfwOwnerContext = {
         &_inputState, &_windowState

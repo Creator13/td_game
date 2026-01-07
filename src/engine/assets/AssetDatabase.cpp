@@ -301,6 +301,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
     graphics::Mesh& new_mesh = globalAssetDatabase->meshes.try_emplace(info.id).first->second;
     new_mesh.vertices = std::move(out.vertices);
     new_mesh.indices = std::move(out.indices);
+    new_mesh.recalculateBounds();
 
     globalAssetDatabase->meshAllocator.upload(id, new_mesh);
 
@@ -425,7 +426,8 @@ std::string assets::AssetDatabase::makeInternalPath(AssetInfo::AssetType type, s
 void assets::AssetDatabase::loadInternalMesh(
     std::string_view name,
     const graphics::Vertex* vPtr, uint32_t vCnt,
-    const uint32_t* iPtr, uint32_t iCnt)
+    const uint32_t* iPtr, uint32_t iCnt,
+    const math::AABB& bounds)
 {
     std::string path = makeInternalPath(AssetInfo::AssetType::Mesh, name);
     AssetInfo info;
@@ -440,6 +442,7 @@ void assets::AssetDatabase::loadInternalMesh(
     graphics::Mesh& mesh = meshes.at(info.id);
     mesh.vertices = std::vector(vPtr, vPtr + vCnt);
     mesh.indices = std::vector(iPtr, iPtr + iCnt);
+    mesh.bounds = bounds;
 
     meshAllocator.upload(info.id, mesh);
 }
@@ -447,8 +450,8 @@ void assets::AssetDatabase::loadInternalMesh(
 void assets::AssetDatabase::loadInternalMeshes()
 {
     using namespace mesh_primitives;
-    loadInternalMesh("cube", CUBE_VERTICES, 24, CUBE_INDICES, 36);
-    loadInternalMesh("quad", QUAD_VERTICES, 4, QUAD_INDICES, 6);
+    loadInternalMesh("cube", CUBE_VERTICES, 24, CUBE_INDICES, 36, CUBE_BOUNDS);
+    loadInternalMesh("quad", QUAD_VERTICES, 4, QUAD_INDICES, 6, QUAD_BOUNDS);
 }
 
 void assets::AssetDatabase::loadInternalShaders()
