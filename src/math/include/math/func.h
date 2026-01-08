@@ -63,6 +63,11 @@ namespace math
         return a - floor(a);
     }
 
+    constexpr float exp(float a)
+    {
+        return std::exp(a);
+    }
+
     constexpr float lerp(float a, float b, float t)
     {
         return a + (b - a) * t;

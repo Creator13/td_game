@@ -1,7 +1,9 @@
 #include "Renderer.h"
 
 #include <glad/glad.h>
+#include <tracy/Tracy.hpp>
 
+#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/TracyOpenGL.hpp"
 #include "core/Constants.h"
 #include "rendering/Mesh.h"
 #include "rendering/shader.h"
@@ -31,6 +33,9 @@ void Renderer::submit(const Renderable& renderable)
 
 void Renderer::render()
 {
+    ZoneScopedN("Renderer::render()");
+    TracyGpuZone("Renderer::render()");
+
     glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

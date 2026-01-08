@@ -1,9 +1,16 @@
+include(FetchContent)
+
+# =============================
+#      engine core target
+# =============================
+
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
         "assets/*.cpp" "assets/*.h"
         "core/*.cpp" "core/*.h"
         "rendering/*.cpp" "rendering/*.h"
 )
 
+## Vcpkg packages
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -11,32 +18,48 @@ find_package(xxHash CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(flecs CONFIG REQUIRED)
 
+## Tracy
+FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG v0.13.1
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(tracy)
+
+## Declare engine_core library
 add_library(engine_core STATIC ${ENGINE_SOURCES})
 
 target_link_libraries(engine_core
         PUBLIC math
         PUBLIC spdlog::spdlog
         PUBLIC $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>
+        PUBLIC TracyClient
         PRIVATE glad::glad
         PRIVATE glfw
         PRIVATE xxHash::xxhash
         PRIVATE fastgltf::fastgltf
 )
 
+## Copy engine resources to bin directory
 include(${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake)
 add_dependencies(engine_core copy_resources)
 
+## Spdlog debug level depends on target
 target_compile_definitions(engine_core PUBLIC
         $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>
         $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>
 )
 
+## Set DEBUG_BUILD definition on Debug and RelWithDebInfo targets
 target_compile_definitions(engine_core PUBLIC
         $<$<CONFIG:Debug>:DEBUG_BUILD>
         $<$<CONFIG:RelWithDebInfo>:DEBUG_BUILD>
         $<$<CONFIG:Release>:RELEASE>
 )
 
+## Flecs config
 target_compile_definitions(engine_core PUBLIC
         FLECS_NO_APP
 )

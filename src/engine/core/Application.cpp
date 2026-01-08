@@ -4,6 +4,9 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
+
 #include "EcsDebug.h"
 #include "core/EcsCore.h"
 #include "core/Window.h"
@@ -109,6 +112,8 @@ int Application::run()
 {
     while (!glfwWindowShouldClose(_windowPtr))
     {
+        FrameMark;
+
         glfwPollEvents();
 
         if (!_ecs.progress())
@@ -120,6 +125,7 @@ int Application::run()
         _debugRenderer->render();
 
         glfwSwapBuffers(_windowPtr);
+        TracyGpuCollect;
 
         currentFrame++;
         _inputState.endFrame();
@@ -154,6 +160,7 @@ bool Application::createWindow(const WindowState& windowState)
     }
 
     glfwMakeContextCurrent(_windowPtr);
+
     glfwSetFramebufferSizeCallback(_windowPtr, core::glfw_framebufferSizeCallback);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -161,6 +168,7 @@ bool Application::createWindow(const WindowState& windowState)
         spdlog::error("Failed to initialize GLAD");
         return false;
     }
+    TracyGpuContext;
 
     glfwSetErrorCallback(glfw_errorCallback);
 
@@ -195,6 +203,8 @@ void Application::initFlecs()
 #ifdef FLECS_LOG
     flecs::log::enable_colors(false);
 #endif
+
+    _ecs.set_threads(12);
 
     _ecs.import<ecs::engine_core>();
     _ecs.import<ecs::rendering>();

@@ -3,6 +3,7 @@
 #include <flecs.h>
 #include <spdlog/spdlog.h>
 
+#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/Tracy.hpp"
 #include "core/Constants.h"
 #include "core/Transform.h"
 #include "core/Window.h"
@@ -23,11 +24,12 @@ namespace
 
     constexpr bool isAABBInFrustum(const AABB& aabb, const frustum& frustum)
     {
-        if (isAABBBehindPlane(aabb, frustum.near))   return false;
-        if (isAABBBehindPlane(aabb, frustum.far))    return false;
-        if (isAABBBehindPlane(aabb, frustum.left))   return false;
-        if (isAABBBehindPlane(aabb, frustum.right))  return false;
-        if (isAABBBehindPlane(aabb, frustum.top))    return false;
+        ZoneScoped;
+        if (isAABBBehindPlane(aabb, frustum.near)) return false;
+        if (isAABBBehindPlane(aabb, frustum.far)) return false;
+        if (isAABBBehindPlane(aabb, frustum.left)) return false;
+        if (isAABBBehindPlane(aabb, frustum.right)) return false;
+        if (isAABBBehindPlane(aabb, frustum.top)) return false;
         if (isAABBBehindPlane(aabb, frustum.bottom)) return false;
 
         return true;
@@ -114,6 +116,8 @@ rendering::rendering(flecs::world& ecs)
         .multi_threaded()
         .run([](flecs::iter& it)
         {
+            ZoneScopedN("ecs::CullingSystem");
+
             auto& camera = it.world().get<const CameraRenderData>();
             const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
 
@@ -161,8 +165,11 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(cameraSystem);
 
     ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData, const MaterialData>("Render system")
+        // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
+            ZoneScopedN("ecs::RenderSystem");
+
             const auto& renderer = it.world().get<const RendererSingleton>();
 
             int total = 0;
@@ -183,8 +190,6 @@ rendering::rendering(flecs::world& ecs)
                     total++;
                 }
             }
-
-            spdlog::info("Rendering {} out of {} entities.", rendered, total);
         })
         .depends_on(cameraSystem)
         .depends_on(cullingSystem);

@@ -183,9 +183,9 @@ namespace math
     constexpr vec3 comptAbs(const vec3& in) noexcept
     {
         return vec3{
-            std::abs(in.x),
-            std::abs(in.y),
-            std::abs(in.z)
+            abs(in.x),
+            abs(in.y),
+            abs(in.z)
         };
     }
 

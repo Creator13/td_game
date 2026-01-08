@@ -78,7 +78,7 @@ void engine::register_flecs(const flecs::world& world)
             const vec3 up = transform.getUp();
 
             vec3 dir;
-            if (input.state->isKeyDown(Key::W))dir += forward;
+            if (input.state->isKeyDown(Key::W)) dir += forward;
             if (input.state->isKeyDown(Key::S)) dir -= forward;
 
             if (input.state->isKeyDown(Key::D)) dir += right;
@@ -88,7 +88,7 @@ void engine::register_flecs(const flecs::world& world)
             if (input.state->isKeyDown(Key::Q)) dir -= up;
 
             vec3 targetVelocity;
-            if (dir.length() == 0)
+            if (dir == vec3::zero)
             {
                 targetVelocity = vec3::zero;
             }
@@ -97,7 +97,7 @@ void engine::register_flecs(const flecs::world& world)
                 targetVelocity = normalize(dir) * camControl.targetSpeed;
             }
 
-            float t = 1.0f - exp(-16.f * deltaTime);
+            const float t = 1.0f - math::exp(-16.f * deltaTime);
             camControl.currentVelocity = lerp(camControl.currentVelocity, targetVelocity, t);
 
             vec3 move = camControl.currentVelocity * deltaTime;

@@ -1,8 +1,10 @@
 #include "core/Debug.h"
 
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
 #include "Constants.h"
+#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/TracyOpenGL.hpp"
 #include "assets/AssetDatabase.h"
 
 using namespace core;
@@ -100,6 +102,9 @@ void DebugRenderer::submitRect(const DebugVertex& a, const DebugVertex& b, const
 
 void DebugRenderer::render()
 {
+    ZoneScopedN("DebugRenderer::render()");
+    TracyGpuZone("DebugRenderer::render()");
+
     if (vertCount == 0) return;
 
     glUseProgram(debugShader.programId);
