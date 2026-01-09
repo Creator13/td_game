@@ -68,7 +68,7 @@ target_include_directories(engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(engine::core ALIAS engine_core)
 
 # =============================
-# engine entry point target
+#   engine entry point target
 # =============================
 
 add_library(engine STATIC engine.h engine.cpp)
