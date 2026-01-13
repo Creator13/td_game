@@ -20,4 +20,8 @@ if (BUILD_TESTS)
     add_subdirectory(tests)
 endif ()
 
-add_subdirectory(src)
+add_subdirectory(ext/stb)
+
+add_subdirectory(src/math)
+add_subdirectory(src/engine)
+add_subdirectory(src/game)

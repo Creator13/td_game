@@ -40,6 +40,7 @@ target_link_libraries(engine_core
         PRIVATE glfw
         PRIVATE xxHash::xxhash
         PRIVATE fastgltf::fastgltf
+        PRIVATE stb_image
 )
 
 ## Copy engine resources to bin directory

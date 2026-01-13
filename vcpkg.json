@@ -21,9 +21,6 @@
     "name" : "spdlog",
     "version>=" : "1.16.0"
   }, {
-    "name" : "stb",
-    "version>=" : "2024-07-29#1"
-  }, {
     "name" : "xxhash",
     "version>=" : "0.8.3"
   }, {

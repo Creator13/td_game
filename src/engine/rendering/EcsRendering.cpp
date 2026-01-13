@@ -116,7 +116,7 @@ rendering::rendering(flecs::world& ecs)
         .multi_threaded()
         .run([](flecs::iter& it)
         {
-            ZoneScopedN("ecs::CullingSystem");
+            ZoneScopedN("_engine::CullingSystem");
 
             auto& camera = it.world().get<const CameraRenderData>();
             const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
@@ -168,7 +168,7 @@ rendering::rendering(flecs::world& ecs)
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
-            ZoneScopedN("ecs::RenderSystem");
+            ZoneScopedN("_engine::RenderSystem");
 
             const auto& renderer = it.world().get<const RendererSingleton>();
 
