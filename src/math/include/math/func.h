@@ -8,7 +8,7 @@ namespace math
 {
     constexpr float EPSILON = 1e-5f;
 
-    inline float sqrt(float val)
+    constexpr float sqrt(float val)
     {
         return std::sqrt(val);
     }
@@ -38,27 +38,27 @@ namespace math
         return abs(a - b) < epsilon;
     }
 
-    inline float floor(float in)
+    constexpr float floor(float in)
     {
         return std::floor(in);
     }
 
-    inline int floorToInt(float in)
+    constexpr int floorToInt(float in)
     {
         return static_cast<int>(std::floor(in));
     }
 
-    inline float ceil(float in)
+    constexpr float ceil(float in)
     {
         return std::ceil(in);
     }
 
-    inline int ceilToInt(float in)
+    constexpr int ceilToInt(float in)
     {
         return static_cast<int>(std::ceil(in));
     }
 
-    inline float frac(float a)
+    constexpr float frac(float a)
     {
         return a - floor(a);
     }
@@ -68,6 +68,11 @@ namespace math
         return std::exp(a);
     }
 
+    constexpr float log2(float a)
+    {
+        return std::log2(a);
+    }
+
     constexpr float lerp(float a, float b, float t)
     {
         return a + (b - a) * t;
@@ -75,8 +80,8 @@ namespace math
 
     constexpr float clamp(float a, float min, float max)
     {
-        if (a < min) return min;
-        if (a > max) return max;
+        if (a <= min) return min;
+        if (a >= max) return max;
         return a;
     }
 
@@ -87,8 +92,8 @@ namespace math
 
     constexpr float copysign(float num, float sgn) noexcept
     {
-        uint32_t xi = std::bit_cast<uint32_t>(num) & 0x7fff'ffffu;
-        uint32_t yi = std::bit_cast<uint32_t>(sgn) & 0x8000'0000u;
+        const uint32_t xi = std::bit_cast<uint32_t>(num) & 0x7fff'ffffu;
+        const uint32_t yi = std::bit_cast<uint32_t>(sgn) & 0x8000'0000u;
         return std::bit_cast<float>(xi | yi);
     }
 }

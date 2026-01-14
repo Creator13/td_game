@@ -22,7 +22,7 @@ namespace math
         constexpr bool operator!=(const vec3& rhs) const noexcept;
 
         constexpr float sqrLength() const noexcept;
-        [[nodiscard]] float length() const noexcept;
+        constexpr float length() const noexcept;
 
         constexpr vec2 xy() const noexcept;
         constexpr vec2 xz() const noexcept;
@@ -132,14 +132,14 @@ namespace math
         return x * x + y * y + z * z;
     }
 
-    inline float vec3::length() const noexcept
+    constexpr float vec3::length() const noexcept
     {
         return sqrt(sqrLength());
     }
 
-    inline vec3 normalize(vec3 in) noexcept
+    constexpr  vec3 normalize(vec3 in) noexcept
     {
-        float sqrLength = in.sqrLength();
+        const float sqrLength = in.sqrLength();
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec3::zero;
     }
 
@@ -148,7 +148,7 @@ namespace math
         return (to - from).sqrLength();
     }
 
-    inline float distance(vec3 from, vec3 to) noexcept
+    constexpr float distance(vec3 from, vec3 to) noexcept
     {
         return (to - from).length();
     }
@@ -168,8 +168,8 @@ namespace math
     }
 
     /**
-     * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same position of the other
-     * vector.
+     * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same
+     * position of the other vector.
      */
     constexpr vec3 comptMul(vec3 lhs, vec3 rhs) noexcept
     {
@@ -180,6 +180,7 @@ namespace math
         };
     }
 
+    /// Component-wise absolute function. Computes the absolute value of each of the components of the input vector.
     constexpr vec3 comptAbs(const vec3& in) noexcept
     {
         return vec3{
@@ -189,26 +190,34 @@ namespace math
         };
     }
 
+    /// Linearly interpolate between two vectors. The interpolated vector is the result of the interpolation of each of
+    /// the corresponding components.
     constexpr vec3 lerp(vec3 a, vec3 b, float t) noexcept
     {
         return a + (b - a) * t;
     }
 
+    /// Component-wise min function; returns a vector that contains the minimum value for each corresponding value of
+    /// the two input vectors.
     constexpr vec3 comptMin(vec3 a, vec3 b) noexcept
     {
         return vec3{min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
     }
 
+    /// Component-wise max function; returns a vector that contains the maximum value for each corresponding value of
+    /// the two input vectors.
     constexpr vec3 comptMax(vec3 a, vec3 b) noexcept
     {
         return vec3{max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
     }
 
+    /// Finds the maximum value amongst the components of the vector.
     constexpr float max(vec3 in) noexcept
     {
         return max(in.x, max(in.y, in.z));
     }
 
+    /// Finds the minimum value amongst the components of the vector.
     constexpr float min(vec3 in) noexcept
     {
         return min(in.x, min(in.y, in.z));

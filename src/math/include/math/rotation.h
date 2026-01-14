@@ -30,7 +30,7 @@ namespace math
         /// Creates a rotation by degrees around each axis, in XYZ order
         static quaternion eulerAngles(vec3 angles);
         /// Creates a rotation from a forward and up vector
-        static quaternion lookRotation(const vec3& forward, const vec3& up);
+        static constexpr quaternion lookRotation(const vec3& forward, const vec3& up);
         /// Creates a rotation by angle degrees around the provided axis
         static quaternion angleAxis(float angle, const vec3& axis);
 
@@ -66,8 +66,8 @@ namespace math
          * Argument name format: m#row#col (ex: m21 is the value in the third row, second column)
          */
         constexpr rot3x3(float m00, float m01, float m02,
-                         float m10, float m11, float m12,
-                         float m20, float m21, float m22)
+            float m10, float m11, float m12,
+            float m20, float m21, float m22)
             : xBasis(m00, m10, m20),
               yBasis(m01, m11, m21),
               zBasis(m02, m12, m22) { }
@@ -81,7 +81,7 @@ namespace math
 
         static rot3x3 eulerAngles(float x, float y, float z);
         static rot3x3 eulerAngles(vec3 angles);
-        static rot3x3 lookRotation(const vec3& forward, const vec3& up);
+        static constexpr rot3x3 lookRotation(const vec3& forward, const vec3& up);
         static rot3x3 angleAxis(float angle, const vec3& axis);
 
         static constexpr rot3x3 fromQuaternion(quaternion q);
@@ -93,11 +93,11 @@ namespace math
     //  QUATERNION FREE FUNCTIONS
     // ***************************
 
-    quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept;
+    constexpr quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept;
     constexpr bool approx(const quaternion& lhs, const quaternion& rhs, float eps = EPSILON) noexcept;
 
     constexpr quaternion inverse(quaternion q);
-    inline quaternion normalize(quaternion q);
+    constexpr quaternion normalize(quaternion q);
     constexpr float dot(quaternion a, quaternion b);
     inline vec3 toEuler(quaternion q);
     inline quaternion slerp(quaternion a, quaternion b, float t);
@@ -154,7 +154,7 @@ namespace math
         return eulerAngles(angles.x, angles.y, angles.z);
     }
 
-    inline quaternion quaternion::lookRotation(const vec3& forward, const vec3& up)
+    constexpr quaternion quaternion::lookRotation(const vec3& forward, const vec3& up)
     {
         return fromRot3x3(rot3x3::lookRotation(forward, up));
     }
@@ -239,7 +239,7 @@ namespace math
         return normalize(q);
     }
 
-    inline quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept
+    constexpr  quaternion operator*(const quaternion& lhs, const quaternion& rhs) noexcept
     {
         quaternion result;
         result.w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
@@ -249,7 +249,7 @@ namespace math
         return normalize(result);
     }
 
-    inline quaternion normalize(quaternion q)
+    constexpr quaternion normalize(quaternion q)
     {
         const float square = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
         assert(square > EPSILON); // Panic from zero-quaternion (never allowed)
@@ -259,10 +259,10 @@ namespace math
 
     constexpr bool approx(const quaternion& lhs, const quaternion& rhs, float eps) noexcept
     {
-        return math::approx(lhs.x, rhs.x, eps)
-               && math::approx(lhs.y, rhs.y, eps)
-               && math::approx(lhs.z, rhs.z, eps)
-               && math::approx(lhs.w, rhs.w, eps);
+        return approx(lhs.x, rhs.x, eps)
+               && approx(lhs.y, rhs.y, eps)
+               && approx(lhs.z, rhs.z, eps)
+               && approx(lhs.w, rhs.w, eps);
     }
 
     constexpr float dot(quaternion a, quaternion b)
@@ -280,17 +280,17 @@ namespace math
         {
             // gimbal lock
             euler.x = atan2(-2.0f * (q.y * q.z - q.w * q.x), // -zBasis.y
-                            1.0f - 2.0f * (q.x * q.x + q.z * q.z)); // yBasis.y
+                1.0f - 2.0f * (q.x * q.x + q.z * q.z)); // yBasis.y
             euler.y = copysign(HALFPI, sinp);
             euler.z = 0;
         }
         else
         {
             euler.x = atan2(2.0f * (q.y * q.z + q.w * q.x), // yBasis.z
-                            1.0f - 2.0f * (q.x * q.x + q.y * q.y)); // zBasis.z
+                1.0f - 2.0f * (q.x * q.x + q.y * q.y)); // zBasis.z
             euler.y = asin(sinp);
             euler.z = atan2(2.0f * (q.x * q.y + q.w * q.z), // xBasis.y
-                            1.0f - 2.0f * (q.y * q.y + q.z * q.z)); // xBasis.x
+                1.0f - 2.0f * (q.y * q.y + q.z * q.z)); // xBasis.x
         }
 
         return euler * RAD2DEG;
@@ -358,9 +358,9 @@ namespace math
      * therefore inverse() is simply an alias for transpose()
      */
     constexpr rot3x3 inverse(const rot3x3& mat);
-    inline rot3x3 orthonormalize(const rot3x3& mat);
+    constexpr rot3x3 orthonormalize(const rot3x3& mat);
     inline vec3 toEuler(const rot3x3& mat);
-    inline vec3 rotate(const rot3x3& mat, vec3 vec);
+    constexpr vec3 rotate(const rot3x3& mat, vec3 vec);
     constexpr bool isIdentity(const rot3x3& mat);
 
     // ***********************
@@ -473,14 +473,14 @@ namespace math
         return eulerAngles(angles.x, angles.y, angles.z);
     }
 
-    inline rot3x3 rot3x3::lookRotation(const vec3& forward, const vec3& up)
+    constexpr rot3x3 rot3x3::lookRotation(const vec3& forward, const vec3& up)
     {
-        float forwardSqrMag = forward.sqrLength();
-        vec3 f = forwardSqrMag - 1 < EPSILON // normalized local forward (y)
-                     ? forward
-                     : forward / sqrt(forwardSqrMag);
-        vec3 r = normalize(cross(f, up)); // local right axis (x) made from up and forward
-        vec3 u = cross(r, f); // re-normalized up axis (z) based on resulting f and r axes
+        const float forwardSqrMag = forward.sqrLength();
+        const vec3 f = forwardSqrMag - 1 < EPSILON // normalized local forward (y)
+                           ? forward
+                           : forward / sqrt(forwardSqrMag);
+        const vec3 r = normalize(cross(f, up)); // local right axis (x) made from up and forward
+        const vec3 u = cross(r, f); // re-normalized up axis (z) based on resulting f and r axes
         return rot3x3(r, f, u);
     }
 
@@ -558,7 +558,7 @@ namespace math
         return m;
     }
 
-    inline rot3x3 orthonormalize(const rot3x3& mat)
+    constexpr rot3x3 orthonormalize(const rot3x3& mat)
     {
         vec3 x = normalize(mat.xBasis);
 
@@ -595,7 +595,7 @@ namespace math
         return euler * RAD2DEG;
     }
 
-    inline vec3 rotate(const rot3x3& mat, vec3 vec)
+    constexpr vec3 rotate(const rot3x3& mat, vec3 vec)
     {
         return mat * vec;
     }

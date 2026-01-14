@@ -20,8 +20,8 @@ namespace math
         constexpr bool operator==(const vec4& rhs) const noexcept;
         constexpr bool operator!=(const vec4& rhs) const noexcept;
 
-        [[nodiscard]] float sqrLength() const noexcept;
-        [[nodiscard]] float length() const noexcept;
+        constexpr float sqrLength() const noexcept;
+        constexpr float length() const noexcept;
 
         constexpr vec3 xyz() const noexcept;
         constexpr vec2 xy() const noexcept;
@@ -120,19 +120,19 @@ namespace math
         return vec4{-in.x, -in.y, -in.z, -in.w};
     }
 
-    inline float vec4::sqrLength() const noexcept
+    constexpr float vec4::sqrLength() const noexcept
     {
         return x * x + y * y + z * z + w * w;
     }
 
-    inline float vec4::length() const noexcept
+    constexpr float vec4::length() const noexcept
     {
         return sqrt(sqrLength());
     }
 
-    inline vec4 normalize(vec4 in) noexcept
+    constexpr vec4 normalize(vec4 in) noexcept
     {
-        float sqrLength = in.sqrLength();
+        const float sqrLength = in.sqrLength();
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec4::zero;
     }
 
