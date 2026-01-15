@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <source_location>
 #include <string>
 #include <fmt/core.h>
@@ -14,8 +15,16 @@ namespace core::debug
     do { \
         if (!(condition)) { \
             core::debug::handle_assert(#condition, fmt::format("" __VA_ARGS__), std::source_location::current()); \
-        }\
+        } \
+    } while (false)
+#define ENGINE_PANIC(condition, ...) \
+    do { \
+        if (!(condition)) { \
+            core::debug::handle_assert(#condition, fmt::format("" __VA_ARGS__), std::source_location::current()); \
+            assert(false); \
+        } \
     } while (false)
 #else
 #define ENGINE_ASSERT(condition, ...) ((void)0)
+#define ENGINE_PANIC(condition, ...) ((void)0)
 #endif

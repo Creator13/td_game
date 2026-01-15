@@ -2,6 +2,7 @@
 
 #include "engine.h"
 #include "assets/AssetDatabase.h"
+#include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
 #include "core/Transform.h"
@@ -37,6 +38,8 @@ void engine::register_flecs(const flecs::world& world)
     const AssetId basicShader = AssetDatabase::loadShaderFromFiles("shaders/basic.vert", "shaders/basic.frag");
     AssetId uniformColorShader = AssetDatabase::loadShaderFromFiles("shaders/basic.vert", "shaders/color.frag");
     AssetId cubeMesh = idFromPath("@internal/mesh/cube");
+
+    Texture tex = Texture::loadFromFile("tex/uv_checker.png");
 
     constexpr int count = 50;
     for (int i = 0; i < count; i++)

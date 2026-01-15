@@ -36,15 +36,29 @@ namespace file
     std::optional<std::string> readFileText(const fs::path& path)
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file)
-        {
-            return { };
-        }
+        if (!file) return std::nullopt;
 
         const auto size = file.tellg();
         std::string text = std::string(size, '\0');
         file.seekg(0);
         file.read(text.data(), size);
         return text;
+    }
+
+    std::optional<std::vector<uint8_t>> readFileBinary(const fs::path& path)
+    {
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file) return std::nullopt;
+
+        const auto size = file.tellg();
+        if (size < 0) return std::nullopt;
+
+        std::vector<uint8_t> buffer(size);
+        file.seekg(0);
+        if (!file.read(reinterpret_cast<char*>(buffer.data()), size))
+        {
+            return std::nullopt;
+        }
+        return buffer;
     }
 }

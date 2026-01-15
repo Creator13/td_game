@@ -18,7 +18,7 @@ namespace assets
 {
     struct AssetInfo
     {
-        enum class AssetType { Mesh, Shader };
+        enum class AssetType { Mesh, Shader, Texture };
 
         std::string path;
         AssetId id;
@@ -40,9 +40,12 @@ namespace assets
         static graphics::Mesh& getMeshMut(AssetId id);
         static AssetId loadMeshFromFile(std::string_view path);
         static AssetId createRuntimeMesh(std::string_view name);
+        static AssetId loadTextureFromFile(std::string_view path);
 
         static const graphics::ShaderProgramData& getShaderProgram(AssetId id);
         static AssetId loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath);
+
+        std::filesystem::path resolveResourcePath(std::string_view path) const;
 
     private:
         struct MeshGpuAllocator
@@ -69,9 +72,9 @@ namespace assets
         std::unordered_map<AssetId, uint32_t> shaderStageCache;
         std::unordered_map<AssetId, graphics::ShaderProgramData> shaders;
 
-        static std::string makeInternalPath(AssetInfo::AssetType type, std::string_view name);
+        std::unordered_map<AssetId, uint32_t> textures;
 
-        std::string resolveResourcePath(std::string_view path) const;
+        static std::string makeInternalPath(AssetInfo::AssetType type, std::string_view name);
 
         void loadInternalMesh(std::string_view name, const graphics::Vertex* vPtr, uint32_t vCnt, const uint32_t* iPtr, uint32_t iCnt, const math::AABB& bounds);
         void loadInternalMeshes();
@@ -82,4 +85,5 @@ namespace assets
     };
 
     void bindAssetDatabase(AssetDatabase& db);
+    std::filesystem::path resolveResourcePath(std::string_view path);
 }

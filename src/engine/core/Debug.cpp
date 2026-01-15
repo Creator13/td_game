@@ -2,9 +2,9 @@
 
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
 
 #include "Constants.h"
-#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/TracyOpenGL.hpp"
 #include "assets/AssetDatabase.h"
 
 using namespace core;

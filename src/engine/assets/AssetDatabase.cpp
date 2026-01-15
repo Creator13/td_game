@@ -1,19 +1,20 @@
 #include "AssetDatabase.h"
 
 #include <optional>
-#include <glad/glad.h>
-#include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
+#include <stb_image.h>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
+#include <glad/glad.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 
 #include "assets/File.h"
-#include "rendering/shader.h"
-#include "rendering/Mesh.h"
-#include "assets/MeshPrimitives.h"
 #include "assets/GltfElementTraits.h"
+#include "assets/MeshPrimitives.h"
 #include "core/Assert.h"
+#include "rendering/Mesh.h"
+#include "rendering/shader.h"
 
 namespace fs = std::filesystem;
 
@@ -331,6 +332,42 @@ assets::AssetId assets::AssetDatabase::createRuntimeMesh(std::string_view name)
     return globalAssetDatabase->createMesh(fmt::format("{}/{}/{}", RUNTIME_PATH, mapAssetTypeName(AssetInfo::AssetType::Mesh), name));
 }
 
+assets::AssetId assets::AssetDatabase::loadTextureFromFile(std::string_view path)
+{
+    const AssetId id = idFromPath(path);
+    ENGINE_ASSERT(!globalAssetDatabase->metadata.contains(id), "Asset already loaded: {}", path);
+
+    uint32_t texture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    int width, height, channels;
+    const uint8_t* data = stbi_load(path.data(), &width, &height, &channels, 0);
+
+    if (data)
+    {
+        glTextureStorage2D(texture, 1, GL_RGB8, width, height);
+        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+    else
+    {
+        spdlog::error("Failed to load texture at path: {}", path);
+        return 0;
+    }
+
+    AssetInfo info;
+    info.path = path;
+    info.id = id;
+    info.isRuntime = true;
+    info.type = AssetInfo::AssetType::Texture;
+
+    return id;
+}
+
 const graphics::ShaderProgramData& assets::AssetDatabase::getShaderProgram(AssetId id)
 {
     ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
@@ -412,9 +449,9 @@ void assets::AssetDatabase::MeshGpuAllocator::clean()
     }
 }
 
-std::string assets::AssetDatabase::resolveResourcePath(std::string_view path) const
+fs::path assets::AssetDatabase::resolveResourcePath(std::string_view path) const
 {
-    return (rootPath / fs::path(path)).string();
+    return rootPath / fs::path(path);
 }
 
 std::string assets::AssetDatabase::makeInternalPath(AssetInfo::AssetType type, std::string_view name)
@@ -504,4 +541,9 @@ std::optional<GLuint> assets::AssetDatabase::loadShaderStageFromFile(std::string
 void assets::bindAssetDatabase(AssetDatabase& db)
 {
     globalAssetDatabase = &db;
+}
+
+fs::path assets::resolveResourcePath(std::string_view path)
+{
+    return globalAssetDatabase->resolveResourcePath(path);
 }
