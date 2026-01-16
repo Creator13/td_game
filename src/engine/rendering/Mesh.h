@@ -6,7 +6,7 @@
 #include "math/geom.h"
 #include "math/vec3.h"
 
-namespace graphics
+namespace core
 {
     struct Vertex
     {

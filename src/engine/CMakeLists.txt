@@ -8,6 +8,7 @@ file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
         "assets/*.cpp" "assets/*.h"
         "core/*.cpp" "core/*.h"
         "rendering/*.cpp" "rendering/*.h"
+        "util/*.cpp" "util/*.h" "util/*.inl"
 )
 
 ## Vcpkg packages

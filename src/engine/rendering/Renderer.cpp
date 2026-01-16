@@ -10,6 +10,7 @@
 
 using namespace math;
 using namespace graphics;
+using namespace core;
 
 void Renderer::setClearColor(Color c)
 {

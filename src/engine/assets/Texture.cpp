@@ -50,7 +50,7 @@ void Texture::uploadExternalData(const uint8_t* pixelData) const
 
 Texture Texture::create(uint32_t width, uint32_t height)
 {
-    ENGINE_PANIC(width > 0 && height > 0, "Width and height values should be greater than zero");
+    ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
     Texture outTexture;
     outTexture._width = width;

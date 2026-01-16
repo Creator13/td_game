@@ -69,5 +69,10 @@ TEST_CASE("Clamp", FUNCTIONS_TEST_TAG)
     CHECK(math::clamp(0, 2, 2) == 2);
     CHECK(math::clamp(3.4, 2, 2) == 2);
     CHECK(math::clamp(.3, 0, 1) == .3f);
+
     CHECK(math::clamp01(.3) == .3f);
+    CHECK(math::clamp01(1) == 1);
+    CHECK(math::clamp01(0) == 0);
+    CHECK(math::clamp01(1.1) == 1);
+    CHECK(math::clamp01(-.01) == 0);
 }

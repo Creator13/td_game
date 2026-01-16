@@ -18,6 +18,8 @@
 
 namespace fs = std::filesystem;
 
+using namespace core;
+
 namespace
 {
     constexpr std::string_view RUNTIME_PATH = "@runtime";
@@ -194,19 +196,19 @@ const assets::AssetInfo& assets::AssetDatabase::getAssetInfo(AssetId id)
     return globalAssetDatabase->metadata.at(id);
 }
 
-const graphics::MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id)
+const MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id)
 {
     ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
     return globalAssetDatabase->meshAllocator.get(id);
 }
 
-const graphics::Mesh& assets::AssetDatabase::getMeshView(AssetId id)
+const Mesh& assets::AssetDatabase::getMeshView(AssetId id)
 {
     ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
     return globalAssetDatabase->meshes.at(id);
 }
 
-graphics::Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
+Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
 {
     ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
     return globalAssetDatabase->meshes.at(id);
@@ -238,7 +240,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
 
     const fastgltf::Mesh& mesh = asset.meshes[0];
 
-    graphics::Mesh out;
+    Mesh out;
 
     size_t vertex_base = 0;
 
@@ -259,7 +261,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
         fastgltf::iterateAccessorWithIndex<math::vec3>(asset, posAccessor,
             [&](math::vec3 pos, size_t index)
             {
-                graphics::Vertex v;
+                core::Vertex v;
                 v.position = _mesh::transformGltfToEngineCoordinateSpace(pos);
                 v.normal = math::vec3(0.0f, 0.0f, 0.0f);
                 out.vertices[vertex_base + index] = v;
@@ -299,7 +301,7 @@ assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
     info.isRuntime = false;
 
     globalAssetDatabase->metadata.insert({info.id, info});
-    graphics::Mesh& new_mesh = globalAssetDatabase->meshes.try_emplace(info.id).first->second;
+    Mesh& new_mesh = globalAssetDatabase->meshes.try_emplace(info.id).first->second;
     new_mesh.vertices = std::move(out.vertices);
     new_mesh.indices = std::move(out.indices);
     new_mesh.recalculateBounds();
@@ -395,12 +397,12 @@ assets::AssetId assets::AssetDatabase::loadShaderFromFiles(std::string_view vert
     return info.id;
 }
 
-const graphics::MeshGpuHandle& assets::AssetDatabase::MeshGpuAllocator::get(AssetId id) const
+const MeshGpuHandle& assets::AssetDatabase::MeshGpuAllocator::get(AssetId id) const
 {
     return handles.at(id);
 }
 
-void assets::AssetDatabase::MeshGpuAllocator::upload(AssetId id, const graphics::Mesh& mesh)
+void assets::AssetDatabase::MeshGpuAllocator::upload(AssetId id, const Mesh& mesh)
 {
     using namespace graphics;
     MeshGpuHandle handle;
@@ -462,7 +464,7 @@ std::string assets::AssetDatabase::makeInternalPath(AssetInfo::AssetType type, s
 
 void assets::AssetDatabase::loadInternalMesh(
     std::string_view name,
-    const graphics::Vertex* vPtr, uint32_t vCnt,
+    const Vertex* vPtr, uint32_t vCnt,
     const uint32_t* iPtr, uint32_t iCnt,
     const math::AABB& bounds)
 {
@@ -476,7 +478,7 @@ void assets::AssetDatabase::loadInternalMesh(
     metadata.insert({info.id, info});
 
     meshes.try_emplace(info.id);
-    graphics::Mesh& mesh = meshes.at(info.id);
+    Mesh& mesh = meshes.at(info.id);
     mesh.vertices = std::vector(vPtr, vPtr + vCnt);
     mesh.indices = std::vector(iPtr, iPtr + iCnt);
     mesh.bounds = bounds;

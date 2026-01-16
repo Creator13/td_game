@@ -17,4 +17,6 @@ void core::debug::handle_assert(const char* expression, const std::string& messa
 #elif defined(__GNUC__) || defined(__clang__)
     __builtin_trap();
 #endif
+
+    std::abort();
 }
