@@ -240,7 +240,7 @@ void core::glfw_keyCallback(GLFWwindow* window, int token, int scancode, int act
     if (action == GLFW_REPEAT)
     {
         // TODO Are you sure this shouldn't be forwarded to the input abstraction first?
-        // TODO warning: before you change this if statement, see other warning
+        // TODO warning: before you change this if statement, see misc warning
         return;
     }
 

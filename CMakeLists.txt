@@ -20,6 +20,7 @@ if (BUILD_TESTS)
     add_subdirectory(tests)
 endif ()
 
+add_subdirectory(ext/misc)
 add_subdirectory(ext/stb)
 
 add_subdirectory(src/math)

@@ -9,6 +9,7 @@
 
 #include "EcsDebug.h"
 #include "core/EcsCore.h"
+#include "core/Time.h"
 #include "core/Window.h"
 #include "rendering/EcsRendering.h"
 #include "rendering/Renderer.h"
@@ -110,12 +111,15 @@ Application::~Application()
 
 int Application::run()
 {
+    time::init();
+
     while (!glfwWindowShouldClose(_windowPtr))
     {
         FrameMark;
 
         glfwPollEvents();
 
+        time::markFrame();
         if (!_ecs.progress())
         {
             glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
@@ -204,7 +208,19 @@ void Application::initFlecs()
     flecs::log::enable_colors(false);
 #endif
 
-    _ecs.set_threads(12);
+    const uint32_t nThreads = std::thread::hardware_concurrency();
+    if (nThreads == 0)
+    {
+        // if value is 0, something went wrong in obtaining the value and we cannot rely on it, so assume 2 is a decent value
+        spdlog::debug("Failed to detect cpu threads; spawning 2 flecs worker threads.");
+        _ecs.set_threads(2);
+    }
+    else
+    {
+        const uint32_t nFlecsThreads = nThreads - 2;
+        spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", nThreads, nFlecsThreads);
+        _ecs.set_threads(math::max<int>(0, nThreads - 2));
+    }
 
     _ecs.import<ecs::engine_core>();
     _ecs.import<ecs::rendering>();

@@ -5,6 +5,7 @@
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
+#include "core/Time.h"
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "rendering/EcsRendering.h"
@@ -57,7 +58,7 @@ void engine::register_flecs(const flecs::world& world)
     world.system<HierarchyTransform, const RotateData>("Rotating")
         .each([](flecs::iter& it, size_t i, HierarchyTransform& transform, const RotateData& rotation)
         {
-            transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, rotation.angularVelocity * it.delta_time()));
+            transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, rotation.angularVelocity * time::delta()));
         });
 
     world.system<HierarchyTransform, FreeLookCameraControlData, const GlobalInput>("Camera control")

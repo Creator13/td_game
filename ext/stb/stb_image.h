@@ -17,7 +17,7 @@
 
 
    QUICK NOTES:
-      Primarily of interest to game developers and other people who can
+      Primarily of interest to game developers and misc people who can
           avoid problematic images and only need the trivial interface
 
       JPEG baseline & progressive (12 bpc/arithmetic not supported, same as stock IJG lib)
@@ -246,7 +246,7 @@ RECENT REVISION HISTORY:
 // I/O callbacks
 //
 // I/O callbacks allow you to read from arbitrary sources, like packaged
-// files or some other source. Data read from callbacks are processed
+// files or some misc source. Data read from callbacks are processed
 // through a small internal buffer (currently 128 bytes) to try to reduce
 // overhead.
 //
@@ -341,7 +341,7 @@ RECENT REVISION HISTORY:
 //        STBI_NO_PIC
 //        STBI_NO_PNM   (.ppm and .pgm)
 //
-//  - You can request *only* certain decoders and suppress all other ones
+//  - You can request *only* certain decoders and suppress all misc ones
 //    (this will be more forward-compatible, as addition of new decoders
 //    doesn't require you to disable them explicitly):
 //
@@ -524,7 +524,7 @@ STBIDEF void stbi_set_unpremultiply_on_load_thread(int flag_true_if_should_unpre
 STBIDEF void stbi_convert_iphone_png_to_rgb_thread(int flag_true_if_should_convert);
 STBIDEF void stbi_set_flip_vertically_on_load_thread(int flag_true_if_should_flip);
 
-// ZLIB client - used by PNG, available for other purposes
+// ZLIB client - used by PNG, available for misc purposes
 
 STBIDEF char *stbi_zlib_decode_malloc_guesssize(const char *buffer, int len, int initial_size, int *outlen);
 STBIDEF char *stbi_zlib_decode_malloc_guesssize_headerflag(const char *buffer, int len, int initial_size, int *outlen, int parse_header);
@@ -1738,7 +1738,7 @@ static stbi__uint32 stbi__get32le(stbi__context *s)
 //    individual types do this automatically as much as possible (e.g. jpeg
 //    does all cases internally since it needs to colorspace convert anyway,
 //    and it never has alpha, so very few cases ). png can automatically
-//    interleave an alpha=255 channel, but falls back to this for other cases
+//    interleave an alpha=255 channel, but falls back to this for misc cases
 //
 //  assume data buffer is malloced, so malloc a new one and free that one
 //  only failure mode is malloc failing
@@ -2117,7 +2117,7 @@ stbi_inline static int stbi__jpeg_huff_decode(stbi__jpeg *j, stbi__huffman *h)
    // naive test is to shift the code_buffer down so k bits are
    // valid, then test against maxcode. To speed this up, we've
    // preshifted maxcode left so that it has (16-k) 0s at the
-   // end; in other words, regardless of the number of bits, it
+   // end; in misc words, regardless of the number of bits, it
    // wants to be compared against something shifted to have 16;
    // that way we don't need to shift inside the loop.
    temp = j->code_buffer >> 16;
@@ -6174,7 +6174,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    if (stbi__get16be(s) != 3)
       return stbi__errpuc("wrong color format", "PSD is not in RGB color format");
 
-   // Skip the Mode Data.  (It's the palette for indexed color; other info for other modes.)
+   // Skip the Mode Data.  (It's the palette for indexed color; misc info for misc modes.)
    stbi__skip(s,stbi__get32be(s) );
 
    // Skip the image resources.  (resolution, pen tool paths, etc)

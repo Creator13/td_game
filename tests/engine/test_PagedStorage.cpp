@@ -252,7 +252,7 @@ TEST_CASE("Deletion", PAGED_STORAGE_TEST_TAG)
             CHECK(t.active == 3);
         }
 
-        SECTION("Untouched elements point at their original data after other elements are deleted")
+        SECTION("Untouched elements point at their original data after misc elements are deleted")
         {
             CHECK(storage.fragmentation() == 0);
 

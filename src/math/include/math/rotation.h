@@ -55,7 +55,7 @@ namespace math
 
         /**
          * Construct a rotation matrix from basis vectors.
-         * The vectors are assumed to be normal vectors and orthogonal to each other;
+         * The vectors are assumed to be normal vectors and orthogonal to each misc;
          * using this constructor with non-orthonormal basis vectors will result in an invalid rotation matrix.
          */
         constexpr rot3x3(vec3 x, vec3 y, vec3 z) noexcept : xBasis(x), yBasis(y), zBasis(z) { }

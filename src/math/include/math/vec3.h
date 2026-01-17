@@ -169,7 +169,7 @@ namespace math
 
     /**
      * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same
-     * position of the other vector.
+     * position of the misc vector.
      */
     constexpr vec3 comptMul(vec3 lhs, vec3 rhs) noexcept
     {
