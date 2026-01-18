@@ -1,5 +1,9 @@
 #include "core/Transform.h"
 
+#include <tracy/Tracy.hpp>
+
+#include "core/Assert.h"
+
 using namespace core;
 using namespace core::ecs;
 using namespace math;
@@ -151,7 +155,7 @@ void HierarchyTransform::setGlobalOrientation(flecs::entity e, quaternion rot)
     if (transform::hasParentTransform(e))
     {
         const HierarchyTransform& parentTransform = e.parent().get<HierarchyTransform>();
-        quaternion parentWorldRot = parentTransform.getGlobalOrientation();
+        const quaternion parentWorldRot = parentTransform.getGlobalOrientation();
         localRot = inverse(parentWorldRot) * rot;
     }
     else
@@ -223,6 +227,8 @@ bool transform::hasParentTransform(flecs::entity e)
 
 void HierarchyTransform::applyModified(flecs::entity e_self)
 {
+    ZoneScoped;
+
     const mat4* parentMatx = nullptr;
 
     if (transform::hasParentEntity(e_self))
@@ -257,9 +263,9 @@ void HierarchyTransform::propagateMatrixToChildren(flecs::entity e_self, const m
 
 void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quaternion rot, vec3 scale)
 {
-    assert(parent.is_alive());
-    assert(parent.has<HierarchyTransform>());
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
+    ENGINE_ASSERT(parent.is_alive(), "Transform parent is not a valid entity: parent id {}, target id {}", parent.id(), target.id());
+    ENGINE_ASSERT(parent.has<HierarchyTransform>(), "Transform parent is not a transform itself: parent id {}, target id {}", parent.id(), target.id());
 
     target.child_of(parent);
     const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
@@ -269,9 +275,9 @@ void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quater
 
 void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quaternion rot)
 {
-    assert(parent.is_alive());
-    assert(parent.has<HierarchyTransform>());
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
+    ENGINE_ASSERT(parent.is_alive(), "Transform parent is not a valid entity: parent id {}, target id {}", parent.id(), target.id());
+    ENGINE_ASSERT(parent.has<HierarchyTransform>(), "Transform parent is not a transform itself: parent id {}, target id {}", parent.id(), target.id());
 
     target.child_of(parent);
     const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
@@ -281,9 +287,9 @@ void transform::add(flecs::entity target, flecs::entity parent, vec3 pos, quater
 
 void transform::add(flecs::entity target, flecs::entity parent, vec3 pos)
 {
-    assert(parent.is_alive());
-    assert(parent.has<HierarchyTransform>());
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
+    ENGINE_ASSERT(parent.is_alive(), "Transform parent is not a valid entity: parent id {}, target id {}", parent.id(), target.id());
+    ENGINE_ASSERT(parent.has<HierarchyTransform>(), "Transform parent is not a transform itself: parent id {}, target id {}", parent.id(), target.id());
 
     target.child_of(parent);
     const mat4& parentMatx = parent.get<HierarchyTransform>().getWorldMatrix();
@@ -293,9 +299,9 @@ void transform::add(flecs::entity target, flecs::entity parent, vec3 pos)
 
 void transform::add(flecs::entity target, flecs::entity parent)
 {
-    assert(parent.is_alive());
-    assert(parent.has<HierarchyTransform>());
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
+    ENGINE_ASSERT(parent.is_alive(), "Transform parent is not a valid entity: parent id {}, target id {}", parent.id(), target.id());
+    ENGINE_ASSERT(parent.has<HierarchyTransform>(), "Transform parent is not a transform itself: parent id {}, target id {}", parent.id(), target.id());
 
     target.set<HierarchyTransform>({ }); // Struct defaults to identity transform, so identity values are not explicitly set here
     target.child_of(parent);
@@ -303,7 +309,7 @@ void transform::add(flecs::entity target, flecs::entity parent)
 
 void transform::add(flecs::entity target, vec3 pos, quaternion rot, vec3 scale)
 {
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
 
     const mat4 localMatx = mat4::makeTRS(pos, rot, scale);
     target.set<HierarchyTransform>({pos, rot, scale, localMatx});
@@ -311,7 +317,7 @@ void transform::add(flecs::entity target, vec3 pos, quaternion rot, vec3 scale)
 
 void transform::add(flecs::entity target, vec3 pos, quaternion rot)
 {
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
 
     const mat4 localMatx = mat4::makeTRS(pos, rot, vec3::one);
     target.set<HierarchyTransform>({pos, rot, vec3::one, localMatx});
@@ -319,7 +325,7 @@ void transform::add(flecs::entity target, vec3 pos, quaternion rot)
 
 void transform::add(flecs::entity target, vec3 pos)
 {
-    assert(!target.has<HierarchyTransform>());
+    ENGINE_ASSERT(!target.has<HierarchyTransform>(), "Tried to add transform to entity that already has a transform! Entity: {}", target.id());
 
     const mat4 localMatx = mat4::makeTRS(pos, quaternion::identity, vec3::one);
     target.set<HierarchyTransform>({pos, quaternion::identity, vec3::one, localMatx});
