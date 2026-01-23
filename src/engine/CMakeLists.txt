@@ -18,6 +18,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(flecs CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 
 ## Tracy
 FetchContent_Declare(
@@ -42,6 +43,7 @@ target_link_libraries(engine_core
         PRIVATE xxHash::xxhash
         PRIVATE fastgltf::fastgltf
         PRIVATE stb_image
+        PRIVATE magic_enum::magic_enum
         PRIVATE misc_headers
 )
 

@@ -2,7 +2,7 @@
 
 #include "rendering/Mesh.h"
 
-namespace assets::mesh_primitives
+namespace core::assets::mesh_primitives
 {
     inline constexpr core::Vertex CUBE_VERTICES[] =
     {

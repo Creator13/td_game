@@ -1,7 +1,11 @@
 #include "engine.h"
 
 #include "core/Application.h"
-#include "core/Debug.h"
+
+#include <fmt/format.h>
+#include <formatting/fmt_asset.h>
+
+// static_assert(fmt::is_formattable_v<core::assets::AssetId>);
 
 using namespace core;
 

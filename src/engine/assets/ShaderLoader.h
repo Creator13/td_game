@@ -1,0 +1,23 @@
+#pragma once
+
+#include <optional>
+#include <unordered_map>
+
+#include "datatype.h"
+#include "assets/AssetId.h"
+
+namespace core::assets
+{
+    class AssetDatabase;
+
+    class ShaderLoader
+    {
+        std::unordered_map<AssetId, gl::shader_t> shaderStageCache;
+        gl::program_t compileErrorShader();
+    public:
+        static std::optional<gl::shader_t> compileFromSource(std::string_view source, gl::enum_t shaderType);
+        static std::optional<gl::program_t> linkShaderProgram(std::initializer_list<gl::shader_t> shaderIds);
+
+        std::optional<gl::shader_t> loadShaderStageFromFile(std::string_view path, gl::enum_t stageType);
+    };
+}

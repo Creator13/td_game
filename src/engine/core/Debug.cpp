@@ -1,11 +1,14 @@
 #include "core/Debug.h"
 
+#include <glad/glad.h>
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
 #include "Constants.h"
 #include "assets/AssetDatabase.h"
+#include "assets/ShaderLoader.h"
+#include "rendering/Mesh.h"
 
 using namespace core;
 using namespace math;
@@ -16,6 +19,49 @@ namespace
 {
     constexpr size_t MAX_VERTICES = 20'000;
     DebugRenderer* globalDebugRenderer;
+
+    gl::program_t compileDebugShader()
+    {
+        using namespace core::assets;
+
+        const char* vertexShaderSource = R"(
+                #version 430 core
+
+                layout(location = 0) in vec3 aPosition;
+                layout(location = 1) in vec4 aColor;
+
+                uniform mat4 uViewProjection;
+
+                out vec4 vColor;
+
+                void main()
+                {
+                    gl_Position = uViewProjection * vec4(aPosition, 1.0);
+                    vColor = aColor;
+                }
+            )";
+
+        const char* fragmentShaderSource = R"(
+                #version 430 core
+
+                in vec4 vColor;
+                out vec4 FragColor;
+
+                void main()
+                {
+                    FragColor = vColor;
+                }
+            )";
+
+        gl::shader_t vId = ShaderLoader::compileFromSource(vertexShaderSource, GL_VERTEX_SHADER).value();
+        gl::shader_t fId = ShaderLoader::compileFromSource(fragmentShaderSource, GL_FRAGMENT_SHADER).value();
+        const gl::program_t pId = ShaderLoader::linkShaderProgram({vId, fId}).value();
+
+        glDeleteShader(vId);
+        glDeleteShader(fId);
+
+        return pId;
+    }
 }
 
 DebugRenderer::DebugRenderer() : vertCount(0)
@@ -26,7 +72,7 @@ DebugRenderer::DebugRenderer() : vertCount(0)
     GLbitfield persistentFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 
     glNamedBufferStorage(vbo, MAX_VERTICES * sizeof(DebugVertex), nullptr, persistentFlags);
-    const auto rawBufPtr = glMapNamedBufferRange(vbo, 0, MAX_VERTICES * sizeof(Vertex), persistentFlags);
+    const auto rawBufPtr = glMapNamedBufferRange(vbo, 0, MAX_VERTICES * sizeof(DebugVertex), persistentFlags);
     mappedVertexBuffer = std::span{static_cast<DebugVertex*>(rawBufPtr), MAX_VERTICES};
 
     glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(DebugVertex));
@@ -39,7 +85,7 @@ DebugRenderer::DebugRenderer() : vertCount(0)
     glVertexArrayAttribFormat(vao, 1, 4, GL_FLOAT, GL_FALSE, offsetof(DebugVertex, color));
     glVertexArrayAttribBinding(vao, 1, 0);
 
-    debugShader = assets::AssetDatabase::getShaderProgram(assets::idFromPath("@internal/shader/debug"));
+    debugShader = compileDebugShader();
 }
 
 DebugRenderer::~DebugRenderer()
@@ -107,11 +153,11 @@ void DebugRenderer::render()
 
     if (vertCount == 0) return;
 
-    glUseProgram(debugShader.programId);
+    glUseProgram(debugShader);
     glBindVertexArray(vao);
 
     const mat4 viewProjection = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
-    const GLint vpLocation = glGetUniformLocation(debugShader.programId, "uViewProjection");
+    const GLint vpLocation = glGetUniformLocation(debugShader, "uViewProjection");
     glUniformMatrix4fv(vpLocation, 1, GL_FALSE, viewProjection.m);
 
     glEnable(GL_BLEND);

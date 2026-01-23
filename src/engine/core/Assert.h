@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <source_location>
 #include <string>
-#include <fmt/core.h>
+
+#include "Logging.h"
 
 namespace core::debug
 {

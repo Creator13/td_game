@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Mesh.h"
+#include "assets/AssetDatabase.h"
 #include "assets/AssetId.h"
+#include "assets/Shader.h"
 #include "core/Transform.h"
 #include "math/geom.h"
 #include "math/mat4.h"
@@ -55,8 +58,8 @@ namespace core::ecs
 
     struct MeshRenderData
     {
-        assets::AssetId meshId;
-        assets::AssetId shaderId;
+        assets::AssetRef<Mesh> mesh;
+        assets::AssetRef<Shader> shader;
         CullReason cullReason;
     };
 

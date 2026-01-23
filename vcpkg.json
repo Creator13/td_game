@@ -29,5 +29,8 @@
   }, {
     "name" : "flecs",
     "version>=" : "4.1.4"
+  }, {
+    "name" : "magic-enum",
+    "version>=" : "0.9.7#1"
   } ]
 }

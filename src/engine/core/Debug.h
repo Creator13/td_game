@@ -1,12 +1,10 @@
 #pragma once
-#include <vector>
-#include <glad/glad.h>
 
+#include "assets/Shader.h"
 #include "math/geom.h"
 #include "math/mat4.h"
 #include "math/vec3.h"
 #include "rendering/Color.h"
-#include "rendering/shader.h"
 
 namespace core::ecs {
     struct PerspectiveCameraData;
@@ -26,14 +24,14 @@ namespace core::debug
         math::mat4 projectionMatrix = math::mat4::identity;
 
         // VAO and VBO lifetimes are managed by this class;
-        GLuint vao;
-        GLuint vbo;
+        gl::Uint vao;
+        gl::Uint vbo;
 
         // Buffer map and shader are non-owning
         std::span<DebugVertex> mappedVertexBuffer;
-        graphics::ShaderProgramData debugShader;
+        gl::program_t debugShader;
 
-        size_t vertCount;
+        usize vertCount;
 
         DebugRenderer();
         ~DebugRenderer();

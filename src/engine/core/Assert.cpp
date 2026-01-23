@@ -2,7 +2,6 @@
 
 #include <stacktrace>
 #include <string>
-#include <spdlog/spdlog.h>
 
 void core::debug::handle_assert(const char* expression, const std::string& message, const std::source_location& location)
 {

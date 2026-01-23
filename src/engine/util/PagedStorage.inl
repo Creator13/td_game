@@ -7,7 +7,7 @@ namespace util
     template<typename T, size_t PageSize>
     void PagedStorage<T, PageSize>::add_page()
     {
-        pages.push_back(std::make_unique<StoragePage>());
+        pages.push_back(std::make_unique<Page>());
     }
 
     template<typename T, size_t PageSize>
@@ -23,7 +23,7 @@ namespace util
             nextElementIndex = 0;
         }
 
-        StoragePage& page = *pages[currentPageIndex];
+        Page& page = *pages[currentPageIndex];
         page.occupied.set(nextElementIndex);
 
         std::byte* base = page.storage + nextElementIndex * sizeof(T);
@@ -66,7 +66,7 @@ namespace util
     {
         ENGINE_ASSERT(has_at(index), "Attempted to access deleted or out of range element in paged storage, index {}", index);
 
-        StoragePage& page = *pages[index / PageSize];
+        Page& page = *pages[index / PageSize];
         const size_t offset = index % PageSize;
 
         return *std::launder(reinterpret_cast<T*>(page.storage + (sizeof(T) * offset)));
@@ -106,11 +106,17 @@ namespace util
     }
 
     template<typename T, size_t PageSize>
+    T* PagedStorage<T, PageSize>::allocate_uninitialized()
+    {
+        return allocate_slot();
+    }
+
+    template<typename T, size_t PageSize>
     bool PagedStorage<T, PageSize>::has_at(size_t index) const
     {
         if (index >= size()) return false;
 
-        const StoragePage& page = *pages[index / PageSize];
+        const Page& page = *pages[index / PageSize];
         const size_t elementOffset = index % PageSize;
         return page.occupied.test(elementOffset);
     }
@@ -120,7 +126,7 @@ namespace util
     {
         ENGINE_ASSERT(has_at(index), "Attempted to delete already deleted element, or element out of range. index: {}", index);
 
-        StoragePage& page = *pages[index / PageSize];
+        Page& page = *pages[index / PageSize];
         const size_t elementOffset = index % PageSize;
 
         operator[](index).~T();

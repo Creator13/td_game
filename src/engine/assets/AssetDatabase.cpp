@@ -1,551 +1,218 @@
 #include "AssetDatabase.h"
 
-#include <optional>
-#include <stb_image.h>
-#include <fastgltf/core.hpp>
-#include <fastgltf/tools.hpp>
-#include <fastgltf/types.hpp>
-#include <glad/glad.h>
-#include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
-
+#include "Logging.h"
 #include "assets/File.h"
-#include "assets/GltfElementTraits.h"
-#include "assets/MeshPrimitives.h"
+#include "assets/Shader.h"
 #include "core/Assert.h"
-#include "rendering/Mesh.h"
-#include "rendering/shader.h"
 
 namespace fs = std::filesystem;
 
 using namespace core;
+using namespace core::assets;
 
 namespace
 {
     constexpr std::string_view RUNTIME_PATH = "@runtime";
     constexpr std::string_view INTERNAL_PATH = "@internal";
 
-    const assets::AssetId ERROR_SHADER_ID = assets::idFromPath("@internal/shader/error");
-    const assets::AssetId DEBUG_SHADER_ID = assets::idFromPath("@internal/shader/debug");
+    const AssetId ERROR_SHADER_ID = AssetId::idFromPath("@internal/shader/error");
 
-    constexpr std::string_view mapAssetTypeName(assets::AssetInfo::AssetType type)
+    constexpr std::string_view mapAssetTypeName(AssetType type)
     {
         switch (type)
         {
-            case assets::AssetInfo::AssetType::Mesh:
+            case AssetType::Mesh:
                 return "mesh";
-            case assets::AssetInfo::AssetType::Shader:
+            case AssetType::Shader:
                 return "shader";
             default:
                 return "misc";
         }
     }
-
-    namespace _shader
-    {
-        std::optional<GLuint> compileShader(std::string_view source, GLenum shaderType);
-        std::optional<GLuint> makeShaderProgram(std::initializer_list<GLuint> shaderIds);
-        GLuint compileErrorShader();
-    }
-
-    namespace _shader
-    {
-        std::optional<GLuint> compileShader(std::string_view source, GLenum shaderType)
-        {
-            const GLuint shaderId = glCreateShader(shaderType);
-
-            const char* sourcePtr = source.data();
-            const GLint srcLength = static_cast<GLint>(source.length());
-            glShaderSource(shaderId, 1, &sourcePtr, &srcLength);
-
-            glCompileShader(shaderId);
-
-            int success;
-            glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-            if (!success)
-            {
-                GLint infoLogLength;
-                glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLength);
-                std::string infoLog = std::string(infoLogLength, '\0');
-
-                glGetShaderInfoLog(shaderId, infoLogLength, nullptr, infoLog.data());
-                spdlog::error("Shader compilation failed:\n{}", infoLog);
-                glDeleteShader(shaderId);
-                return { };
-            }
-
-            return shaderId;
-        }
-
-        std::optional<GLuint> makeShaderProgram(std::initializer_list<GLuint> shaderIds)
-        {
-            const GLuint programId = glCreateProgram();
-            for (const GLuint shaderId : shaderIds)
-            {
-                glAttachShader(programId, shaderId);
-            }
-            glLinkProgram(programId);
-
-            int success;
-            glGetProgramiv(programId, GL_LINK_STATUS, &success);
-            if (!success)
-            {
-                GLint infoLogLength;
-                glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &infoLogLength);
-                std::string infoLog = std::string(infoLogLength, '\0');
-
-                glGetProgramInfoLog(programId, infoLogLength, nullptr, infoLog.data());
-
-                spdlog::error("Shader linking failed:\n{}", infoLog);
-                return { };
-            }
-
-            return programId;
-        }
-
-        GLuint compileErrorShader()
-        {
-            // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
-            constexpr std::string_view ERROR_SHADER_VERT = "#version 430\n layout (location = 0) in vec3 pos;\nlayout (location = 1) in vec3 aNorm;\nlayout (location = 100) uniform mat4 model;\nlayout (location = 101) uniform mat4 vp_mat;void main() {gl_Position = vp_mat * model * vec4(pos, 1.0);}";
-            constexpr std::string_view ERROR_SHADER_FRAG = "#version 430\n out vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
-
-            GLuint vId = compileShader(ERROR_SHADER_VERT, GL_VERTEX_SHADER).value();
-            GLuint fId = compileShader(ERROR_SHADER_FRAG, GL_FRAGMENT_SHADER).value();
-            GLuint pId = makeShaderProgram({vId, fId}).value();
-
-            glDeleteShader(vId);
-            glDeleteShader(fId);
-
-            return pId;
-        }
-
-        GLuint compileDebugShader()
-        {
-            const char* vertexShaderSource = R"(
-                #version 430 core
-
-                layout(location = 0) in vec3 aPosition;
-                layout(location = 1) in vec4 aColor;
-
-                uniform mat4 uViewProjection;
-
-                out vec4 vColor;
-
-                void main()
-                {
-                    gl_Position = uViewProjection * vec4(aPosition, 1.0);
-                    vColor = aColor;
-                }
-            )";
-
-            const char* fragmentShaderSource = R"(
-                #version 430 core
-
-                in vec4 vColor;
-                out vec4 FragColor;
-
-                void main()
-                {
-                    FragColor = vColor;
-                }
-            )";
-
-            GLuint vId = compileShader(vertexShaderSource, GL_VERTEX_SHADER).value();
-            GLuint fId = compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER).value();
-            GLuint pId = makeShaderProgram({vId, fId}).value();
-
-            glDeleteShader(vId);
-            glDeleteShader(fId);
-
-            return pId;
-        }
-    }
-
-    namespace _mesh
-    {
-        constexpr math::vec3 transformGltfToEngineCoordinateSpace(const math::vec3& in)
-        {
-            return math::vec3(in.x, -in.z, in.y);
-        }
-    }
-
-    assets::AssetDatabase* globalAssetDatabase;
 }
 
-assets::AssetDatabase::AssetDatabase(std::string_view resourceRoot)
-    : rootPath(file::getExecutableDir() / resourceRoot),
-      metadata(128),
-      meshes(64), meshAllocator(64),
-      shaders(64)
-{
-    gltfParser = std::make_unique<fastgltf::Parser>();
+AssetDatabase::AssetDatabase(std::string_view resourceRoot)
+    : _rootPath(file::getExecutableDir() / resourceRoot) { }
 
-    loadInternalMeshes();
-    loadInternalShaders();
-}
-
-assets::AssetDatabase::~AssetDatabase()
+const AssetInfo& AssetDatabase::getAssetInfo(AssetId id)
 {
-    meshAllocator.clean();
-}
-
-const assets::AssetInfo& assets::AssetDatabase::getAssetInfo(AssetId id)
-{
-    ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
+    ENGINE_ASSERT(metadata.contains(id), "Asset not found: {}", id);
     // Returns a copy; no outside influence is allowed // EDIT does it really?? const&?
-    return globalAssetDatabase->metadata.at(id);
+    return metadata.at(id);
 }
 
-const MeshGpuHandle& assets::AssetDatabase::getMeshGpuHandle(AssetId id)
+// AssetId AssetDatabase::createMesh(std::string_view path)
+// {
+//     using namespace graphics;
+//
+//     AssetInfo info;
+//     info.path = path;
+//     info.id = idFromPath(info.path);
+//     info.isRuntime = true;
+//     info.type = AssetInfo::AssetType::Mesh;
+//
+//     ENGINE_ASSERT(!metadata.contains(info.id), "AssetDatabase already contains an asset at path {}", path);
+//     metadata.insert({info.id, info});
+//
+//     meshes.try_emplace(info.id);
+//
+//     return info.id;
+// }
+//
+// AssetId AssetDatabase::createRuntimeMesh(std::string_view name)
+// {
+//     return globalAssetDatabase->createMesh(fmt::format("{}/{}/{}", RUNTIME_PATH, mapAssetTypeName(AssetInfo::AssetType::Mesh), name));
+// }
+//
+// AssetId AssetDatabase::loadTextureFromFile(std::string_view path)
+// {
+//     const AssetId id = idFromPath(path);
+//     ENGINE_ASSERT(!globalAssetDatabase->metadata.contains(id), "Asset already loaded: {}", path);
+//
+//     uint32_t texture;
+//     glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+//
+//     glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//     glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//     glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//     glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//
+//     int width, height, channels;
+//     const uint8_t* data = stbi_load(path.data(), &width, &height, &channels, 0);
+//
+//     if (data)
+//     {
+//         glTextureStorage2D(texture, 1, GL_RGB8, width, height);
+//         glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+//     }
+//     else
+//     {
+//         spdlog::error("Failed to load texture at path: {}", path);
+//         return 0;
+//     }
+//
+//     AssetInfo info;
+//     info.path = path;
+//     info.id = id;
+//     info.isRuntime = true;
+//     info.type = AssetInfo::AssetType::Texture;
+//
+//     return id;
+// }
+//
+// AssetId AssetDatabase::loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath)
+// {
+//     std::optional<GLuint> vert = globalAssetDatabase->loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
+//     std::optional<GLuint> frag = globalAssetDatabase->loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
+//     if (!(vert && frag)) return ERROR_SHADER_ID;
+//
+//     std::optional<GLuint> sId = _shader::makeShaderProgram({vert.value(), frag.value()});
+//     if (!sId) return ERROR_SHADER_ID;
+//
+//     AssetInfo info;
+//     info.path = fmt::format("{}|{}", vertPath, fragPath);
+//     info.id = idFromPath(info.path);
+//     info.isRuntime = true;
+//     info.type = AssetInfo::AssetType::Shader;
+//
+//     globalAssetDatabase->metadata.insert({info.id, info});
+//     globalAssetDatabase->shaders.insert({info.id, {sId.value()}});
+//
+//     return info.id;
+// }
+//
+// const MeshGpuHandle& AssetDatabase::MeshGpuAllocator::get(AssetId id) const
+// {
+//     return handles.at(id);
+// }
+//
+// void AssetDatabase::MeshGpuAllocator::upload(AssetId id, const Mesh& mesh)
+// {
+//     using namespace graphics;
+//     MeshGpuHandle handle;
+//
+//     glGenBuffers(1, &handle.vbo);
+//     glGenBuffers(1, &handle.ebo);
+//     glGenVertexArrays(1, &handle.vao);
+//
+//     glBindVertexArray(handle.vao);
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, handle.vbo);
+//     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
+//
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle.ebo);
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
+//
+//     // Vertex.position
+//     glEnableVertexAttribArray(0);
+//     glVertexAttribPointer(
+//         0,
+//         3, GL_FLOAT, GL_FALSE,
+//         sizeof(Vertex), (void*) offsetof(Vertex, position));
+//
+//     // Vertex.normal
+//     glEnableVertexAttribArray(1);
+//     glVertexAttribPointer(
+//         1,
+//         3, GL_FLOAT, GL_FALSE,
+//         sizeof(Vertex), (void*) offsetof(Vertex, normal));
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, 0);
+//     glBindVertexArray(0);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+//
+//     handle.indexCount = mesh.indices.size();
+//     handles.insert({id, handle});
+// }
+//
+// void AssetDatabase::MeshGpuAllocator::clean()
+// {
+//     for (auto& [id, handle] : handles)
+//     {
+//         glDeleteVertexArrays(1, &handle.vao);
+//         glDeleteBuffers(1, &handle.ebo);
+//         glDeleteBuffers(1, &handle.vbo);
+//     }
+// }
+
+fs::path AssetDatabase::resolveResourcePath(std::string_view path) const
 {
-    ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
-    return globalAssetDatabase->meshAllocator.get(id);
+    return _rootPath / fs::path(path);
 }
 
-const Mesh& assets::AssetDatabase::getMeshView(AssetId id)
-{
-    ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
-    return globalAssetDatabase->meshes.at(id);
-}
-
-Mesh& assets::AssetDatabase::getMeshMut(AssetId id)
-{
-    ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
-    return globalAssetDatabase->meshes.at(id);
-}
-
-assets::AssetId assets::AssetDatabase::loadMeshFromFile(std::string_view path)
-{
-    AssetId id = idFromPath(path);
-    if (globalAssetDatabase->meshes.contains(id)) { return id; }
-
-    fs::path absPath = fs::path(globalAssetDatabase->resolveResourcePath(path));
-
-    auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
-    if (data.error() != fastgltf::Error::None)
-    {
-        spdlog::error("Error loading gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
-        return 0;
-    }
-
-    constexpr fastgltf::Options parserOptions = fastgltf::Options::LoadExternalBuffers;
-
-    auto load = globalAssetDatabase->gltfParser->loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
-    if (auto error = load.error(); error != fastgltf::Error::None)
-    {
-        spdlog::error("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
-    }
-
-    fastgltf::Asset asset = std::move(load.get());
-
-    const fastgltf::Mesh& mesh = asset.meshes[0];
-
-    Mesh out;
-
-    size_t vertex_base = 0;
-
-    for (const auto& primitive : mesh.primitives)
-    {
-        // position
-        auto posAttribute = primitive.findAttribute("POSITION");
-        if (posAttribute == nullptr)
-        {
-            spdlog::error("No POSITION attribute (TODO add more info)"); // TODO add more info
-            continue;
-        }
-        const fastgltf::Accessor& posAccessor = asset.accessors[posAttribute->accessorIndex];
-
-        size_t count = posAccessor.count;
-        out.vertices.resize(vertex_base + count);
-
-        fastgltf::iterateAccessorWithIndex<math::vec3>(asset, posAccessor,
-            [&](math::vec3 pos, size_t index)
-            {
-                core::Vertex v;
-                v.position = _mesh::transformGltfToEngineCoordinateSpace(pos);
-                v.normal = math::vec3(0.0f, 0.0f, 0.0f);
-                out.vertices[vertex_base + index] = v;
-            });
-
-
-        // normals
-        auto normalAttribute = primitive.findAttribute("NORMAL");
-        if (normalAttribute)
-        {
-            const fastgltf::Accessor& normalAccessor = asset.accessors[normalAttribute->accessorIndex];
-            fastgltf::iterateAccessorWithIndex<math::vec3>(asset, normalAccessor,
-                [&](math::vec3 normal, size_t index)
-                {
-                    out.vertices[vertex_base + index].normal = _mesh::transformGltfToEngineCoordinateSpace(normal);
-                });
-        }
-        else
-        {
-            // TODO calc normals?
-        }
-
-        if (primitive.indicesAccessor.has_value())
-        {
-            const fastgltf::Accessor& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
-            out.indices.resize(indexAccessor.count);
-            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, out.indices.data());
-        }
-
-        vertex_base += count;
-    }
-
-    AssetInfo info;
-    info.id = id;
-    info.path = path;
-    info.type = AssetInfo::AssetType::Mesh;
-    info.isRuntime = false;
-
-    globalAssetDatabase->metadata.insert({info.id, info});
-    Mesh& new_mesh = globalAssetDatabase->meshes.try_emplace(info.id).first->second;
-    new_mesh.vertices = std::move(out.vertices);
-    new_mesh.indices = std::move(out.indices);
-    new_mesh.recalculateBounds();
-
-    globalAssetDatabase->meshAllocator.upload(id, new_mesh);
-
-    return id;
-}
-
-assets::AssetId assets::AssetDatabase::createMesh(std::string_view path)
-{
-    using namespace graphics;
-
-    AssetInfo info;
-    info.path = path;
-    info.id = idFromPath(info.path);
-    info.isRuntime = true;
-    info.type = AssetInfo::AssetType::Mesh;
-
-    ENGINE_ASSERT(!metadata.contains(info.id), "AssetDatabase already contains an asset at path {}", path);
-    metadata.insert({info.id, info});
-
-    meshes.try_emplace(info.id);
-
-    return info.id;
-}
-
-assets::AssetId assets::AssetDatabase::createRuntimeMesh(std::string_view name)
-{
-    return globalAssetDatabase->createMesh(fmt::format("{}/{}/{}", RUNTIME_PATH, mapAssetTypeName(AssetInfo::AssetType::Mesh), name));
-}
-
-assets::AssetId assets::AssetDatabase::loadTextureFromFile(std::string_view path)
-{
-    const AssetId id = idFromPath(path);
-    ENGINE_ASSERT(!globalAssetDatabase->metadata.contains(id), "Asset already loaded: {}", path);
-
-    uint32_t texture;
-    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-
-    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    int width, height, channels;
-    const uint8_t* data = stbi_load(path.data(), &width, &height, &channels, 0);
-
-    if (data)
-    {
-        glTextureStorage2D(texture, 1, GL_RGB8, width, height);
-        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    }
-    else
-    {
-        spdlog::error("Failed to load texture at path: {}", path);
-        return 0;
-    }
-
-    AssetInfo info;
-    info.path = path;
-    info.id = id;
-    info.isRuntime = true;
-    info.type = AssetInfo::AssetType::Texture;
-
-    return id;
-}
-
-const graphics::ShaderProgramData& assets::AssetDatabase::getShaderProgram(AssetId id)
-{
-    ENGINE_ASSERT(globalAssetDatabase->metadata.contains(id), "Asset not found: {}", id);
-    return globalAssetDatabase->shaders.at(id);
-}
-
-assets::AssetId assets::AssetDatabase::loadShaderFromFiles(std::string_view vertPath, std::string_view fragPath)
-{
-    std::optional<GLuint> vert = globalAssetDatabase->loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
-    std::optional<GLuint> frag = globalAssetDatabase->loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
-    if (!(vert && frag)) return ERROR_SHADER_ID;
-
-    std::optional<GLuint> sId = _shader::makeShaderProgram({vert.value(), frag.value()});
-    if (!sId) return ERROR_SHADER_ID;
-
-    AssetInfo info;
-    info.path = fmt::format("{}|{}", vertPath, fragPath);
-    info.id = idFromPath(info.path);
-    info.isRuntime = true;
-    info.type = AssetInfo::AssetType::Shader;
-
-    globalAssetDatabase->metadata.insert({info.id, info});
-    globalAssetDatabase->shaders.insert({info.id, {sId.value()}});
-
-    return info.id;
-}
-
-const MeshGpuHandle& assets::AssetDatabase::MeshGpuAllocator::get(AssetId id) const
-{
-    return handles.at(id);
-}
-
-void assets::AssetDatabase::MeshGpuAllocator::upload(AssetId id, const Mesh& mesh)
-{
-    using namespace graphics;
-    MeshGpuHandle handle;
-
-    glGenBuffers(1, &handle.vbo);
-    glGenBuffers(1, &handle.ebo);
-    glGenVertexArrays(1, &handle.vao);
-
-    glBindVertexArray(handle.vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, handle.vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle.ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
-
-    // Vertex.position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-        0,
-        3, GL_FLOAT, GL_FALSE,
-        sizeof(Vertex), (void*) offsetof(Vertex, position));
-
-    // Vertex.normal
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(
-        1,
-        3, GL_FLOAT, GL_FALSE,
-        sizeof(Vertex), (void*) offsetof(Vertex, normal));
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    handle.indexCount = mesh.indices.size();
-    handles.insert({id, handle});
-}
-
-void assets::AssetDatabase::MeshGpuAllocator::clean()
-{
-    for (auto& [id, handle] : handles)
-    {
-        glDeleteVertexArrays(1, &handle.vao);
-        glDeleteBuffers(1, &handle.ebo);
-        glDeleteBuffers(1, &handle.vbo);
-    }
-}
-
-fs::path assets::AssetDatabase::resolveResourcePath(std::string_view path) const
-{
-    return rootPath / fs::path(path);
-}
-
-std::string assets::AssetDatabase::makeInternalPath(AssetInfo::AssetType type, std::string_view name)
+std::string AssetDatabase::makeInternalPath(AssetType type, std::string_view name)
 {
     std::string_view typePath = mapAssetTypeName(type);
     return fmt::format("{}/{}/{}", INTERNAL_PATH, typePath, name);
 }
 
-void assets::AssetDatabase::loadInternalMesh(
-    std::string_view name,
-    const Vertex* vPtr, uint32_t vCnt,
-    const uint32_t* iPtr, uint32_t iCnt,
-    const math::AABB& bounds)
-{
-    std::string path = makeInternalPath(AssetInfo::AssetType::Mesh, name);
-    AssetInfo info;
-    info.id = idFromPath(path);
-    info.path = std::move(path);
-    info.isRuntime = false;
-    info.type = AssetInfo::AssetType::Mesh;
-
-    metadata.insert({info.id, info});
-
-    meshes.try_emplace(info.id);
-    Mesh& mesh = meshes.at(info.id);
-    mesh.vertices = std::vector(vPtr, vPtr + vCnt);
-    mesh.indices = std::vector(iPtr, iPtr + iCnt);
-    mesh.bounds = bounds;
-
-    meshAllocator.upload(info.id, mesh);
-}
-
-void assets::AssetDatabase::loadInternalMeshes()
-{
-    using namespace mesh_primitives;
-    loadInternalMesh("cube", CUBE_VERTICES, 24, CUBE_INDICES, 36, CUBE_BOUNDS);
-    loadInternalMesh("quad", QUAD_VERTICES, 4, QUAD_INDICES, 6, QUAD_BOUNDS);
-}
-
-void assets::AssetDatabase::loadInternalShaders()
-{
-    // Error
-    {
-        const GLuint glId = _shader::compileErrorShader();
-        metadata.insert({ERROR_SHADER_ID, AssetInfo{"@internal/shader/error", ERROR_SHADER_ID, false, AssetInfo::AssetType::Shader}});
-        shaders.insert({ERROR_SHADER_ID, graphics::ShaderProgramData{glId}});
-    }
-
-    // Debug
-    {
-        const GLuint glId = _shader::compileDebugShader();
-        metadata.insert({DEBUG_SHADER_ID, AssetInfo{"@internal/shader/debug", DEBUG_SHADER_ID, false, AssetInfo::AssetType::Shader}});
-        shaders.insert({DEBUG_SHADER_ID, graphics::ShaderProgramData{glId}});
-    }
-}
-
-std::optional<GLuint> assets::AssetDatabase::loadShaderStageFromFile(std::string_view path, uint32_t stageType)
-{
-    AssetId id = idFromPath(path);
-    // Check cache
-    if (shaderStageCache.contains(id))
-    {
-        spdlog::debug("Cache hit for shader stage at {}", path);
-        return shaderStageCache.at(id);
-    }
-
-    // Not cached -> load into cache
-    fs::path fullPath = resolveResourcePath(path);
-    spdlog::debug("Loading shader stage file from {}", fullPath.generic_string());
-
-    std::optional<std::string> source = file::readFileText(fullPath);
-    if (!source.has_value())
-    {
-        spdlog::error("Failed to load shader stage: {}", path);
-        return { };
-    }
-
-    std::optional<GLuint> glShaderId = _shader::compileShader(source.value().data(), stageType);
-    if (glShaderId.has_value())
-    {
-        shaderStageCache.insert({id, glShaderId.value()});
-        return glShaderId;
-    }
-    return { };
-}
-
-void assets::bindAssetDatabase(AssetDatabase& db)
-{
-    globalAssetDatabase = &db;
-}
-
-fs::path assets::resolveResourcePath(std::string_view path)
-{
-    return globalAssetDatabase->resolveResourcePath(path);
-}
+// void AssetDatabase::loadInternalMesh(
+//     std::string_view name,
+//     const Vertex* vPtr, uint32_t vCnt,
+//     const uint32_t* iPtr, uint32_t iCnt,
+//     const math::AABB& bounds)
+// {
+//     std::string path = makeInternalPath(AssetInfo::AssetType::Mesh, name);
+//     AssetInfo info;
+//     info.id = idFromPath(path);
+//     info.path = std::move(path);
+//     info.isRuntime = false;
+//     info.type = AssetInfo::AssetType::Mesh;
+//
+//     metadata.insert({info.id, info});
+//
+//     meshes.try_emplace(info.id);
+//     Mesh& mesh = meshes.at(info.id);
+//     mesh.vertices = std::vector(vPtr, vPtr + vCnt);
+//     mesh.indices = std::vector(iPtr, iPtr + iCnt);
+//     mesh.bounds = bounds;
+//
+//     meshAllocator.upload(info.id, mesh);
+// }
+//
+// void AssetDatabase::loadInternalMeshes()
+// {
+//     using namespace mesh_primitives;
+//     loadInternalMesh("cube", CUBE_VERTICES, 24, CUBE_INDICES, 36, CUBE_BOUNDS);
+//     loadInternalMesh("quad", QUAD_VERTICES, 4, QUAD_INDICES, 6, QUAD_BOUNDS);
+// }

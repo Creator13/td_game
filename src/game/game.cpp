@@ -2,6 +2,7 @@
 
 #include "engine.h"
 #include "assets/AssetDatabase.h"
+#include "assets/Shader.h"
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
@@ -9,11 +10,12 @@
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "rendering/EcsRendering.h"
+#include "rendering/Mesh.h"
 
 using namespace math;
 using namespace core;
 using namespace core::ecs;
-using namespace assets;
+using namespace core::assets;
 
 struct RotateData
 {
@@ -35,12 +37,11 @@ void engine::register_flecs(const flecs::world& world)
     transform::add(cam, camPos, quaternion::eulerAngles(-25, 0, 0));
     cam.set<FreeLookCameraControlData>({.targetSpeed = 5, .speedMultiplier = 1.75f});
 
-    const AssetId bunny = AssetDatabase::loadMeshFromFile("mesh/bunny.glb");
-    const AssetId basicShader = AssetDatabase::loadShaderFromFiles("shaders/basic.vert", "shaders/basic.frag");
-    AssetId uniformColorShader = AssetDatabase::loadShaderFromFiles("shaders/basic.vert", "shaders/color.frag");
-    AssetId cubeMesh = idFromPath("@internal/mesh/cube");
+    const AssetRef<Mesh> bunny = Mesh::loadFromFile("mesh/bunny.glb");
+    const AssetRef<Shader> basicShader = Shader::fromFiles("shaders/basic.vert", "shaders/basic.frag");
+    const AssetRef<Shader> uniformColorShader = Shader::fromFiles("shaders/basic.vert", "shaders/color.frag");
 
-    Texture tex = Texture::loadFromFile("tex/uv_checker.png");
+    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", false);
 
     constexpr int count = 50;
     for (int i = 0; i < count; i++)
@@ -48,22 +49,22 @@ void engine::register_flecs(const flecs::world& world)
         for (int j = 0; j < count; j++)
         {
             auto e = world.entity(fmt::format("cube {}-{}", i, j).c_str())
-                .set<MeshRenderData>({.meshId = bunny, .shaderId = basicShader})
+                .set<MeshRenderData>({.mesh = bunny, .shader = basicShader})
                 .set<MaterialData>({ })
-                .set<RotateData>({((i % 4) - 2) * 30.f});
+                .set<RotateData>({((i % 5) - 2) * 30.f});
             transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(.2f));
         }
     }
 
     world.system<HierarchyTransform, const RotateData>("Rotating")
-        .each([](flecs::iter& it, size_t i, HierarchyTransform& transform, const RotateData& rotation)
+        .each([](flecs::iter& it, usize i, HierarchyTransform& transform, const RotateData& rotation)
         {
             transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, rotation.angularVelocity * time::delta()));
         });
 
     world.system<HierarchyTransform, FreeLookCameraControlData, const GlobalInput>("Camera control")
         .with<ActiveCamera>()
-        .each([](flecs::iter& it, size_t i, HierarchyTransform& transform, FreeLookCameraControlData& camControl, const GlobalInput& input)
+        .each([](flecs::iter& it, usize i, HierarchyTransform& transform, FreeLookCameraControlData& camControl, const GlobalInput& input)
         {
             const flecs::entity e = it.entity(i);
             const float deltaTime = it.delta_time();

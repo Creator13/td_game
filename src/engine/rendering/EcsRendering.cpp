@@ -24,7 +24,6 @@ namespace
 
     constexpr bool isAABBInFrustum(const AABB& aabb, const frustum& frustum)
     {
-        ZoneScoped;
         if (isAABBBehindPlane(aabb, frustum.near)) return false;
         if (isAABBBehindPlane(aabb, frustum.far)) return false;
         if (isAABBBehindPlane(aabb, frustum.left)) return false;
@@ -94,7 +93,9 @@ rendering::rendering(flecs::world& ecs)
         .event(flecs::OnSet)
         .each([](flecs::entity e, const MeshRenderData& renderData)
         {
-            const AABB& bounds = assets::AssetDatabase::getMeshView(renderData.meshId).bounds;
+            // TODO find a mechanism that verifies whether actual mesh reference changes and modify bounds accordingly
+            //  Could be as simple as wrapper methods that all call e.modified()
+            const AABB& bounds = renderData.mesh->bounds;
             e.set<BoxBoundsData>({bounds});
         });
 
@@ -137,6 +138,7 @@ rendering::rendering(flecs::world& ecs)
 
                     const mat4& worldMat = transform.getWorldMatrix();
 
+                    // TODO caching world bounds is a decently easy optimization
                     AABB worldBounds;
                     worldBounds.center = (worldMat * vec4(bounds.localBounds.center, 1.0f)).xyz();
                     worldBounds.halfExtents.x =
@@ -201,8 +203,8 @@ bool rendering::submitRenderable(const RendererSingleton& renderer, const Hierar
     if (renderData.cullReason != CullReason::None) return false;
 
     graphics::Renderable renderable;
-    renderable.meshId = renderData.meshId;
-    renderable.shaderId = renderData.shaderId;
+    renderable.mesh = renderData.mesh;
+    renderable.shader = renderData.shader;
     renderable.modelMatrix = transform.getWorldMatrix();
     renderable.material = {mat.color};
 

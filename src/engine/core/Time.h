@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "datatype.h"
 
 namespace core::time
 {
@@ -8,7 +8,7 @@ namespace core::time
     void init();
 
     float delta();
-    uint64_t ticks();
+    u64 ticks();
     float sinceLoad();
 
     float onePercent();

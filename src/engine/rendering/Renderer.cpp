@@ -2,11 +2,11 @@
 
 #include <glad/glad.h>
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
 
-#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/TracyOpenGL.hpp"
 #include "core/Constants.h"
 #include "rendering/Mesh.h"
-#include "rendering/shader.h"
+#include "../assets/Shader.h"
 
 using namespace math;
 using namespace graphics;
@@ -42,14 +42,28 @@ void Renderer::render()
 
     mat4 vpMatrix = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
 
-    for (size_t i = 0; i < renderables.size(); i++)
+    gl::program_t latestProgram;
+    gl::vert_arr_t latestVao;
+
+    for (usize i = 0; i < renderables.size(); i++)
     {
         const Renderable& rObj = renderables[i];
-        shader::use(assets::AssetDatabase::getShaderProgram(rObj.shaderId));
 
-        const MeshGpuHandle& handle = assets::AssetDatabase::getMeshGpuHandle(rObj.meshId);
+        if (rObj.shader->programId != latestProgram)
+        {
+            glUseProgram(rObj.shader->programId);
+            latestProgram = rObj.shader->programId;
+        }
 
-        glBindVertexArray(handle.vao);
+        // Store handle straight in Renderable struct
+        const gpu::MeshGpuHandle& handle = rObj.mesh->gpuHandle;
+
+        if (handle.vao != latestVao)
+        {
+            glBindVertexArray(handle.vao);
+            latestVao = handle.vao;
+        }
+
         glUniformMatrix4fv(100, 1, GL_FALSE, rObj.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
 
@@ -58,4 +72,3 @@ void Renderer::render()
 
     renderables.clear();
 }
-

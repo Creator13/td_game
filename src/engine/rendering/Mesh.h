@@ -1,13 +1,23 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
 
+#include "assets/AssetRef.h"
+#include "assets/AssetTraits.h"
 #include "math/geom.h"
 #include "math/vec3.h"
+#include "rendering/MeshGpuHandle.h"
 
 namespace core
 {
+    struct Mesh;
+
+    template<>
+    struct assets::AssetTraits<Mesh>
+    {
+        static constexpr AssetType type = AssetType::Mesh;
+    };
+
     struct Vertex
     {
         math::vec3 position;
@@ -16,18 +26,21 @@ namespace core
 
     struct Mesh
     {
+        ~Mesh();
+
         std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
+        std::vector<u32> indices;
 
         math::AABB bounds;
+        gpu::MeshGpuHandle gpuHandle;
 
         void recalculateBounds();
-    };
 
-    struct MeshGpuHandle
-    {
-        uint32_t vao = 0, vbo = 0, ebo = 0;
-        uint32_t indexCount = 0;
+        static assets::AssetRef<Mesh> loadFromFile(std::string_view path);
+        static assets::AssetRef<Mesh> create();
+
+    private:
+        Mesh() = default;
     };
 
     template<std::ranges::input_range R>

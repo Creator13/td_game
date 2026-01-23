@@ -4,8 +4,10 @@
 #include <vector>
 
 #include "assets/AssetDatabase.h"
+#include "assets/Shader.h"
 #include "math/mat4.h"
 #include "rendering/Color.h"
+#include "rendering/Mesh.h"
 
 class GLFWwindow;
 
@@ -19,8 +21,8 @@ namespace graphics
     struct Renderable
     {
         math::mat4 modelMatrix;
-        assets::AssetId meshId;
-        assets::AssetId shaderId;
+        core::assets::AssetRef<core::Mesh> mesh;
+        core::assets::AssetRef<core::Shader> shader;
         MaterialData material;
     };
 

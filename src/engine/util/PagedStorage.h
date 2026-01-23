@@ -11,13 +11,13 @@ namespace util
     template<typename T, size_t PageSize>
     class PagedStorage
     {
-        struct StoragePage
+        struct Page
         {
             alignas(T) std::byte storage[sizeof(T) * PageSize];
             std::bitset<PageSize> occupied {};
         };
 
-        std::vector<std::unique_ptr<StoragePage>> pages;
+        std::vector<std::unique_ptr<Page>> pages;
 
         size_t currentPageIndex = 0;
         size_t nextElementIndex = 0;
@@ -50,6 +50,8 @@ namespace util
         /// Copy-insertion of an existing element.
         T& insert(const T& value);
 
+        T* allocate_uninitialized();
+
         /// Checks if the element at given index exists and is currently alive.
         bool has_at(size_t index) const;
 
@@ -78,6 +80,8 @@ namespace util
         /// of visited slots.
         float fragmentation() const;
     };
+
+
 }
 
 #include "PagedStorage.inl"

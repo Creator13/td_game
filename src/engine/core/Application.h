@@ -56,6 +56,6 @@ namespace core
         GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;
 
-        uint32_t currentFrame = 0;
+        u32 currentFrame = 0;
     };
 }

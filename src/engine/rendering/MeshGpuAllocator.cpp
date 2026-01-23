@@ -1,0 +1,46 @@
+#include "MeshGpuAllocator.h"
+
+#include <glad/glad.h>
+
+core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMesh(const Mesh& mesh)
+{
+    gl::buffer_t vbo, ebo;
+    gl::vert_arr_t vao;
+
+    glCreateVertexArrays(1, &vao.id);
+
+    glCreateBuffers(1, &vbo.id);
+    glNamedBufferStorage(vbo, mesh.vertices.size() * sizeof(Vertex), mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
+
+    glCreateBuffers(1, &ebo.id);
+    glNamedBufferStorage(ebo, mesh.indices.size() * sizeof(uint32_t), mesh.indices.data(), GL_DYNAMIC_STORAGE_BIT);
+
+    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(Vertex));
+    glVertexArrayElementBuffer(vao, ebo);
+
+    // Vertex.position
+    glEnableVertexArrayAttrib(vao, 0);
+    glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+    glVertexArrayAttribBinding(vao, 0, 0);
+
+    // Vertex.normal
+    glEnableVertexArrayAttrib(vao, 1);
+    glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+    glVertexArrayAttribBinding(vao, 1, 0);
+
+    MeshGpuHandle handle;
+    handle.vao = vao;
+    handle.vbo = vbo;
+    handle.ebo = ebo;
+    handle.indexCount = mesh.indices.size();
+    return handle;
+}
+
+void core::gpu::MeshGpuAllocator::destroyMesh(MeshGpuHandle& handle)
+{
+    glDeleteVertexArrays(1, &handle.vao.id);
+    glDeleteBuffers(1, &handle.vbo.id);
+    glDeleteBuffers(1, &handle.ebo.id);
+
+    handle = MeshGpuHandle(); // Null the old handle
+}
