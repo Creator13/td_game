@@ -7,10 +7,20 @@
 #include "core/Constants.h"
 #include "rendering/Mesh.h"
 #include "../assets/Shader.h"
+#include "rendering/Material.h"
 
 using namespace math;
 using namespace graphics;
 using namespace core;
+
+Renderer::Renderer()
+{
+    glCreateSamplers(1, &sampler);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
 
 void Renderer::setClearColor(Color c)
 {
@@ -42,30 +52,22 @@ void Renderer::render()
 
     mat4 vpMatrix = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
 
-    gl::program_t latestProgram;
-    gl::vert_arr_t latestVao;
-
     for (usize i = 0; i < renderables.size(); i++)
     {
         const Renderable& rObj = renderables[i];
 
-        if (rObj.shader->programId != latestProgram)
-        {
-            glUseProgram(rObj.shader->programId);
-            latestProgram = rObj.shader->programId;
-        }
+        glUseProgram(rObj.material->shader->programId);
 
-        // Store handle straight in Renderable struct
         const gpu::MeshGpuHandle& handle = rObj.mesh->gpuHandle;
+        glBindVertexArray(handle.vao);
 
-        if (handle.vao != latestVao)
-        {
-            glBindVertexArray(handle.vao);
-            latestVao = handle.vao;
-        }
+        glBindTextureUnit(0, rObj.material->albedo->getGlBindPoint());
+        glBindSampler(0, sampler);
 
         glUniformMatrix4fv(100, 1, GL_FALSE, rObj.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
+
+        glUniform1i(110, 0);
 
         glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }

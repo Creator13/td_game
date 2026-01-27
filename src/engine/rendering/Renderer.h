@@ -9,6 +9,10 @@
 #include "rendering/Color.h"
 #include "rendering/Mesh.h"
 
+namespace core {
+    struct Material;
+}
+
 class GLFWwindow;
 
 namespace graphics
@@ -22,8 +26,7 @@ namespace graphics
     {
         math::mat4 modelMatrix;
         core::assets::AssetRef<core::Mesh> mesh;
-        core::assets::AssetRef<core::Shader> shader;
-        MaterialData material;
+        core::Material* material;
     };
 
     static_assert(std::is_trivially_destructible_v<Renderable>);
@@ -37,7 +40,11 @@ namespace graphics
         math::mat4 projectionMatrix;
         math::mat4 viewMatrix;
 
+        core::gl::Uint sampler;
+
     public:
+        Renderer();
+
         void setClearColor(Color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);

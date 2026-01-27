@@ -8,6 +8,8 @@
 #include "math/geom.h"
 #include "math/mat4.h"
 #include "rendering/Color.h"
+#include "rendering/Material.h"
+#include "rendering/Renderer.h"
 
 namespace core
 {
@@ -41,7 +43,8 @@ namespace core::ecs
 
     struct CameraRenderData
     {
-        graphics::Color clearColor = graphics::Color(156/255.f, 112/255.f, 139/255.f);
+        graphics::Color clearColor = graphics::Color::blue;
+        // graphics::Color clearColor = graphics::Color(156/255.f, 112/255.f, 139/255.f);
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewMatrix = math::mat4::identity;
     };
@@ -59,7 +62,7 @@ namespace core::ecs
     struct MeshRenderData
     {
         assets::AssetRef<Mesh> mesh;
-        assets::AssetRef<Shader> shader;
+        Material* material;
         CullReason cullReason;
     };
 
@@ -93,6 +96,6 @@ namespace core::ecs
         static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData);
         static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
         static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
-        static bool submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData, const MaterialData& mat);
+        static bool submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData);
     };
 }

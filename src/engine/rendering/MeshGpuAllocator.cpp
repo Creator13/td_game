@@ -28,6 +28,11 @@ core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMesh(const Mesh& mes
     glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
     glVertexArrayAttribBinding(vao, 1, 0);
 
+    // Vertex.uv0
+    glEnableVertexArrayAttrib(vao, 2);
+    glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv0));
+    glVertexArrayAttribBinding(vao, 2, 0);
+
     MeshGpuHandle handle;
     handle.vao = vao;
     handle.vbo = vbo;

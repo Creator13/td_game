@@ -77,8 +77,15 @@ namespace
                 break;
         }
 
-        spdlog::log(level, "OpenGL debug - [{}] (t:{}|src:{}) : {}",
-            id, glDebugEnumToString(type), glDebugEnumToString(source), msg);
+        if (level == spdlog::level::critical)
+        {
+            ENGINE_ASSERT(false, "OpenGL debug - [{}] (t:{}|src:{}) : {}", id, glDebugEnumToString(type), glDebugEnumToString(source), msg);
+        }
+        else
+        {
+            spdlog::log(level, "OpenGL debug - [{}] (t:{}|src:{}) : {}",
+                id, glDebugEnumToString(type), glDebugEnumToString(source), msg);
+        }
     }
 }
 
@@ -94,10 +101,12 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
     _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
     assets::bindAssetDatabase(*_assetDb);
+    _renderer = std::make_unique<graphics::Renderer>();
     _debugRenderer = std::make_unique<debug::DebugRenderer>();
     debug::bindDebugRenderer(*_debugRenderer);
 
@@ -125,7 +134,7 @@ int Application::run()
             glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
         }
 
-        _renderer.render();
+        _renderer->render();
         _debugRenderer->render();
 
         glfwSwapBuffers(_windowPtr);
@@ -238,7 +247,7 @@ void Application::initFlecs()
     _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
 
     _ecs.set<ecs::WindowSingleton>({&_windowState});
-    _ecs.set<ecs::RendererSingleton>({&_renderer});
+    _ecs.set<ecs::RendererSingleton>({_renderer.get()});
     _ecs.set<ecs::GlobalInput>({&_inputState});
 }
 

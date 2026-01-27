@@ -22,6 +22,7 @@ namespace core
     {
         math::vec3 position;
         math::vec3 normal;
+        math::vec2 uv0;
     };
 
     struct Mesh

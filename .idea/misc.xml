@@ -4,15 +4,5 @@
     <option name="pythonIntegrationState" value="YES" />
   </component>
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
-  <component name="CidrRootsConfiguration">
-    <sourceRoots>
-      <file path="$PROJECT_DIR$/src" />
-    </sourceRoots>
-    <excludeRoots>
-      <file path="$PROJECT_DIR$/build" />
-      <file path="$PROJECT_DIR$/build_clang" />
-      <file path="$PROJECT_DIR$/build_msvc" />
-    </excludeRoots>
-  </component>
-  <component name="WestSettings">{}</component>
+  <component name="WestSettings"><![CDATA[{}]]></component>
 </project>

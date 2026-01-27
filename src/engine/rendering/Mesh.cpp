@@ -85,7 +85,8 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
             {
                 Vertex v;
                 v.position = transformGltfToEngineCoordinateSpace(pos);
-                v.normal = vec3(0.0f, 0.0f, 0.0f);
+                v.normal = vec3::zero;
+                v.uv0 = vec2::one;
                 out.vertices[vertex_base + index] = v;
             });
 
@@ -111,6 +112,17 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
             const fastgltf::Accessor& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
             out.indices.resize(indexAccessor.count);
             fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, out.indices.data());
+        }
+
+        auto texcoordAttribute = primitive.findAttribute("TEXCOORD_0");
+        if (texcoordAttribute)
+        {
+            const fastgltf::Accessor& texAccessor = asset.accessors[texcoordAttribute->accessorIndex];
+            fastgltf::iterateAccessorWithIndex<vec2>(asset, texAccessor,
+                [&](vec2 texcoord, size_t index)
+                {
+                    out.vertices[vertex_base+index].uv0 = texcoord;
+                });
         }
 
         vertex_base += count;

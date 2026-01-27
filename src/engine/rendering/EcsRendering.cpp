@@ -2,8 +2,8 @@
 
 #include <flecs.h>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
-#include "../../../build/relwithdeb/_deps/tracy-src/public/tracy/Tracy.hpp"
 #include "core/Constants.h"
 #include "core/Transform.h"
 #include "core/Window.h"
@@ -166,7 +166,7 @@ rendering::rendering(flecs::world& ecs)
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData, const MaterialData>("Render system")
+    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData>("Render system")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
@@ -181,11 +181,10 @@ rendering::rendering(flecs::world& ecs)
             {
                 auto f_transform = it.field<const HierarchyTransform>(1);
                 auto f_renderData = it.field<const MeshRenderData>(2);
-                auto f_material = it.field<const MaterialData>(3);
 
                 for (auto i : it)
                 {
-                    if (submitRenderable(renderer, f_transform[i], f_renderData[i], f_material[i]))
+                    if (submitRenderable(renderer, f_transform[i], f_renderData[i]))
                     {
                         rendered++;
                     }
@@ -197,16 +196,15 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(cullingSystem);
 }
 
-bool rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData, const MaterialData& mat)
+bool rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData)
 {
     // Do not render culled objects
     if (renderData.cullReason != CullReason::None) return false;
 
     graphics::Renderable renderable;
     renderable.mesh = renderData.mesh;
-    renderable.shader = renderData.shader;
+    renderable.material = renderData.material;
     renderable.modelMatrix = transform.getWorldMatrix();
-    renderable.material = {mat.color};
 
     renderer.ptr->submit(renderable);
     return true;

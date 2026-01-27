@@ -48,10 +48,10 @@ namespace core
         flecs::world _ecs;
         InputState _inputState;
         WindowState _windowState;
-        graphics::Renderer _renderer;
 
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         std::unique_ptr<debug::DebugRenderer> _debugRenderer = nullptr;
+        std::unique_ptr<graphics::Renderer> _renderer = nullptr;
 
         GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;
