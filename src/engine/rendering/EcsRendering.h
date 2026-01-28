@@ -43,8 +43,7 @@ namespace core::ecs
 
     struct CameraRenderData
     {
-        graphics::Color clearColor = graphics::Color::blue;
-        // graphics::Color clearColor = graphics::Color(156/255.f, 112/255.f, 139/255.f);
+        graphics::ColorLinear clearColor = graphics::ColorLinear::fromSrgb(graphics::Color(156/255.f, 112/255.f, 139/255.f));
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewMatrix = math::mat4::identity;
     };
@@ -64,12 +63,6 @@ namespace core::ecs
         assets::AssetRef<Mesh> mesh;
         Material* material;
         CullReason cullReason;
-    };
-
-    struct MaterialData
-    {
-        graphics::Color color;
-        // idk what to put here lol
     };
 
     struct BoxBoundsData

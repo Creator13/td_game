@@ -70,6 +70,8 @@ assets::AssetRef<Texture> Texture::create(uint32_t width, uint32_t height)
 
 AssetRef<Texture> Texture::loadFromFile(std::string_view path, bool readable)
 {
+    // stbi_set_flip_vertically_on_load(true);
+
     const auto fullPath = resolveResourcePath(path);
     std::optional<std::vector<u8>> fileData = file::readFileBinary(fullPath);
     if (!fileData)

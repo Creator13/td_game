@@ -140,5 +140,3 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     registerAsset(path, AssetType::Mesh, outMesh);
     return AssetRef(outMesh, id);
 }
-
-AssetRef<Mesh> Mesh::create() { }

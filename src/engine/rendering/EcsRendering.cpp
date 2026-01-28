@@ -58,8 +58,6 @@ namespace
             .member<uint64_t>("Shader id")
             .member<CullReason>("Culling reason");
 
-        ecs.component<MaterialData>();
-
         ecs.component<CameraRenderData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);

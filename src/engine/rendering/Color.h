@@ -1,7 +1,20 @@
 #pragma once
+#include "math/func.h"
 
 namespace graphics
 {
+    struct Color;
+
+    struct ColorLinear
+    {
+        float r, g, b, a;
+
+        constexpr ColorLinear() : r(0), g(0), b(0), a(0) { }
+        static constexpr ColorLinear fromSrgb(const Color& srgbColor);
+        static constexpr ColorLinear fromSrgb(float r, float g, float b, float a);
+        static constexpr ColorLinear fromSrgb(float r, float g, float b);
+    };
+
     struct Color
     {
         float r, g, b, a;
@@ -42,4 +55,47 @@ namespace graphics
     inline const Color Color::lightBlue (0.5f, 0.5f, 1.0f);
     inline const Color Color::darkBlue  (0.0f, 0.0f, 0.5f);
     // @formatter:on
+
+    constexpr float srgbToLinear(float x)
+    {
+        if (x <= 0.0f)
+            return 0.0f;
+        else if (x >= 1.0f)
+            return 1.0f;
+        else if (x < 0.04045f)
+            return x / 12.92f;
+        else
+            return math::pow((x + 0.055f) / 1.055f, 2.4f);
+    }
+
+
+    constexpr ColorLinear ColorLinear::fromSrgb(const Color& srgbColor)
+    {
+        ColorLinear result;
+        result.r = srgbToLinear(srgbColor.r);
+        result.g = srgbToLinear(srgbColor.g);
+        result.b = srgbToLinear(srgbColor.b);
+        result.a = srgbColor.a;
+        return result;
+    }
+
+    constexpr ColorLinear ColorLinear::fromSrgb(float r, float g, float b, float a)
+    {
+        ColorLinear result;
+        result.r = srgbToLinear(r);
+        result.g = srgbToLinear(g);
+        result.b = srgbToLinear(b);
+        result.a = a;
+        return result;
+    }
+
+    constexpr ColorLinear ColorLinear::fromSrgb(float r, float g, float b)
+    {
+        ColorLinear result;
+        result.r = srgbToLinear(r);
+        result.g = srgbToLinear(g);
+        result.b = srgbToLinear(b);
+        result.a = 1.f;
+        return result;
+    }
 }

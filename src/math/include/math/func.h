@@ -73,6 +73,11 @@ namespace math
         return std::log2(a);
     }
 
+    constexpr float pow(float a, float b)
+    {
+        return std::powf(a, b);
+    }
+
     constexpr float lerp(float a, float b, float t)
     {
         return a + (b - a) * t;

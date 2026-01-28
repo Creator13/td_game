@@ -12,6 +12,6 @@ namespace core
         assets::AssetRef<Shader> shader;
 
         assets::AssetRef<Texture> albedo;
-        graphics::Color baseColor;
+        graphics::ColorLinear baseColor;
     };
 }

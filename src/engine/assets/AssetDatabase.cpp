@@ -32,7 +32,10 @@ namespace
 }
 
 AssetDatabase::AssetDatabase(std::string_view resourceRoot)
-    : _rootPath(file::getExecutableDir() / resourceRoot) { }
+    : _rootPath(file::getExecutableDir() / resourceRoot)
+{
+
+}
 
 const AssetInfo& AssetDatabase::getAssetInfo(AssetId id)
 {

@@ -16,6 +16,7 @@ using namespace math;
 using namespace core;
 using namespace core::ecs;
 using namespace core::assets;
+using namespace graphics;
 
 struct RotateData
 {
@@ -40,17 +41,15 @@ void engine::register_flecs(const flecs::world& world)
     transform::add(cam, camPos, quaternion::eulerAngles(-25, 0, 0));
     cam.set<FreeLookCameraControlData>({.targetSpeed = 5, .speedMultiplier = 1.75f});
 
-    // const AssetRef<Mesh> bunny = Mesh::loadFromFile("mesh/bunny.glb");
-    const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/avacadoo.glb");
-    // const AssetRef<Shader> basicShader = Shader::fromFiles("shaders/basic.vert", "shaders/basic.frag");
-    // const AssetRef<Shader> uniformColorShader = Shader::fromFiles("shaders/basic.vert", "shaders/color.frag");
+    // const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
+    const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
     const AssetRef<Shader> texShader = Shader::fromFiles("shaders/textured.vert", "shaders/textured.frag");
 
-    AssetRef<Texture> tex = Texture::loadFromFile("tex/Avocado_baseColor.png", false);
+    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", false);
 
     mat.shader = texShader;
     mat.albedo = tex;
-    mat.baseColor = graphics::Color::darkGreen;
+    mat.baseColor = ColorLinear::fromSrgb(Color::darkGreen);
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)
@@ -59,9 +58,8 @@ void engine::register_flecs(const flecs::world& world)
         {
             auto e = world.entity(fmt::format("cube {}-{}", i, j).c_str())
                 .set<MeshRenderData>({.mesh = avocado, .material = &mat})
-                .set<MaterialData>({ })
                 .set<RotateData>({((i % 5) - 2) * 30.f});
-            transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(10.f));
+            transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
         }
     }
 

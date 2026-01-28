@@ -17,11 +17,6 @@ class GLFWwindow;
 
 namespace graphics
 {
-    struct MaterialData
-    {
-        Color color;
-    };
-
     struct Renderable
     {
         math::mat4 modelMatrix;
@@ -36,7 +31,7 @@ namespace graphics
         bool drawDebug = false;
 
         std::vector<Renderable> renderables;
-        Color clearColor = Color(0, 0, 0, 0);
+        ColorLinear clearColor = ColorLinear();
         math::mat4 projectionMatrix;
         math::mat4 viewMatrix;
 
@@ -45,7 +40,7 @@ namespace graphics
     public:
         Renderer();
 
-        void setClearColor(Color c);
+        void setClearColor(ColorLinear c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);
 
