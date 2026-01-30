@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 

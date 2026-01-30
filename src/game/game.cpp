@@ -45,7 +45,7 @@ void engine::register_flecs(const flecs::world& world)
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
     const AssetRef<Shader> texShader = Shader::fromFiles("shaders/textured.vert", "shaders/textured.frag");
 
-    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", false);
+    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
 
     mat.shader = texShader;
     mat.albedo = tex;

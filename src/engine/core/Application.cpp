@@ -1,6 +1,6 @@
 #include "Application.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
@@ -176,7 +176,7 @@ bool Application::createWindow(const WindowState& windowState)
 
     glfwSetFramebufferSizeCallback(_windowPtr, core::glfw_framebufferSizeCallback);
 
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
+    if (int version = gladLoadGL(glfwGetProcAddress); version == 0)
     {
         spdlog::error("Failed to initialize GLAD");
         return false;

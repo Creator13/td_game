@@ -1,7 +1,7 @@
 #include "datatype.h"
 
 #include <type_traits>
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 using namespace core;
 

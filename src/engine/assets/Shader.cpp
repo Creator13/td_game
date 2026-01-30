@@ -1,6 +1,6 @@
 #include "assets/Shader.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #include "assets/AssetRef.h"
 #include "assets/File.h"

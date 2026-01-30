@@ -1,6 +1,6 @@
 #include "core/Debug.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>

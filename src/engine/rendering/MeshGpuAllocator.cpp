@@ -1,6 +1,6 @@
 #include "MeshGpuAllocator.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMesh(const Mesh& mesh)
 {

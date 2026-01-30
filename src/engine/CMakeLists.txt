@@ -13,7 +13,6 @@ file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
 
 ## Vcpkg packages
 find_package(glfw3 CONFIG REQUIRED)
-find_package(glad CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
@@ -38,7 +37,7 @@ target_link_libraries(engine_core
         PUBLIC spdlog::spdlog
         PUBLIC $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>
         PUBLIC TracyClient
-        PRIVATE glad::glad
+        PRIVATE glad
         PRIVATE glfw
         PRIVATE xxHash::xxhash
         PRIVATE fastgltf::fastgltf

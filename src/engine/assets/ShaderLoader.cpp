@@ -2,7 +2,7 @@
 
 #include <filesystem>
 #include <string>
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <spdlog/spdlog.h>
 
 #include "assets/AssetRegistery.h"

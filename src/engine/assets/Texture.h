@@ -18,9 +18,42 @@ namespace core
         static constexpr AssetType type = AssetType::Texture;
     };
 
-    enum class TextureFormat
+    enum class TextureFormat : uint16_t
     {
-        sRGBA32, ARGB32, RGB24, DXT1, DXT5, RGBASingle, RGBADouble, RGBAHalf
+        Unknown = 0,
+
+        R8_UNORM,
+        RG8_UNORM,
+        RGBA8_UNORM,
+        RGBA8_SRGB,
+
+        R16_UNORM,
+        RG16_UNORM,
+        RGBA16_UNORM,
+
+        R16_FLOAT,
+        RG16_FLOAT,
+        RGBA16_FLOAT,
+        R32_FLOAT,
+        RGBA32_FLOAT,
+
+        R11G11B10_FLOAT,
+        RGB10A2_UNORM,
+
+        D16_UNORM,
+        D24_UNORM_S8_UINT,
+        D32_FLOAT,
+
+        BC1_RGB_UNORM,
+        BC1_RGB_SRGB,
+        BC3_RGBA_UNORM,
+        BC3_RGBA_SRGB,
+        BC4_UNORM,
+        BC5_UNORM,
+        BC6H_UFLOAT,
+        BC7_RGBA_UNORM,
+        BC7_RGBA_SRGB,
+        Count
     };
 
     struct Texture
@@ -35,25 +68,34 @@ namespace core
 
         // TODO things like editing (setPixel, apply)
 
-        static assets::AssetRef<Texture> create(u32 width, u32 height);
-        static assets::AssetRef<Texture> loadFromFile(std::string_view path, bool readable = true);
+        static assets::AssetRef<Texture> create(u32 width, u32 height, TextureFormat format);
+        static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable = true);
 
     private:
         Texture() = default;
 
-        Texture(u32 width, u32 height, TextureFormat format = TextureFormat::sRGBA32)
+        Texture(u32 width, u32 height, TextureFormat format)
             : _width(width), _height(height), _format(format) { }
 
         gl::texture_t _glBindPoint = 0;
 
         u32 _width = 0, _height = 0;
-        TextureFormat _format = TextureFormat::sRGBA32;
+        bool _genMipMaps = false;
+        TextureFormat _format = TextureFormat::Unknown;
 
         bool _isReadable = false;
         std::optional<assets::AssetId> _uid;
         std::optional<std::vector<u8>> _pixelData;
 
         void uploadPixelData() const;
-        void uploadExternalData(const uint8_t* pixelData) const;
+        void uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType) const;
     };
+
+    namespace texture_util
+    {
+        constexpr gl::enum_t getGlInternalFormat(TextureFormat format);
+        constexpr u8 getFormatChannelCount(TextureFormat format);
+        constexpr gl::enum_t getGlPixelDataType(TextureFormat format);
+        constexpr gl::enum_t getGlPixelFormat(TextureFormat format);
+    }
 }
