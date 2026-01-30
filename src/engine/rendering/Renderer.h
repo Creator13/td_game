@@ -31,7 +31,7 @@ namespace graphics
         bool drawDebug = false;
 
         std::vector<Renderable> renderables;
-        ColorLinear clearColor = ColorLinear();
+        Color clearColor = Color();
         math::mat4 projectionMatrix;
         math::mat4 viewMatrix;
 
@@ -40,7 +40,7 @@ namespace graphics
     public:
         Renderer();
 
-        void setClearColor(ColorLinear c);
+        void setClearColor(Color c);
         void setViewToClipMatrix(const math::mat4& m);
         void setWorldToViewMatrix(const math::mat4& m);
 

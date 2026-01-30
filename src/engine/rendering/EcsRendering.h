@@ -43,7 +43,7 @@ namespace core::ecs
 
     struct CameraRenderData
     {
-        graphics::ColorLinear clearColor = graphics::ColorLinear::fromSrgb(graphics::Color(156/255.f, 112/255.f, 139/255.f));
+        graphics::Color clearColor = graphics::Color::fromSrgb(graphics::SrgbColor(156/255.f, 112/255.f, 139/255.f));
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewMatrix = math::mat4::identity;
     };

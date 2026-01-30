@@ -177,17 +177,17 @@ void debug::bindDebugRenderer(DebugRenderer& renderer)
     globalDebugRenderer = &renderer;
 }
 
-void debug::drawLine(vec3 start, vec3 end, Color color)
+void debug::drawLine(vec3 start, vec3 end, SrgbColor color)
 {
     globalDebugRenderer->submitLine({start, color}, {end, color});
 }
 
-void debug::drawRay(vec3 origin, vec3 direction, Color color)
+void debug::drawRay(vec3 origin, vec3 direction, SrgbColor color)
 {
     globalDebugRenderer->submitLine({origin, color}, {origin + direction, color});
 }
 
-void debug::drawPlane(plane plane, Color color) { }
+void debug::drawPlane(plane plane, SrgbColor color) { }
 void debug::drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera)
 {
 

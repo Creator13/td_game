@@ -44,11 +44,11 @@ void engine::register_flecs(const flecs::world& world)
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
     const AssetRef<Shader> texShader = Shader::fromFiles("shaders/textured.vert", "shaders/textured.frag");
 
-    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checkerss.png", TextureFormat::RGBA8_SRGB, false);
+    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
 
     mat.shader = texShader;
     mat.albedo = tex;
-    mat.baseColor = ColorLinear::fromSrgb(Color::darkGreen);
+    mat.baseColor = Color::fromSrgb(SrgbColor::darkGreen);
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)

@@ -22,7 +22,7 @@ Renderer::Renderer()
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-void Renderer::setClearColor(ColorLinear c)
+void Renderer::setClearColor(Color c)
 {
     clearColor = c;
 }

@@ -15,7 +15,7 @@ namespace core::debug
     struct DebugVertex
     {
         math::vec3 pos;
-        graphics::Color color;
+        graphics::SrgbColor color;
     };
 
     struct DebugRenderer
@@ -44,9 +44,9 @@ namespace core::debug
 
     void bindDebugRenderer(DebugRenderer& renderer);
 
-    void drawLine(math::vec3 start, math::vec3 end, graphics::Color color);
-    void drawRay(math::vec3 origin, math::vec3 direction, graphics::Color color);
-    void drawPlane(math::plane, graphics::Color color);
+    void drawLine(math::vec3 start, math::vec3 end, graphics::SrgbColor color);
+    void drawRay(math::vec3 origin, math::vec3 direction, graphics::SrgbColor color);
+    void drawPlane(math::plane, graphics::SrgbColor color);
     void drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera);
 }
 
