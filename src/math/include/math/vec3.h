@@ -22,7 +22,7 @@ namespace math
         constexpr bool operator!=(const vec3& rhs) const noexcept;
 
         constexpr float sqrLength() const noexcept;
-        constexpr float length() const noexcept;
+        MATH_CONSTEXPR_CMATH inline float length() const noexcept;
 
         constexpr vec2 xy() const noexcept;
         constexpr vec2 xz() const noexcept;
@@ -132,12 +132,12 @@ namespace math
         return x * x + y * y + z * z;
     }
 
-    constexpr float vec3::length() const noexcept
+    MATH_CONSTEXPR_CMATH inline float vec3::length() const noexcept
     {
         return sqrt(sqrLength());
     }
 
-    constexpr  vec3 normalize(vec3 in) noexcept
+    MATH_CONSTEXPR_CMATH inline vec3 normalize(vec3 in) noexcept
     {
         const float sqrLength = in.sqrLength();
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec3::zero;
@@ -148,7 +148,7 @@ namespace math
         return (to - from).sqrLength();
     }
 
-    constexpr float distance(vec3 from, vec3 to) noexcept
+    MATH_CONSTEXPR_CMATH inline float distance(vec3 from, vec3 to) noexcept
     {
         return (to - from).length();
     }
@@ -199,26 +199,26 @@ namespace math
 
     /// Component-wise min function; returns a vector that contains the minimum value for each corresponding value of
     /// the two input vectors.
-    constexpr vec3 comptMin(vec3 a, vec3 b) noexcept
+    MATH_CONSTEXPR_CMATH inline vec3 comptMin(vec3 a, vec3 b) noexcept
     {
         return vec3{min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
     }
 
     /// Component-wise max function; returns a vector that contains the maximum value for each corresponding value of
     /// the two input vectors.
-    constexpr vec3 comptMax(vec3 a, vec3 b) noexcept
+    MATH_CONSTEXPR_CMATH inline vec3 comptMax(vec3 a, vec3 b) noexcept
     {
         return vec3{max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
     }
 
     /// Finds the maximum value amongst the components of the vector.
-    constexpr float max(vec3 in) noexcept
+    MATH_CONSTEXPR_CMATH inline float max(vec3 in) noexcept
     {
         return max(in.x, max(in.y, in.z));
     }
 
     /// Finds the minimum value amongst the components of the vector.
-    constexpr float min(vec3 in) noexcept
+    MATH_CONSTEXPR_CMATH inline float min(vec3 in) noexcept
     {
         return min(in.x, min(in.y, in.z));
     }

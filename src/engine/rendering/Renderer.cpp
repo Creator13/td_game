@@ -6,7 +6,7 @@
 
 #include "core/Constants.h"
 #include "rendering/Mesh.h"
-#include "../assets/Shader.h"
+#include "assets/Shader.h"
 #include "rendering/Material.h"
 
 using namespace math;

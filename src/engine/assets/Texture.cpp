@@ -38,19 +38,7 @@ namespace
 
 Texture::~Texture()
 {
-    // TODO clean up
-}
-
-void Texture::uploadPixelData() const
-{
-    ENGINE_ASSERT(_isReadable, "Cannot upload pixel data when data is not available in CPU memory (texture is not marked readable).");
-    uploadExternalData(_pixelData->data(), texture_util::getGlPixelFormat(_format), texture_util::getGlPixelDataType(_format));
-}
-
-void Texture::uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType) const
-{
-    glTextureSubImage2D(_glBindPoint, 0, 0, 0, _width, _height, pixelFormat, pixelType, pixelData);
-    glGenerateTextureMipmap(_glBindPoint);
+    glDeleteTextures(1, &_glBindPoint.id);
 }
 
 AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat format)
@@ -86,7 +74,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
         fileData.value().data(),
         static_cast<int>(fileData.value().size()),
         &width, &height, &channelsInFile,
-        texture_util::getFormatChannelCount(format)); // TODO forced 4 channels, this should be configurable with TextureFormat (but that opens a whole can of worms on conversions)
+        texture_util::getChannelCountInFormat(format));
 
     Texture* outTexture = textureStorage.allocate_uninitialized();
     ::new(outTexture) Texture(width, height, format);
@@ -97,7 +85,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     if (!readable)
     {
         outTexture->_pixelData = std::nullopt;
-        outTexture->uploadExternalData(decodedPixelData, texture_util::getGlPixelFormat(format), texture_util::getGlPixelDataType(format));
+        outTexture->uploadExternalData(decodedPixelData, texture_util::getGlPixelFormat(format), texture_util::getGlPixelDataType(format), true);
     }
     else
     {
@@ -109,6 +97,22 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
 
     const AssetId id = registerAsset(path, AssetType::Texture, outTexture);
     return AssetRef(outTexture, id);
+}
+
+void Texture::uploadPixelData() const
+{
+    ENGINE_ASSERT(_isReadable, "Cannot upload pixel data when data is not available in CPU memory (texture is not marked readable).");
+    uploadExternalData(_pixelData->data(), texture_util::getGlPixelFormat(_format), texture_util::getGlPixelDataType(_format), _genMipMaps);
+}
+
+void Texture::uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const
+{
+    glTextureSubImage2D(_glBindPoint, 0, 0, 0, _width, _height, pixelFormat, pixelType, pixelData);
+
+    if (genMipMaps)
+    {
+        glGenerateTextureMipmap(_glBindPoint);
+    }
 }
 
 constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
@@ -137,6 +141,7 @@ constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
             return GL_RG16F;
         case TextureFormat::RGBA16_FLOAT:
             return GL_RGBA16F;
+
         case TextureFormat::R32_FLOAT:
             return GL_R32F;
         case TextureFormat::RGBA32_FLOAT:
@@ -177,11 +182,10 @@ constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
-            return 0; // Unreachable post-assert
     }
 }
 
-constexpr u8 texture_util::getFormatChannelCount(TextureFormat format)
+constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
 {
     switch (format)
     {
@@ -264,13 +268,11 @@ constexpr gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
         case TextureFormat::BC7_RGBA_UNORM:
         case TextureFormat::BC7_RGBA_SRGB:
             ENGINE_ASSERT(false, "Illegal call to get GL pixel data type for a compressed texture format (should not be interpreting compressed data as uncompressed pixels)");
-            return 0; // Unreachable post-assert
 
         case TextureFormat::Count:
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
-            return 0; // Unreachable post-assert
     }
 }
 
@@ -315,12 +317,10 @@ constexpr gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
         case TextureFormat::BC7_RGBA_UNORM:
         case TextureFormat::BC7_RGBA_SRGB:
             ENGINE_ASSERT(false, "Illegal call to get GL pixel format for a compressed texture format (should not be interpreting compressed data as uncompressed pixels)");
-            return 0; // Unreachable post-assert
 
         case TextureFormat::Count:
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format.");
-            return 0; // Unreachable post-assert
     }
 }

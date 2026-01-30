@@ -21,7 +21,7 @@ namespace math
         constexpr bool operator!=(const vec4& rhs) const noexcept;
 
         constexpr float sqrLength() const noexcept;
-        constexpr float length() const noexcept;
+        MATH_CONSTEXPR_CMATH inline float length() const noexcept;
 
         constexpr vec3 xyz() const noexcept;
         constexpr vec2 xy() const noexcept;
@@ -125,12 +125,12 @@ namespace math
         return x * x + y * y + z * z + w * w;
     }
 
-    constexpr float vec4::length() const noexcept
+    MATH_CONSTEXPR_CMATH inline float vec4::length() const noexcept
     {
         return sqrt(sqrLength());
     }
 
-    constexpr vec4 normalize(vec4 in) noexcept
+    MATH_CONSTEXPR_CMATH inline vec4 normalize(vec4 in) noexcept
     {
         const float sqrLength = in.sqrLength();
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec4::zero;
@@ -146,12 +146,12 @@ namespace math
         return a + (b - a) * t;
     }
 
-    constexpr float max(vec4 in) noexcept
+    MATH_CONSTEXPR_CMATH inline float max(vec4 in) noexcept
     {
         return max(max(in.x, in.y), max(in.z, in.w));
     }
 
-    constexpr float min(vec4 in) noexcept
+    MATH_CONSTEXPR_CMATH inline float min(vec4 in) noexcept
     {
         return min(min(in.x, in.y), min(in.z, in.w));
     }

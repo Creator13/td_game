@@ -4,23 +4,23 @@
 #include <cmath>
 #include <cstdint>
 
+#include "math/_platform.h"
+
 namespace math
 {
     constexpr float EPSILON = 1e-5f;
 
-    constexpr float sqrt(float val)
+    MATH_CONSTEXPR_CMATH inline float sqrt(float val)
     {
         return std::sqrt(val);
     }
 
-    template<typename T>
-    constexpr T min(T a, T b)
+    constexpr auto min(auto a, auto b)
     {
         return a < b ? a : b;
     }
 
-    template<typename T>
-    constexpr T max(T a, T b)
+    constexpr auto max(auto a, auto b)
     {
         return a > b ? a : b;
     }
@@ -38,44 +38,44 @@ namespace math
         return abs(a - b) < epsilon;
     }
 
-    constexpr float floor(float in)
+    MATH_CONSTEXPR_CMATH inline float floor(float in)
     {
         return std::floor(in);
     }
 
-    constexpr int floorToInt(float in)
+    MATH_CONSTEXPR_CMATH inline int floorToInt(float in)
     {
         return static_cast<int>(std::floor(in));
     }
 
-    constexpr float ceil(float in)
+    MATH_CONSTEXPR_CMATH inline float ceil(float in)
     {
         return std::ceil(in);
     }
 
-    constexpr int ceilToInt(float in)
+    MATH_CONSTEXPR_CMATH inline int ceilToInt(float in)
     {
         return static_cast<int>(std::ceil(in));
     }
 
-    constexpr float frac(float a)
+    MATH_CONSTEXPR_CMATH inline float frac(float a)
     {
         return a - floor(a);
     }
 
-    constexpr float exp(float a)
+    MATH_CONSTEXPR_CMATH inline float exp(float a)
     {
         return std::exp(a);
     }
 
-    constexpr float log2(float a)
+    MATH_CONSTEXPR_CMATH inline float log2(float a)
     {
         return std::log2(a);
     }
 
-    constexpr float pow(float a, float b)
+    MATH_CONSTEXPR_CMATH inline float pow(float a, float b)
     {
-        return std::powf(a, b);
+        return std::pow(a, b);
     }
 
     constexpr float lerp(float a, float b, float t)

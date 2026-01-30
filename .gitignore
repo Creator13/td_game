@@ -92,6 +92,7 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 ### CUSTOM ADDITIONS
-build/
-build_clang/
-build_msvc/
+/build/
+/build_clang/
+/build_msvc/
+/build_gcc/

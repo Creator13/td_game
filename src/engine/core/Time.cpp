@@ -1,6 +1,5 @@
 #include "core/Time.h"
 
-#define NOMINMAX
 #include <plf_nanotimer.h>
 #include "math/func.h"
 
@@ -9,7 +8,6 @@ namespace core::time
     namespace
     {
         constexpr uint32_t FRAMETIME_AGG_SIZE = 256;
-        constexpr uint32_t ONE_PERCENT_SIZE = FRAMETIME_AGG_SIZE / 100 + 1;
 
         struct GameTime
         {
@@ -76,7 +74,7 @@ namespace core::time
             float max = 0;
             for (uint32_t i = 0; i < FRAMETIME_AGG_SIZE; i++)
             {
-                max = math::max<float>(max, aggregator[i]);
+                max = math::max(max, aggregator[i]);
             }
             return max;
         }

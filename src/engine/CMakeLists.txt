@@ -18,6 +18,7 @@ find_package(xxHash CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(flecs CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(cpptrace CONFIG REQUIRED)
 
 ## Tracy
 FetchContent_Declare(
@@ -44,6 +45,7 @@ target_link_libraries(engine_core
         PRIVATE stb_image
         PRIVATE magic_enum::magic_enum
         PRIVATE misc_headers
+        PRIVATE cpptrace::cpptrace
 )
 
 ## Copy engine resources to bin directory

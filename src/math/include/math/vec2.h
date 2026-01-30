@@ -19,7 +19,7 @@ namespace math
         constexpr bool operator!=(const vec2& rhs) const noexcept;
 
         constexpr float sqrLength() const noexcept;
-        constexpr float length() const noexcept;
+        MATH_CONSTEXPR_CMATH inline float length() const noexcept;
 
         static const vec2 zero, one;
         static const vec2 up, down, left, right;
@@ -110,12 +110,12 @@ namespace math
         return x * x + y * y;
     }
 
-    constexpr float vec2::length() const noexcept
+    MATH_CONSTEXPR_CMATH inline float vec2::length() const noexcept
     {
         return sqrt(sqrLength());
     }
 
-    constexpr vec2 normalize(vec2 in) noexcept
+    MATH_CONSTEXPR_CMATH inline vec2 normalize(vec2 in) noexcept
     {
         float sqrLength = in.sqrLength();
         return sqrLength > EPSILON ? in / sqrt(sqrLength) : vec2::zero;
@@ -126,7 +126,7 @@ namespace math
         return (to - from).sqrLength();
     }
 
-    constexpr float distance(vec2 from, vec2 to) noexcept
+    MATH_CONSTEXPR_CMATH inline float distance(vec2 from, vec2 to) noexcept
     {
         return (to - from).length();
     }

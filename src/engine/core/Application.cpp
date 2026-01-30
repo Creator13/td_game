@@ -217,7 +217,7 @@ void Application::initFlecs()
     flecs::log::enable_colors(false);
 #endif
 
-    const uint32_t nThreads = std::thread::hardware_concurrency();
+    const u32 nThreads = std::thread::hardware_concurrency();
     if (nThreads == 0)
     {
         // if value is 0, something went wrong in obtaining the value and we cannot rely on it, so assume 2 is a decent value
@@ -226,9 +226,9 @@ void Application::initFlecs()
     }
     else
     {
-        const uint32_t nFlecsThreads = nThreads - 2;
+        const i32 nFlecsThreads = nThreads - 2;
         spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", nThreads, nFlecsThreads);
-        _ecs.set_threads(math::max<int>(0, nThreads - 2));
+        _ecs.set_threads(math::max(0, nFlecsThreads));
     }
 
     _ecs.import<ecs::engine_core>();

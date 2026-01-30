@@ -1,13 +1,13 @@
 #pragma once
 
 #include <source_location>
-#include <string>
+#include <string_view>
 
 #include "Logging.h"
 
 namespace core::debug
 {
-    void handle_assert(const char* expression, const std::string& message, const std::source_location& location);
+    [[noreturn]] void handle_assert(const char* expression, const std::string_view& message, const std::source_location& location);
 }
 
 #ifdef DEBUG_BUILD
@@ -18,6 +18,5 @@ namespace core::debug
         } \
     } while (false)
 #else
-#define ENGINE_ASSERT(condition, ...) ((void)0)
-#define ENGINE_PANIC(condition, ...) ((void)0)
+#define ENGINE_ASSERT(condition, ...) std::abort()
 #endif

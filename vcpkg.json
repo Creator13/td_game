@@ -29,5 +29,8 @@
   }, {
     "name" : "magic-enum",
     "version>=" : "0.9.7#1"
+  }, {
+    "name" : "cpptrace",
+    "version>=" : "1.0.4"
   } ]
 }

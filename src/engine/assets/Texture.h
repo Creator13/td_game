@@ -88,13 +88,13 @@ namespace core
         std::optional<std::vector<u8>> _pixelData;
 
         void uploadPixelData() const;
-        void uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType) const;
+        void uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const;
     };
 
     namespace texture_util
     {
         constexpr gl::enum_t getGlInternalFormat(TextureFormat format);
-        constexpr u8 getFormatChannelCount(TextureFormat format);
+        constexpr u8 getChannelCountInFormat(TextureFormat format);
         constexpr gl::enum_t getGlPixelDataType(TextureFormat format);
         constexpr gl::enum_t getGlPixelFormat(TextureFormat format);
     }

@@ -2,11 +2,6 @@
 
 #include "core/Application.h"
 
-#include <fmt/format.h>
-#include <formatting/fmt_asset.h>
-
-// static_assert(fmt::is_formattable_v<core::assets::AssetId>);
-
 using namespace core;
 
 int main(int argc, char** argv)
