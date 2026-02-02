@@ -18,5 +18,5 @@ namespace core::debug
         } \
     } while (false)
 #else
-#define ENGINE_ASSERT(condition, ...) std::abort()
+#define ENGINE_ASSERT(condition, ...) ((void)0)
 #endif

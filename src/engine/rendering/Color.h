@@ -58,16 +58,35 @@ namespace graphics
 
     constexpr float srgbToLinear(float x)
     {
-        if (x <= 0.0f)
-            return 0.0f;
-        else if (x >= 1.0f)
-            return 1.0f;
-        else if (x < 0.04045f)
-            return x / 12.92f;
-        else
-            return math::pow((x + 0.055f) / 1.055f, 2.4f);
+        //  sRGB transform (C++)
+        //
+        // Copyright (c) 2017 Project Nayuki. (MIT License)
+        // https://www.nayuki.io/page/srgb-transform-library
+
+        if (x <= 0.0f) return 0.0f;
+
+        if (x >= 1.0f) return 1.0f;
+
+        if (x < 0.04045f) return x / 12.92f;
+
+        return math::pow((x + 0.055f) / 1.055f, 2.4f);
     }
 
+    constexpr float linearToSrgb(float x)
+    {
+        //  sRGB transform (C++)
+        //
+        // Copyright (c) 2017 Project Nayuki. (MIT License)
+        // https://www.nayuki.io/page/srgb-transform-library
+
+        if (x <= 0.0f) return 0.0f;
+
+        if (x >= 1.0f) return 1.0f;
+
+        if (x < 0.0031308f) return x * 12.92f;
+
+        return math::pow(x, 1.0f / 2.4f) * 1.055f - 0.055f;
+    }
 
     constexpr Color Color::fromSrgb(const SrgbColor& srgbColor)
     {
