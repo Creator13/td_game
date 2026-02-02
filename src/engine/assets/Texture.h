@@ -66,6 +66,8 @@ namespace core
         u32 getHeight() const { return _height; }
         TextureFormat getFormat() const { return _format; }
 
+        u32 rawSizeBytes() const;
+
         // TODO things like editing (setPixel, apply)
 
         static assets::AssetRef<Texture> create(u32 width, u32 height, TextureFormat format);

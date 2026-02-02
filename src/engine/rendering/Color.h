@@ -5,23 +5,32 @@ namespace graphics
 {
     struct SrgbColor;
 
+    /// Represents a color. Linear color space is assumed.
     struct Color
     {
         float r, g, b, a;
 
         constexpr Color() : r(0), g(0), b(0), a(0) { }
-        static constexpr Color fromSrgb(const SrgbColor& srgbColor);
-        static constexpr Color fromSrgb(float r, float g, float b, float a);
-        static constexpr Color fromSrgb(float r, float g, float b);
+        constexpr Color(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) { }
+        constexpr Color(float r, float g, float b) : r(r), g(g), b(b), a(1.0f) { }
+
+        [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b, float a);
+        [[nodiscard]] static constexpr Color fromSrgb(const SrgbColor& srgbColor);
+        [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b);
     };
 
+    /// Represents a color, assumed to be in srgb space.
     struct SrgbColor
     {
         float r, g, b, a;
 
+        constexpr SrgbColor() : r(0), g(0), b(0), a(0) { }
         constexpr SrgbColor(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) { }
         constexpr SrgbColor(float r, float g, float b) : r(r), g(g), b(b), a(1.0f) { }
-        constexpr SrgbColor() : r(0), g(0), b(0), a(0) { }
+
+        [[nodiscard]] static constexpr SrgbColor fromLinear(float r, float g, float b, float a);
+        [[nodiscard]] static constexpr SrgbColor fromLinear(const Color& color);
+        [[nodiscard]] static constexpr SrgbColor fromLinear(float r, float g, float b);
 
         static const SrgbColor black, white, red, green, blue, yellow, cyan, magenta;
         static const SrgbColor gray1, gray2, gray3, gray4, gray, gray6, gray7, gray8, gray9;
@@ -88,16 +97,6 @@ namespace graphics
         return math::pow(x, 1.0f / 2.4f) * 1.055f - 0.055f;
     }
 
-    constexpr Color Color::fromSrgb(const SrgbColor& srgbColor)
-    {
-        Color result;
-        result.r = srgbToLinear(srgbColor.r);
-        result.g = srgbToLinear(srgbColor.g);
-        result.b = srgbToLinear(srgbColor.b);
-        result.a = srgbColor.a;
-        return result;
-    }
-
     constexpr Color Color::fromSrgb(float r, float g, float b, float a)
     {
         Color result;
@@ -108,13 +107,33 @@ namespace graphics
         return result;
     }
 
+    constexpr Color Color::fromSrgb(const SrgbColor& srgbColor)
+    {
+        return fromSrgb(srgbColor.r, srgbColor.g, srgbColor.b, srgbColor.a);
+    }
+
     constexpr Color Color::fromSrgb(float r, float g, float b)
     {
-        Color result;
-        result.r = srgbToLinear(r);
-        result.g = srgbToLinear(g);
-        result.b = srgbToLinear(b);
-        result.a = 1.f;
+        return fromSrgb(r, g, b, 1.0f);
+    }
+
+    constexpr SrgbColor SrgbColor::fromLinear(float r, float g, float b, float a)
+    {
+        SrgbColor result;
+        result.r = linearToSrgb(r);
+        result.g = linearToSrgb(g);
+        result.b = linearToSrgb(b);
+        result.a = a;
         return result;
+    }
+
+    constexpr SrgbColor SrgbColor::fromLinear(const Color& color)
+    {
+        return fromLinear(color.r, color.g, color.b, color.a);
+    }
+
+    constexpr SrgbColor SrgbColor::fromLinear(float r, float g, float b)
+    {
+        return fromLinear(r, g, b, 1.0f);
     }
 }

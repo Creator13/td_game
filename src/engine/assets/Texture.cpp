@@ -41,6 +41,11 @@ Texture::~Texture()
     glDeleteTextures(1, &_glBindPoint.id);
 }
 
+u32 Texture::rawSizeBytes() const
+{
+    return _width * _height * texture_util::getChannelCountInFormat(_format);
+}
+
 AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat format)
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
