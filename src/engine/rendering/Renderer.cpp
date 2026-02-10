@@ -4,57 +4,90 @@
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
-#include "core/Constants.h"
-#include "rendering/Mesh.h"
 #include "assets/Shader.h"
+#include "core/Constants.h"
+#include "core/Mesh.h"
 #include "rendering/Material.h"
 
 using namespace math;
-using namespace graphics;
 using namespace core;
+using namespace core::gfx;
+
+mat4 ViewportData::getCombinedViewProjectionMatrix() const
+{
+    return projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
+}
 
 Renderer::Renderer()
 {
-    glCreateSamplers(1, &sampler);
-    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glFrontFace(GL_CCW);
+    glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
+
+    glCreateSamplers(1, &_sampler);
+    glSamplerParameteri(_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-void Renderer::setClearColor(Color c)
+void Renderer::copyViewportData(const ViewportData& params)
 {
-    clearColor = c;
+    _viewportData = params;
 }
 
-void Renderer::setViewToClipMatrix(const mat4& m)
+void Renderer::submitSceneGeometry(const DrawCommand& renderable)
 {
-    projectionMatrix = m;
+    _geometryCommandBuffer.push_back(renderable);
 }
 
-void Renderer::setWorldToViewMatrix(const mat4& m)
+void Renderer::renderFrame()
 {
-    viewMatrix = m;
+    renderSceneGeometry();
 }
 
-void Renderer::submit(const Renderable& renderable)
+void Renderer::setPass(const RenderPass& pass)
 {
-    renderables.push_back(renderable);
+    (glEnable)(GL_DEPTH_TEST);
+
+    (pass.depth ? glEnable : glDisable)(GL_DEPTH_TEST);
+
+    switch (pass.backfaceCulling)
+    {
+        case BackfaceCulling::Back:
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            break;
+        case BackfaceCulling::Front:
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_FRONT);
+            break;
+        case BackfaceCulling::None:
+            glDisable(GL_CULL_FACE);
+            break;
+    }
+
+    // TODO maybe store pass reference in a field for reference during the pass? Dunno if that is needed or if I can
+    //  just change specific state. Anyway this function will NOT be static-qualified in the future...
 }
 
-void Renderer::render()
+void Renderer::renderSceneGeometry()
 {
     ZoneScopedN("Renderer::render()");
     TracyGpuZone("Renderer::render()");
 
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+    setPass(RenderPass{
+        .depth = true,
+        .backfaceCulling = BackfaceCulling::Back
+    });
+
+    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mat4 vpMatrix = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
+    const mat4 vpMatrix = _viewportData.getCombinedViewProjectionMatrix();
 
-    for (usize i = 0; i < renderables.size(); i++)
+    for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
-        const Renderable& rObj = renderables[i];
+        const DrawCommand& rObj = _geometryCommandBuffer[i];
 
         glUseProgram(rObj.material->shader->programId);
 
@@ -62,7 +95,7 @@ void Renderer::render()
         glBindVertexArray(handle.vao);
 
         glBindTextureUnit(0, rObj.material->albedo->getGlBindPoint());
-        glBindSampler(0, sampler);
+        glBindSampler(0, _sampler);
 
         glUniformMatrix4fv(100, 1, GL_FALSE, rObj.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
@@ -72,5 +105,5 @@ void Renderer::render()
         glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }
 
-    renderables.clear();
+    _geometryCommandBuffer.clear();
 }

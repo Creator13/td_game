@@ -1,10 +1,10 @@
 #pragma once
 
-#include "rendering/Mesh.h"
+#include "core/Mesh.h"
 
 namespace core::assets::mesh_primitives
 {
-    inline constexpr core::Vertex CUBE_VERTICES[] =
+    inline constexpr Vertex CUBE_VERTICES[] =
     {
         {math::vec3(-0.5f, -0.5f, -0.5f), math::vec3(0, 1, 0)},
         {math::vec3(0.5f, -0.5f, -0.5f), math::vec3(0, 1, 0)},
@@ -46,9 +46,9 @@ namespace core::assets::mesh_primitives
         20, 21, 22,
         22, 23, 20,
     };
-    inline constexpr math::AABB CUBE_BOUNDS = core::boundsFromVertices(CUBE_VERTICES);
+    inline constexpr math::AABB CUBE_BOUNDS = boundsFromVertices(CUBE_VERTICES);
 
-    inline constexpr core::Vertex QUAD_VERTICES[] =
+    inline constexpr Vertex QUAD_VERTICES[] =
     {
         {math::vec3(0, 0, 0), math::vec3(0, 1, 0)},
         {math::vec3(1, 0, 0), math::vec3(0, 1, 0)},
@@ -59,5 +59,5 @@ namespace core::assets::mesh_primitives
     {
         0, 1, 2, 2, 3, 0
     };
-    inline constexpr math::AABB QUAD_BOUNDS = core::boundsFromVertices(QUAD_VERTICES);
+    inline constexpr math::AABB QUAD_BOUNDS = boundsFromVertices(QUAD_VERTICES);
 };

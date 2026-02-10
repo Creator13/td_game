@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
+
+#include "datatype.h"
 
 class GLFWwindow;
 
@@ -17,8 +18,8 @@ namespace core
               title(title),
               fullscreen(fullscreen) { }
 
-        uint16_t width, height;
-        uint16_t fbWidth, fbHeight;
+        u16 width, height;
+        u16 fbWidth, fbHeight;
         std::string title;
         bool fullscreen;
 

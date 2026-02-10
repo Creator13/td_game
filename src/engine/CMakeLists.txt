@@ -19,6 +19,8 @@ find_package(fastgltf CONFIG REQUIRED)
 find_package(flecs CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(cpptrace CONFIG REQUIRED)
+find_package(msdfgen CONFIG REQUIRED)
+find_package(Freetype REQUIRED)
 
 ## Tracy
 FetchContent_Declare(
@@ -46,6 +48,9 @@ target_link_libraries(engine_core
         PRIVATE magic_enum::magic_enum
         PRIVATE misc_headers
         PRIVATE cpptrace::cpptrace
+        PRIVATE msdfgen::msdfgen-core
+        PRIVATE msdfgen::msdfgen-ext
+        PRIVATE Freetype::Freetype
 )
 
 ## Copy engine resources to bin directory

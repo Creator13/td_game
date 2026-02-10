@@ -1,8 +1,8 @@
 #pragma once
 #include <fastgltf/tools.hpp>
 
-#include "math/vec.h"
 #include "math/mat4.h"
+#include "math/vec.h"
 
 namespace fastgltf
 {

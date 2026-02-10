@@ -3,7 +3,7 @@
 #include "assets/AssetRef.h"
 #include "assets/Shader.h"
 #include "assets/Texture.h"
-#include "rendering/Color.h"
+#include "core/Color.h"
 
 namespace core
 {
@@ -12,6 +12,6 @@ namespace core
         assets::AssetRef<Shader> shader;
 
         assets::AssetRef<Texture> albedo;
-        graphics::Color baseColor;
+        Color baseColor;
     };
 }

@@ -1,36 +1,59 @@
 {
-  "name" : "td-game",
-  "version-string" : "1.0.0",
-  "builtin-baseline" : "b1b19307e2d2ec1eefbdb7ea069de7d4bcd31f01",
-  "dependencies" : [ {
-    "name" : "catch2",
-    "version>=" : "3.11.0"
-  }, {
-    "name" : "vcpkg-cmake-config",
-    "version>=" : "2024-05-23"
-  }, {
-    "name" : "vcpkg-cmake",
-    "version>=" : "2024-04-23"
-  }, {
-    "name" : "glfw3",
-    "version>=" : "3.4#1"
-  }, {
-    "name" : "spdlog",
-    "version>=" : "1.16.0"
-  }, {
-    "name" : "xxhash",
-    "version>=" : "0.8.3"
-  }, {
-    "name" : "fastgltf",
-    "version>=" : "0.9.0"
-  }, {
-    "name" : "flecs",
-    "version>=" : "4.1.4"
-  }, {
-    "name" : "magic-enum",
-    "version>=" : "0.9.7#1"
-  }, {
-    "name" : "cpptrace",
-    "version>=" : "1.0.4"
-  } ]
+  "name": "td-game",
+  "version-string": "1.0.0",
+  "builtin-baseline": "6d7bf7ef2193e2d1c5798a5ff8811d533104c861",
+  "dependencies": [
+    {
+      "name": "catch2",
+      "version>=": "3.11.0"
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "version>=": "2024-05-23"
+    },
+    {
+      "name": "vcpkg-cmake",
+      "version>=": "2024-04-23"
+    },
+    {
+      "name": "glfw3",
+      "version>=": "3.4#1"
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
+    {
+      "name": "xxhash",
+      "version>=": "0.8.3"
+    },
+    {
+      "name": "fastgltf",
+      "version>=": "0.9.0"
+    },
+    {
+      "name": "flecs",
+      "version>=": "4.1.4"
+    },
+    {
+      "name": "magic-enum",
+      "version>=": "0.9.7#1"
+    },
+    {
+      "name": "cpptrace",
+      "version>=": "1.0.4"
+    },
+    {
+      "name": "freetype",
+      "version>=": "2.13.3"
+    },
+    {
+      "name": "msdfgen",
+      "version>=": "1.13",
+      "default-features": false,
+      "features": [
+        "extensions"
+      ]
+    }
+  ]
 }

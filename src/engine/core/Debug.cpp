@@ -8,12 +8,11 @@
 #include "Constants.h"
 #include "assets/AssetDatabase.h"
 #include "assets/ShaderLoader.h"
-#include "rendering/Mesh.h"
+#include "Mesh.h"
 
 using namespace core;
 using namespace math;
 using namespace core::debug;
-using namespace graphics;
 
 namespace
 {
@@ -64,86 +63,86 @@ namespace
     }
 }
 
-DebugRenderer::DebugRenderer() : vertCount(0)
+DebugRenderer::DebugRenderer()
+    : _viewportData(), _vertCount(0)
 {
-    glCreateVertexArrays(1, &vao);
-    glCreateBuffers(1, &vbo);
+    glCreateVertexArrays(1, &_vao);
+    glCreateBuffers(1, &_vbo);
 
     GLbitfield persistentFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 
-    glNamedBufferStorage(vbo, MAX_VERTICES * sizeof(DebugVertex), nullptr, persistentFlags);
-    const auto rawBufPtr = glMapNamedBufferRange(vbo, 0, MAX_VERTICES * sizeof(DebugVertex), persistentFlags);
-    mappedVertexBuffer = std::span{static_cast<DebugVertex*>(rawBufPtr), MAX_VERTICES};
+    glNamedBufferStorage(_vbo, MAX_VERTICES * sizeof(DebugVertex), nullptr, persistentFlags);
+    const auto rawBufPtr = glMapNamedBufferRange(_vbo, 0, MAX_VERTICES * sizeof(DebugVertex), persistentFlags);
+    _mappedVertexBuffer = std::span{static_cast<DebugVertex*>(rawBufPtr), MAX_VERTICES};
 
-    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(DebugVertex));
+    glVertexArrayVertexBuffer(_vao, 0, _vbo, 0, sizeof(DebugVertex));
 
-    glEnableVertexArrayAttrib(vao, 0);
-    glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(DebugVertex, pos));
-    glVertexArrayAttribBinding(vao, 0, 0);
+    glEnableVertexArrayAttrib(_vao, 0);
+    glVertexArrayAttribFormat(_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(DebugVertex, pos));
+    glVertexArrayAttribBinding(_vao, 0, 0);
 
-    glEnableVertexArrayAttrib(vao, 1);
-    glVertexArrayAttribFormat(vao, 1, 4, GL_FLOAT, GL_FALSE, offsetof(DebugVertex, color));
-    glVertexArrayAttribBinding(vao, 1, 0);
+    glEnableVertexArrayAttrib(_vao, 1);
+    glVertexArrayAttribFormat(_vao, 1, 4, GL_FLOAT, GL_FALSE, offsetof(DebugVertex, color));
+    glVertexArrayAttribBinding(_vao, 1, 0);
 
-    debugShader = compileDebugShader();
+    _debugShader = compileDebugShader();
 }
 
 DebugRenderer::~DebugRenderer()
 {
-    glUnmapNamedBuffer(vbo);
-    mappedVertexBuffer = { };
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    glUnmapNamedBuffer(_vbo);
+    _mappedVertexBuffer = { };
+    glDeleteVertexArrays(1, &_vao);
+    glDeleteBuffers(1, &_vbo);
 }
 
-void DebugRenderer::setMatrices(const mat4& view, const mat4& projection)
+void DebugRenderer::copyViewportData(const gfx::ViewportData& viewportData)
 {
-    this->viewMatrix = view;
-    this->projectionMatrix = projection;
+    this->_viewportData = viewportData;
 }
 
 void DebugRenderer::submitLine(const DebugVertex& a, const DebugVertex& b)
 {
-    if (vertCount + 2 >= MAX_VERTICES)
+    if (_vertCount + 2 >= MAX_VERTICES)
     {
         spdlog::warn("Max debug elements reached");
         return;
     }
 
-    mappedVertexBuffer[vertCount] = a;
-    mappedVertexBuffer[vertCount + 1] = b;
-    vertCount += 2;
+    _mappedVertexBuffer[_vertCount] = a;
+    _mappedVertexBuffer[_vertCount + 1] = b;
+    _vertCount += 2;
 }
 
 void DebugRenderer::submitRect(const DebugVertex& a, const DebugVertex& b, const DebugVertex& c, const DebugVertex& d)
 {
-    if (vertCount + 8 >= MAX_VERTICES)
+    if (_vertCount + 12 >= MAX_VERTICES)
     {
         spdlog::warn("Max debug elements reached");
         return;
     }
 
     // edges
-    mappedVertexBuffer[vertCount] = a;
-    mappedVertexBuffer[vertCount + 1] = b;
+    _mappedVertexBuffer[_vertCount] = a;
+    _mappedVertexBuffer[_vertCount + 1] = b;
 
-    mappedVertexBuffer[vertCount + 2] = b;
-    mappedVertexBuffer[vertCount + 3] = c;
+    _mappedVertexBuffer[_vertCount + 2] = b;
+    _mappedVertexBuffer[_vertCount + 3] = c;
 
-    mappedVertexBuffer[vertCount + 4] = c;
-    mappedVertexBuffer[vertCount + 5] = d;
+    _mappedVertexBuffer[_vertCount + 4] = c;
+    _mappedVertexBuffer[_vertCount + 5] = d;
 
-    mappedVertexBuffer[vertCount + 6] = d;
-    mappedVertexBuffer[vertCount + 7] = a;
+    _mappedVertexBuffer[_vertCount + 6] = d;
+    _mappedVertexBuffer[_vertCount + 7] = a;
 
     // diags
-    mappedVertexBuffer[vertCount + 8] = a;
-    mappedVertexBuffer[vertCount + 9] = c;
+    _mappedVertexBuffer[_vertCount + 8] = a;
+    _mappedVertexBuffer[_vertCount + 9] = c;
 
-    mappedVertexBuffer[vertCount + 10] = b;
-    mappedVertexBuffer[vertCount + 11] = d;
+    _mappedVertexBuffer[_vertCount + 10] = b;
+    _mappedVertexBuffer[_vertCount + 11] = d;
 
-    vertCount += 12;
+    _vertCount += 12;
 }
 
 void DebugRenderer::render()
@@ -151,25 +150,25 @@ void DebugRenderer::render()
     ZoneScopedN("DebugRenderer::render()");
     TracyGpuZone("DebugRenderer::render()");
 
-    if (vertCount == 0) return;
+    if (_vertCount == 0) return;
 
-    glUseProgram(debugShader);
-    glBindVertexArray(vao);
+    glUseProgram(_debugShader);
+    glBindVertexArray(_vao);
 
-    const mat4 viewProjection = projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
-    const GLint vpLocation = glGetUniformLocation(debugShader, "uViewProjection");
+    const mat4 viewProjection = _viewportData.getCombinedViewProjectionMatrix();
+    const GLint vpLocation = glGetUniformLocation(_debugShader, "uViewProjection");
     glUniformMatrix4fv(vpLocation, 1, GL_FALSE, viewProjection.m);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertCount));
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(_vertCount));
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 
-    vertCount = 0;
+    _vertCount = 0;
 }
 
 void debug::bindDebugRenderer(DebugRenderer& renderer)
@@ -177,18 +176,15 @@ void debug::bindDebugRenderer(DebugRenderer& renderer)
     globalDebugRenderer = &renderer;
 }
 
-void debug::drawLine(vec3 start, vec3 end, SrgbColor color)
+void debug::drawLine(vec3 start, vec3 end, Color color)
 {
     globalDebugRenderer->submitLine({start, color}, {end, color});
 }
 
-void debug::drawRay(vec3 origin, vec3 direction, SrgbColor color)
+void debug::drawRay(vec3 origin, vec3 direction, Color color)
 {
     globalDebugRenderer->submitLine({origin, color}, {origin + direction, color});
 }
 
-void debug::drawPlane(plane plane, SrgbColor color) { }
-void debug::drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera)
-{
-
-}
+void debug::drawPlane(plane plane, Color color) { }
+void debug::drawCameraFrustum(vec3 pos, ecs::PerspectiveCameraData& camera) { }

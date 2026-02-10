@@ -1,51 +1,67 @@
 #pragma once
 
-#include <variant>
 #include <vector>
 
-#include "assets/AssetDatabase.h"
-#include "assets/Shader.h"
+#include "datatype.h"
+#include "core/Color.h"
 #include "math/mat4.h"
-#include "rendering/Color.h"
-#include "rendering/Mesh.h"
+#include "rendering/pass/GeometryPass.h"
 
-namespace core {
+namespace core
+{
     struct Material;
 }
 
-class GLFWwindow;
-
-namespace graphics
+namespace core::gfx
 {
-    struct Renderable
+    enum class BackfaceCulling : u8 { Back, Front, None };
+
+    struct ViewportData
     {
-        math::mat4 modelMatrix;
-        core::assets::AssetRef<core::Mesh> mesh;
-        core::Material* material;
+        Color clearColor;
+
+        math::mat4 projectionMatrix = math::mat4::identity;
+        math::mat4 viewMatrix = math::mat4::identity;
+
+        u16 pixelWidth, pixelHeight;
+
+        math::mat4 getCombinedViewProjectionMatrix() const;
     };
 
-    static_assert(std::is_trivially_destructible_v<Renderable>);
+    struct DrawCommand
+    {
+        assets::AssetRef<Mesh> mesh;
+        Material* material;
+        math::mat4 modelMatrix;
+    };
+
+    struct RenderPass
+    {
+        bool depth;
+        BackfaceCulling backfaceCulling;
+    };
 
     class Renderer
     {
-        bool drawDebug = false;
+        ViewportData _viewportData = ViewportData();
 
-        std::vector<Renderable> renderables;
-        Color clearColor = Color();
-        math::mat4 projectionMatrix;
-        math::mat4 viewMatrix;
+        std::vector<DrawCommand> _geometryCommandBuffer;
 
-        core::gl::Uint sampler;
+        gl::Uint _sampler;
+        gl::framebuffer_t _mainFramebuffer;
 
     public:
         Renderer();
 
-        void setClearColor(Color c);
-        void setViewToClipMatrix(const math::mat4& m);
-        void setWorldToViewMatrix(const math::mat4& m);
+        void copyViewportData(const ViewportData& params);
+        void submitSceneGeometry(const DrawCommand& command);
+        void submitUI();
+        void renderFrame();
 
-        void submit(const Renderable& renderable);
+    private:
+        void setPass(const RenderPass& pass);
 
-        void render();
+        void renderSceneGeometry();
+        void renderUI();
     };
 }

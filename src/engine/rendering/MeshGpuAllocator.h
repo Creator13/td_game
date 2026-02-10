@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Mesh.h"
+#include "../core/Mesh.h"
 #include "MeshGpuHandle.h"
 
 namespace core::gpu

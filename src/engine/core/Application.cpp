@@ -96,17 +96,10 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
 
     createWindow(windowState);
 
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    glEnable(GL_FRAMEBUFFER_SRGB);
-
     // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
     _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
     assets::bindAssetDatabase(*_assetDb);
-    _renderer = std::make_unique<graphics::Renderer>();
+    _renderer = std::make_unique<gfx::Renderer>();
     _debugRenderer = std::make_unique<debug::DebugRenderer>();
     debug::bindDebugRenderer(*_debugRenderer);
 
@@ -129,18 +122,18 @@ int Application::run()
         glfwPollEvents();
 
         time::markFrame();
+
         if (!_ecs.progress())
         {
             glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
         }
 
-        _renderer->render();
+        _renderer->renderFrame();
         _debugRenderer->render();
 
         glfwSwapBuffers(_windowPtr);
         TracyGpuCollect;
 
-        currentFrame++;
         _inputState.endFrame();
     }
 

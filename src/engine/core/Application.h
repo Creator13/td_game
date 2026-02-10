@@ -3,8 +3,8 @@
 #include <flecs.h>
 #include <string_view>
 
+#include "assets/AssetDatabase.h"
 #include "core/Debug.h"
-
 #include "core/GlfwApplicationOwnerContext.h"
 #include "core/Input.h"
 #include "core/Window.h"
@@ -51,11 +51,9 @@ namespace core
 
         std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         std::unique_ptr<debug::DebugRenderer> _debugRenderer = nullptr;
-        std::unique_ptr<graphics::Renderer> _renderer = nullptr;
+        std::unique_ptr<gfx::Renderer> _renderer = nullptr;
 
         GlfwApplicationOwnerContext _glfwOwnerContext;
         GLFWwindow* _windowPtr = nullptr;
-
-        u32 currentFrame = 0;
     };
 }

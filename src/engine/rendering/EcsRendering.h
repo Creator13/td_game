@@ -1,13 +1,10 @@
 #pragma once
 
-#include "Mesh.h"
-#include "assets/AssetDatabase.h"
+#include "datatype.h"
 #include "assets/AssetId.h"
-#include "assets/Shader.h"
+#include "core/Mesh.h"
 #include "core/Transform.h"
 #include "math/geom.h"
-#include "math/mat4.h"
-#include "rendering/Color.h"
 #include "rendering/Material.h"
 #include "rendering/Renderer.h"
 
@@ -16,7 +13,7 @@ namespace core
     struct WindowState;
 }
 
-namespace graphics
+namespace gfx
 {
     class Renderer;
 }
@@ -39,13 +36,6 @@ namespace core::ecs
     {
         float orthoSize;
         float near, far;
-    };
-
-    struct CameraRenderData
-    {
-        graphics::Color clearColor = graphics::Color::fromSrgb(graphics::SrgbColor(156/255.f, 112/255.f, 139/255.f));
-        math::mat4 projectionMatrix = math::mat4::identity;
-        math::mat4 viewMatrix = math::mat4::identity;
     };
 
     struct ActiveCamera { };
@@ -78,7 +68,13 @@ namespace core::ecs
 
     struct RendererSingleton
     {
-        graphics::Renderer* ptr;
+        struct RenderStats
+        {
+            u32 objectsInScene;
+            u32 objectsRendered;
+        };
+
+        gfx::Renderer* ptr;
     };
 
     struct rendering
@@ -86,9 +82,9 @@ namespace core::ecs
         explicit rendering(flecs::world& ecs);
 
     private:
-        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData);
-        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
-        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData);
+        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& renderData);
+        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
+        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
         static bool submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData);
     };
 }

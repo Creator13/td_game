@@ -1,12 +1,12 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
-#include <rendering/Mesh.h>
 
 #include "Logging.h"
 #include "assets/AssetInfo.h"
 #include "assets/AssetRegistery.h"
 #include "assets/File.h"
 #include "assets/GltfElementTraits.h"
+#include "core/Mesh.h"
 #include "rendering/MeshGpuAllocator.h"
 #include "util/PagedStorage.h"
 
@@ -139,4 +139,9 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 
     registerAsset(path, AssetType::Mesh, outMesh);
     return AssetRef(outMesh, id);
+}
+
+AssetRef<Mesh> Mesh::create()
+{
+    ENGINE_ASSERT(false, "TODO not implemented");
 }

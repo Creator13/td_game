@@ -10,13 +10,13 @@
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "rendering/EcsRendering.h"
-#include "rendering/Mesh.h"
+#include "../engine/core/Mesh.h"
 
 using namespace math;
 using namespace core;
 using namespace core::ecs;
 using namespace core::assets;
-using namespace graphics;
+using namespace core::gfx;
 
 struct RotateData
 {
@@ -35,6 +35,8 @@ void engine::register_flecs(const flecs::world& world)
     const flecs::entity cam = world.entity("Debug camera")
         .set<PerspectiveCameraData>({60, .1, 100})
         .add<ActiveCamera>();
+
+    cam.get_ref<PerspectiveCameraData>();
 
     vec3 camPos = vec3(.2, -5, 3) * 2;
     transform::add(cam, camPos, quaternion::eulerAngles(-25, 0, 0));

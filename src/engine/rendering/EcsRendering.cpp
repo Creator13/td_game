@@ -1,7 +1,6 @@
 #include "rendering/EcsRendering.h"
 
 #include <flecs.h>
-#include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 
 #include "core/Constants.h"
@@ -12,6 +11,7 @@
 
 using namespace math;
 using namespace core::ecs;
+using namespace core::gfx;
 
 namespace
 {
@@ -58,7 +58,7 @@ namespace
             .member<uint64_t>("Shader id")
             .member<CullReason>("Culling reason");
 
-        ecs.component<CameraRenderData>().add(flecs::Singleton);
+        ecs.component<ViewportData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
     }
@@ -73,7 +73,7 @@ rendering::rendering(flecs::world& ecs)
 
     registerComponents(ecs);
 
-    ecs.set<CameraRenderData>({ });
+    ecs.set<ViewportData>({ });
 
     ecs.observer("Active camera uniqueness observer")
         .with<ActiveCamera>()
@@ -97,17 +97,17 @@ rendering::rendering(flecs::world& ecs)
             e.set<BoxBoundsData>({bounds});
         });
 
-    ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, CameraRenderData>("Perspective camera update system")
+    ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActivePerspectiveCamera);
 
-    ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, CameraRenderData>("Ortho camera update system")
+    ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
 
-    auto cameraSystem = ecs.system<const RendererSingleton, const CameraRenderData>()
+    auto cameraSystem = ecs.system<const RendererSingleton, const ViewportData>()
         .kind(flecs::OnStore)
         .each(syncRendererToActiveCamera);
 
@@ -117,7 +117,7 @@ rendering::rendering(flecs::world& ecs)
         {
             ZoneScopedN("_engine::CullingSystem");
 
-            auto& camera = it.world().get<const CameraRenderData>();
+            auto& camera = it.world().get<const ViewportData>();
             const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
 
             while (it.next())
@@ -164,11 +164,11 @@ rendering::rendering(flecs::world& ecs)
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData>("Render system")
+    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
-            ZoneScopedN("_engine::RenderSystem");
+            ZoneScopedN("Scene geometry collection");
 
             const auto& renderer = it.world().get<const RendererSingleton>();
 
@@ -182,11 +182,18 @@ rendering::rendering(flecs::world& ecs)
 
                 for (auto i : it)
                 {
-                    if (submitRenderable(renderer, f_transform[i], f_renderData[i]))
-                    {
-                        rendered++;
-                    }
+                    const auto& [mesh, material, cullReason] = f_renderData[i];
                     total++;
+
+                    if (cullReason != CullReason::None) continue;
+
+                    DrawCommand renderable;
+                    renderable.mesh = mesh;
+                    renderable.material = material;
+                    renderable.modelMatrix = f_transform[i].getWorldMatrix();
+
+                    renderer.ptr->submitSceneGeometry(renderable);
+                    rendered++;
                 }
             }
         })
@@ -199,18 +206,19 @@ bool rendering::submitRenderable(const RendererSingleton& renderer, const Hierar
     // Do not render culled objects
     if (renderData.cullReason != CullReason::None) return false;
 
-    graphics::Renderable renderable;
+    DrawCommand renderable;
     renderable.mesh = renderData.mesh;
     renderable.material = renderData.material;
     renderable.modelMatrix = transform.getWorldMatrix();
 
-    renderer.ptr->submit(renderable);
+    renderer.ptr->submitSceneGeometry(renderable);
     return true;
 }
 
-void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
+
     renderData.projectionMatrix = mat4::makeOrtho(
         -cameraData.orthoSize * aspect,
         cameraData.orthoSize * aspect,
@@ -220,19 +228,24 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
         cameraData.far
     );
     renderData.viewMatrix = inverse(transform.getWorldMatrix());
+
+    renderData.pixelWidth = window.state->fbWidth;
+    renderData.pixelHeight = window.state->fbHeight;
 }
 
-void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, CameraRenderData& renderData)
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
 {
     float aspect = window.state->getFrameBufferAspect();
+
     renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
     renderData.viewMatrix = inverse(transform.getWorldMatrix());
+
+    renderData.pixelWidth = window.state->fbWidth;
+    renderData.pixelHeight = window.state->fbHeight;
 }
 
-void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const CameraRenderData& renderData)
+void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& renderData)
 {
-    graphics::Renderer& renderer = *r_ptr.ptr;
-    renderer.setClearColor(renderData.clearColor);
-    renderer.setWorldToViewMatrix(renderData.viewMatrix);
-    renderer.setViewToClipMatrix(renderData.projectionMatrix);
+    Renderer& renderer = *r_ptr.ptr;
+    renderer.copyViewportData(renderData);
 }

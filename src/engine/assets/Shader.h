@@ -3,7 +3,6 @@
 #include <string_view>
 
 #include "datatype.h"
-#include "assets/AssetDatabase.h"
 #include "assets/AssetRef.h"
 
 namespace core
