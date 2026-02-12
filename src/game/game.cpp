@@ -6,11 +6,11 @@
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
+#include "core/Mesh.h"
 #include "core/Time.h"
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "rendering/EcsRendering.h"
-#include "../engine/core/Mesh.h"
 
 using namespace math;
 using namespace core;

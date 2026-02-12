@@ -42,13 +42,14 @@ void Renderer::submitSceneGeometry(const DrawCommand& renderable)
 
 void Renderer::renderFrame()
 {
+    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     renderSceneGeometry();
 }
 
 void Renderer::setPass(const RenderPass& pass)
 {
-    (glEnable)(GL_DEPTH_TEST);
-
     (pass.depth ? glEnable : glDisable)(GL_DEPTH_TEST);
 
     switch (pass.backfaceCulling)
@@ -72,16 +73,13 @@ void Renderer::setPass(const RenderPass& pass)
 
 void Renderer::renderSceneGeometry()
 {
-    ZoneScopedN("Renderer::render()");
-    TracyGpuZone("Renderer::render()");
+    ZoneScopedN("Renderer::renderSceneGeometry()");
+    TracyGpuZone("Renderer::renderSceneGeometry()");
 
     setPass(RenderPass{
         .depth = true,
         .backfaceCulling = BackfaceCulling::Back
     });
-
-    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const mat4 vpMatrix = _viewportData.getCombinedViewProjectionMatrix();
 
@@ -106,4 +104,17 @@ void Renderer::renderSceneGeometry()
     }
 
     _geometryCommandBuffer.clear();
+}
+
+void Renderer::renderUI()
+{
+    ZoneScopedN("Renderer::renderSceneGeometry()");
+    TracyGpuZone("Renderer::renderSceneGeometry()");
+
+    setPass({
+        .depth = false,
+        .backfaceCulling = BackfaceCulling::Back
+    });
+
+
 }

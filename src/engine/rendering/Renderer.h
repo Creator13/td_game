@@ -46,6 +46,7 @@ namespace core::gfx
         ViewportData _viewportData = ViewportData();
 
         std::vector<DrawCommand> _geometryCommandBuffer;
+        std::vector<DrawCommand> _uiCommandBuffer;
 
         gl::Uint _sampler;
         gl::framebuffer_t _mainFramebuffer;
