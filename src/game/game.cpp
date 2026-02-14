@@ -10,6 +10,7 @@
 #include "core/Time.h"
 #include "core/Transform.h"
 #include "core/Window.h"
+#include "core/ui/EcsUI.h"
 #include "rendering/EcsRendering.h"
 
 using namespace math;
@@ -121,4 +122,11 @@ void engine::register_flecs(const flecs::world& world)
 
             transform.translate(e, move);
         });
+
+    // UI stuff concept
+    const flecs::entity ui = world.entity("UI root")
+        .set<ui::UiRoot>({1920, 1080});
+
+    world.entity("Beautiful panel")
+        .set<ui::UiRect>({{0, 0}, {100, 50}});
 }

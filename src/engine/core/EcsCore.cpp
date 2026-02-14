@@ -1,18 +1,25 @@
 #include "core/EcsCore.h"
 
 #include <flecs.h>
-#include <spdlog/spdlog.h>
 
 #include "Input.h"
+#include "core/Color.h"
 #include "core/Transform.h"
+#include "math/geom.h"
 
 using namespace math;
 using namespace core::ecs;
 
 namespace
 {
-    void registerComponents(flecs::world& ecs)
+    void registerMathComponents(flecs::world& ecs)
     {
+        // TODO possibly extend this into math module? idk not sure if that has added value...
+
+        ecs.component<vec2>()
+            .member<float>("x")
+            .member<float>("y");
+
         ecs.component<vec3>()
             .member<float>("x")
             .member<float>("y")
@@ -23,6 +30,21 @@ namespace
             .member<float>("y")
             .member<float>("z")
             .member<float>("w");
+
+        ecs.component<rect>()
+            .member<vec2>("Offset")
+            .member<vec2>("Size");
+    }
+
+    void registerComponents(flecs::world& ecs)
+    {
+        registerMathComponents(ecs);
+
+        ecs.component<core::Color>()
+            .member<float>("r")
+            .member<float>("g")
+            .member<float>("b")
+            .member<float>("a");
 
         ecs.component<HierarchyTransform>()
             .member<vec3>("Local position")
@@ -39,8 +61,10 @@ engine_core::engine_core(flecs::world& ecs)
     registerComponents(ecs);
 
     ecs.observer<const HierarchyTransform, FreeLookCameraControlData>()
+        // TODO flecs::OnSet makes this *also* trigger when e.modified() is called, which would reset the values?
+        //  Mayhaps this needs this to be a helper function instead?
         .event(flecs::OnSet)
-        .each([](flecs::entity e, const HierarchyTransform& transform, FreeLookCameraControlData& cam)
+        .each([](const HierarchyTransform& transform, FreeLookCameraControlData& cam)
         {
             const vec3 euler = toEuler(transform.getGlobalOrientation());
             cam.yaw = euler.z;

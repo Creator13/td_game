@@ -20,6 +20,12 @@ namespace math
         }
     };
 
+    struct rect
+    {
+        vec2 offset;
+        vec2 size;
+    };
+
     struct sphere
     {
         vec3 center;

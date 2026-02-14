@@ -12,5 +12,5 @@
       <file path="$PROJECT_DIR$/build_msvc" />
     </excludeRoots>
   </component>
-  <component name="WestSettings"><![CDATA[{}]]></component>
+  <component name="WestSettings">{}</component>
 </project>

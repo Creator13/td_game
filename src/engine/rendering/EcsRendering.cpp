@@ -164,7 +164,7 @@ rendering::rendering(flecs::world& ecs)
         })
         .depends_on(cameraSystem);
 
-    ecs.system<const RendererSingleton, const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
+    ecs.system<const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
@@ -177,8 +177,8 @@ rendering::rendering(flecs::world& ecs)
 
             while (it.next())
             {
-                auto f_transform = it.field<const HierarchyTransform>(1);
-                auto f_renderData = it.field<const MeshRenderData>(2);
+                auto f_transform = it.field<const HierarchyTransform>(0);
+                auto f_renderData = it.field<const MeshRenderData>(1);
 
                 for (auto i : it)
                 {

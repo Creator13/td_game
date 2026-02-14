@@ -1,6 +1,10 @@
 #pragma once
+
+#include <string>
+
 #include "datatype.h"
-#include "math/vec2.h"
+#include "assets/AssetRef.h"
+#include "math/geom.h"
 
 namespace flecs
 {
@@ -9,10 +13,10 @@ namespace flecs
 
 namespace core::ui
 {
-    struct UiTransform
+    struct UiRect
     {
-        math::vec2 position;
-        math::vec2 scale;
+        math::vec2 offset;
+        math::vec2 size;
         float rotation;
     };
 
@@ -21,10 +25,19 @@ namespace core::ui
         u16 referenceWidth, referenceHeight;
     };
 
-    struct Panel { };
+    struct TextData
+    {
+        std::string text;
+    };
+
+    struct TextRenderData
+    {
+        // AssetRef<Font> font
+        float size;
+    };
 
     struct engine_ui
     {
-        engine_ui(flecs::world& ecs);
+        explicit engine_ui(flecs::world& ecs);
     };
 }

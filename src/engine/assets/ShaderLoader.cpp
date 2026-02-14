@@ -11,7 +11,7 @@
 using namespace core;
 using namespace core::assets;
 
-gl::program_t ShaderLoader::compileErrorShader()
+gl::program_t ShaderLoader::compileInternalErrorShader()
 {
     // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
     constexpr std::string_view ERROR_SHADER_VERT = "#version 430\n layout (location = 0) in vec3 pos;\nlayout (location = 1) in vec3 aNorm;\nlayout (location = 100) uniform mat4 model;\nlayout (location = 101) uniform mat4 vp_mat;void main() {gl_Position = vp_mat * model * vec4(pos, 1.0);}";
@@ -84,10 +84,10 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
 {
     AssetId id = AssetId::idFromPath(path);
     // Check cache
-    if (shaderStageCache.contains(id))
+    if (_shaderStageCache.contains(id))
     {
         spdlog::debug("Cache hit for shader stage at {}", path);
-        return shaderStageCache.at(id);
+        return _shaderStageCache.at(id);
     }
 
     // Not cached -> load into cache
@@ -104,8 +104,18 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
     std::optional<gl::shader_t> glShaderId = compileFromSource(source.value().data(), stageType);
     if (glShaderId.has_value())
     {
-        shaderStageCache.insert({id, glShaderId.value()});
+        _shaderStageCache.insert({id, glShaderId.value()});
         return glShaderId;
     }
     return std::nullopt;
+}
+
+gl::program_t ShaderLoader::getErrorShader()
+{
+    if (_errorShaderId == 0)
+    {
+        _errorShaderId = compileInternalErrorShader();
+    }
+
+    return _errorShaderId;
 }

@@ -210,8 +210,8 @@ void Application::initFlecs()
     flecs::log::enable_colors(false);
 #endif
 
-    const u32 nThreads = std::thread::hardware_concurrency();
-    if (nThreads == 0)
+    const u32 numOsThreads = std::thread::hardware_concurrency();
+    if (numOsThreads == 0)
     {
         // if value is 0, something went wrong in obtaining the value and we cannot rely on it, so assume 2 is a decent value
         spdlog::debug("Failed to detect cpu threads; spawning 2 flecs worker threads.");
@@ -219,9 +219,9 @@ void Application::initFlecs()
     }
     else
     {
-        const i32 nFlecsThreads = nThreads - 2;
-        spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", nThreads, nFlecsThreads);
-        _ecs.set_threads(math::max(0, nFlecsThreads));
+        const i32 numFlecsThreads = numOsThreads - 2;
+        spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", numOsThreads, numFlecsThreads);
+        _ecs.set_threads(math::max(0, numFlecsThreads));
     }
 
     _ecs.import<ecs::engine_core>();
@@ -239,6 +239,7 @@ void Application::initFlecs()
 
     _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
 
+    // Attach application state to flecs singletons (relies on engine_core module)
     _ecs.set<ecs::WindowSingleton>({&_windowState});
     _ecs.set<ecs::RendererSingleton>({_renderer.get()});
     _ecs.set<ecs::GlobalInput>({&_inputState});
