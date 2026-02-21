@@ -12,6 +12,7 @@
 #include "core/Window.h"
 #include "core/ui/EcsUI.h"
 #include "rendering/EcsRendering.h"
+#include "rendering/Pipeline.h"
 
 using namespace math;
 using namespace core;
@@ -29,7 +30,8 @@ WindowState engine::initial_window_state()
     return WindowState(1280, 720, "game", false);
 }
 
-Material mat;
+Pipeline* pipeline = nullptr;
+Material* mat = nullptr;
 
 void engine::register_flecs(const flecs::world& world)
 {
@@ -49,9 +51,13 @@ void engine::register_flecs(const flecs::world& world)
 
     AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
 
-    mat.shader = texShader;
-    mat.albedo = tex;
-    mat.baseColor = Color::fromSrgb(SrgbColor::darkGreen);
+    PipelineDescriptor pDesc;
+    pDesc.blend = false;
+    pDesc.depthTest = true;
+    pDesc.backfaceCulling = BackfaceCulling::Back;
+
+    pipeline = new Pipeline(pDesc, texShader);
+    mat = new Material(pipeline->newMaterialInstance());
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)
@@ -59,7 +65,7 @@ void engine::register_flecs(const flecs::world& world)
         for (int j = 0; j < count; j++)
         {
             auto e = world.entity(fmt::format("cube {}-{}", i, j).c_str())
-                .set<MeshRenderData>({.mesh = avocado, .material = &mat})
+                .set<MeshRenderData>({.mesh = avocado, .material = mat})
                 .set<RotateData>({((i % 5) - 2) * 30.f});
             transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
         }

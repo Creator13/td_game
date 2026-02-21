@@ -13,11 +13,6 @@ namespace core
     struct WindowState;
 }
 
-namespace gfx
-{
-    class Renderer;
-}
-
 namespace flecs
 {
     struct world;

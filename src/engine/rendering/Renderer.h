@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "datatype.h"
+#include "assets/Shader.h"
 #include "core/Color.h"
 #include "math/mat4.h"
 #include "rendering/pass/GeometryPass.h"
@@ -14,7 +15,7 @@ namespace core
 
 namespace core::gfx
 {
-    enum class BackfaceCulling : u8 { Back, Front, None };
+    class Pipeline;
 
     struct ViewportData
     {
@@ -33,12 +34,6 @@ namespace core::gfx
         assets::AssetRef<Mesh> mesh;
         Material* material;
         math::mat4 modelMatrix;
-    };
-
-    struct RenderPass
-    {
-        bool depth;
-        BackfaceCulling backfaceCulling;
     };
 
     class Renderer
@@ -60,7 +55,8 @@ namespace core::gfx
         void renderFrame();
 
     private:
-        void setPass(const RenderPass& pass);
+        void bindPipeline(const Pipeline& pipeline);
+        void bindMaterial(const Material& material);
 
         void renderSceneGeometry();
         void renderUI();

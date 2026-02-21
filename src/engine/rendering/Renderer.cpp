@@ -8,6 +8,7 @@
 #include "core/Constants.h"
 #include "core/Mesh.h"
 #include "rendering/Material.h"
+#include "rendering/Pipeline.h"
 
 using namespace math;
 using namespace core;
@@ -48,11 +49,24 @@ void Renderer::renderFrame()
     renderSceneGeometry();
 }
 
-void Renderer::setPass(const RenderPass& pass)
+void Renderer::bindPipeline(const Pipeline& pipeline)
 {
-    (pass.depth ? glEnable : glDisable)(GL_DEPTH_TEST);
+    // Shader
+    glUseProgram(pipeline._shader->programId);
 
-    switch (pass.backfaceCulling)
+    // Depth testing
+    if (pipeline._descriptor.depthTest)
+    {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(pipeline._descriptor.depthFunc);
+    }
+    else
+    {
+        glDisable(GL_DEPTH_TEST);
+    }
+
+    // Face culling
+    switch (pipeline._descriptor.backfaceCulling)
     {
         case BackfaceCulling::Back:
             glEnable(GL_CULL_FACE);
@@ -67,8 +81,26 @@ void Renderer::setPass(const RenderPass& pass)
             break;
     }
 
-    // TODO maybe store pass reference in a field for reference during the pass? Dunno if that is needed or if I can
-    //  just change specific state. Anyway this function will NOT be static-qualified in the future...
+    // Blend
+    if (pipeline._descriptor.blend)
+    {
+        glEnable(GL_BLEND);
+        glBlendFunc(pipeline._descriptor.blendSource, pipeline._descriptor.blendDestination);
+    }
+    else
+    {
+        glDisable(GL_BLEND);
+    }
+}
+
+void Renderer::bindMaterial(const Material& material)
+{
+    if (material._dirty)
+    {
+        // TODO upload data
+    }
+
+    // TODO bind
 }
 
 void Renderer::renderSceneGeometry()
@@ -76,26 +108,21 @@ void Renderer::renderSceneGeometry()
     ZoneScopedN("Renderer::renderSceneGeometry()");
     TracyGpuZone("Renderer::renderSceneGeometry()");
 
-    setPass(RenderPass{
-        .depth = true,
-        .backfaceCulling = BackfaceCulling::Back
-    });
-
     const mat4 vpMatrix = _viewportData.getCombinedViewProjectionMatrix();
 
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
-        const DrawCommand& rObj = _geometryCommandBuffer[i];
+        const DrawCommand& cmd = _geometryCommandBuffer[i];
 
-        glUseProgram(rObj.material->shader->programId);
+        bindPipeline(cmd.material->pipeline);
 
-        const gpu::MeshGpuHandle& handle = rObj.mesh->gpuHandle;
+        const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
         glBindVertexArray(handle.vao);
 
-        glBindTextureUnit(0, rObj.material->albedo->getGlBindPoint());
-        glBindSampler(0, _sampler);
+        // glBindTextureUnit(0, rObj.material->albedo->getGlBindPoint());
+        // glBindSampler(0, _sampler);
 
-        glUniformMatrix4fv(100, 1, GL_FALSE, rObj.modelMatrix.m);
+        glUniformMatrix4fv(100, 1, GL_FALSE, cmd.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
 
         glUniform1i(110, 0);
@@ -110,11 +137,4 @@ void Renderer::renderUI()
 {
     ZoneScopedN("Renderer::renderSceneGeometry()");
     TracyGpuZone("Renderer::renderSceneGeometry()");
-
-    setPass({
-        .depth = false,
-        .backfaceCulling = BackfaceCulling::Back
-    });
-
-
 }
