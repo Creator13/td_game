@@ -4,9 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
+#include <fmt/format.h>
 
 #include "datatype.h"
-#include "Logging.h"
 #include "rendering/ShaderPropertyId.h"
 
 namespace core::gfx
@@ -49,6 +49,7 @@ namespace core::gfx
     private:
         constexpr static int MAX_BLOCKS = 4;
 
+        int _numBlocks;
         int _materialBlockIndex = -1;
         int _frameDataBlockIndex = -1;
 
@@ -67,7 +68,16 @@ namespace core::gfx
 
         const UniformBlockInfo& getMaterialBlockInfo() const;
         const UniformBlockInfo& getFrameDataBlockInfo() const;
+
+        std::string toString() const;
     };
 }
 
-// ## Formatting ##
+template<>
+struct fmt::formatter<core::gfx::ShaderPipelineLayout> : formatter<std::string>
+{
+    auto format(const core::gfx::ShaderPipelineLayout& layout, format_context& ctx) const
+    {
+        return formatter<std::string>::format(layout.toString(), ctx);
+    }
+};

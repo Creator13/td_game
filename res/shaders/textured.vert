@@ -7,6 +7,11 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 100) uniform mat4 model;
 layout (location = 101) uniform mat4 vp_mat;
 
+layout (binding = 0, std140) uniform FrameDataBlock
+{
+    float time;
+};
+
 layout (location = 0) out vec3 vPos;
 layout (location = 1) out vec3 vNorm;
 layout (location = 2) out vec2 vTexCoord;

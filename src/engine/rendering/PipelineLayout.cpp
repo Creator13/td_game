@@ -1,11 +1,13 @@
 #include "PipelineLayout.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <glad/gl.h>
 #include <spdlog/spdlog.h>
 
 #include "core/Assert.h"
+#include "formatting/fmt_gl.h"
 
 using namespace core;
 using namespace core::gfx;
@@ -34,7 +36,7 @@ namespace
 }
 
 ShaderPipelineLayout::ShaderPipelineLayout(gl::program_t program)
-    : _program(program), _uniformBlocks(), _shaderProperties(8) { }
+    : _numBlocks(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
 
 ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program)
 {
@@ -44,8 +46,10 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
     gl::Int numBlocks = 0;
     glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numBlocks);
 
+    resultLayout._numBlocks = numBlocks;
+
     // TODO quick and dirty safety check, if we need more blocks in a shader then either extned the array by default
-    ENGINE_ASSERT(numBlocks <= MAX_BLOCKS, "Shader has more blocks than supported by pipeline, aborting... (program id: {})", program.id);
+    ENGINE_ASSERT(numBlocks <= MAX_BLOCKS, "Shader has more blocks than supported by pipeline, aborting... (program id: {})", program);
 
     constexpr gl::enum_t blockProperties[] = {GL_BUFFER_BINDING, GL_BUFFER_DATA_SIZE, GL_NUM_ACTIVE_VARIABLES, GL_NAME_LENGTH};
     constexpr gl::enum_t blockUniformProps[] = {GL_TYPE, GL_OFFSET, GL_ARRAY_SIZE, GL_NAME_LENGTH};
@@ -72,12 +76,12 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
         // Sort block
         if (blockInfo.name == "MaterialBlock" || blockInfo.name == "Material")
         {
-            ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second material block in program! (program id: {})", program.id);
+            ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second material block in program! (program id: {})", program);
             resultLayout._materialBlockIndex = iBlock;
         }
         else if (blockInfo.name == "FrameDataBlock" || blockInfo.name == "Frame" || blockInfo.name == "FrameData")
         {
-            ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second frame data block in program! (program id: {})", program.id);
+            ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second frame data block in program! (program id: {})", program);
             resultLayout._frameDataBlockIndex = iBlock;
         }
 
@@ -105,6 +109,7 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
             UniformInfo uniformInfo;
             uniformInfo.offset = varProps[1];
             uniformInfo.size = varProps[2];
+            uniformInfo.blockIndex = iBlock;
             shaderPropInfo.data = uniformInfo;
 
             const gl::Int varNameLength = varProps[3];
@@ -192,4 +197,63 @@ const UniformBlockInfo& ShaderPipelineLayout::getFrameDataBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get frame data block on shader without said block. (This block should not be missing if you see this message.)");
     return _uniformBlocks[_frameDataBlockIndex];
+}
+
+std::string ShaderPipelineLayout::toString() const
+{
+    using IdPropertyPair = std::pair<ShaderPropertyId, ShaderPropertyInfo>;
+
+    fmt::memory_buffer buffer;
+
+    fmt::format_to(std::back_inserter(buffer), "\nShaderPipelineLayout (program id {}):\n", _program);
+
+    for (int i = 0; i < _numBlocks; i++)
+    {
+        const UniformBlockInfo& block = _uniformBlocks[i];
+
+        fmt::format_to(std::back_inserter(buffer),
+            "## {} (index={}, binding={}, propertyCount={}, size={}b):\n",
+            block.name, block.index, block.binding, block.propertyCount, block.dataSize);
+
+        std::vector<IdPropertyPair> blockProperties;
+        blockProperties.reserve(block.propertyCount);
+        for (const auto& [id, property] : _shaderProperties)
+        {
+            if (property.propertyType != ShaderPropertyInfo::PropertyType::Uniform) continue;
+
+            const auto& uniformInfo = std::get<UniformInfo>(property.data);
+            if (uniformInfo.blockIndex == block.index)
+            {
+                blockProperties.push_back({id, property});
+            }
+        }
+
+        // Sort by offset
+        std::ranges::sort(blockProperties, [](const IdPropertyPair& a, const IdPropertyPair& b)
+        {
+            return std::get<UniformInfo>(a.second.data).offset < std::get<UniformInfo>(b.second.data).offset;
+        });
+
+        for (const auto& [spid, propInfo] : blockProperties)
+        {
+            const auto& uniformInfo = std::get<UniformInfo>(propInfo.data);
+            fmt::format_to(std::back_inserter(buffer),
+                "   |- {} (spid={}): {}, offset={}, arraySize={}\n",
+                propInfo.name, spid, glTypeToString(propInfo.glType), uniformInfo.offset, uniformInfo.size);
+        }
+    }
+
+    fmt::format_to(std::back_inserter(buffer), "## Samplers:\n");
+
+    for (const auto& [id, property] : _shaderProperties)
+    {
+        if (property.propertyType != ShaderPropertyInfo::PropertyType::Sampler) continue;
+
+        const auto& samplerInfo = std::get<SamplerInfo>(property.data);
+        fmt::format_to(std::back_inserter(buffer),
+            "   |- {} (spid={}): {}, location={}, texUnit={}",
+            property.name, id, glTypeToString(property.glType), samplerInfo.location, samplerInfo.textureUnit);
+    }
+
+    return fmt::to_string(buffer);
 }

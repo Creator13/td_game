@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <fmt/format.h>
 #include "assets/AssetId.h"
 
 template<>
