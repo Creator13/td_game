@@ -4,6 +4,7 @@
 
 #include "datatype.h"
 #include "assets/AssetRef.h"
+#include "rendering/PipelineLayout.h"
 
 namespace core
 {
@@ -13,20 +14,6 @@ namespace core
     struct assets::AssetTraits<Shader>
     {
         static constexpr AssetType type = AssetType::Shader;
-    };
-
-    using ShaderProperty = u64;
-
-    struct PropertyInfo { };
-
-    struct SamplerInfo { };
-
-    struct UniformBlockInfo { };
-
-    struct ShaderPipelineLayout
-    {
-        static ShaderPipelineLayout buildFromShader(gl::program_t program);
-        usize uboSize() const;
     };
 
     struct Shader
@@ -40,9 +27,9 @@ namespace core
         static std::string createCombinedShaderPath(std::string_view vertPath, std::string_view fragPath);
 
         [[nodiscard]]
-        const ShaderPipelineLayout& getLayout() const { return _layout; }
+        const gfx::ShaderPipelineLayout& getLayout() const { return _layout; }
 
     private:
-        ShaderPipelineLayout _layout;
+        gfx::ShaderPipelineLayout _layout;
     };
 }

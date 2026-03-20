@@ -4,11 +4,17 @@ layout (location = 0) in vec3 vPos;
 layout (location = 1) in vec3 vNorm;
 layout (location = 2) in vec2 vTexCoord;
 
-layout (location = 110) uniform sampler2D texSampler;
+layout (binding = 1, std140) uniform MaterialBlock
+{
+    vec4 colorrr;
+    float someVal;
+};
+
+uniform sampler2D texSampler;
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = texture(texSampler, vTexCoord);
-//    fragColor = vec4(vTexCoord, 1.0, 1.0);
+    vec4 realColor = colorrr * someVal;
+    fragColor = texture(texSampler, vTexCoord) * realColor;
 }

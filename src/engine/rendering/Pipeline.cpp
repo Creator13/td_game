@@ -17,7 +17,7 @@ core::Material Pipeline::newMaterialInstance() const
     return Material(*this);
 }
 
-const core::ShaderPipelineLayout& Pipeline::getShaderLayout() const
+const ShaderPipelineLayout& Pipeline::getShaderLayout() const
 {
     return _shader->getLayout();
 }

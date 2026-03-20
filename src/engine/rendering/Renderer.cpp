@@ -119,13 +119,8 @@ void Renderer::renderSceneGeometry()
         const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
         glBindVertexArray(handle.vao);
 
-        // glBindTextureUnit(0, rObj.material->albedo->getGlBindPoint());
-        // glBindSampler(0, _sampler);
-
         glUniformMatrix4fv(100, 1, GL_FALSE, cmd.modelMatrix.m);
         glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
-
-        glUniform1i(110, 0);
 
         glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }

@@ -1,5 +1,6 @@
 #pragma once
 #include "math/func.h"
+#include "math/vec4.h"
 
 namespace core
 {
@@ -17,6 +18,8 @@ namespace core
         [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b, float a);
         [[nodiscard]] static constexpr Color fromSrgb(const SrgbColor& srgbColor);
         [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b);
+
+        constexpr explicit operator math::vec4() const { return math::vec4(r, g, b, a); }
 
         static const Color black, white;
         static const Color red, green, blue;

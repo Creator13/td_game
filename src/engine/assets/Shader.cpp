@@ -16,19 +16,9 @@ namespace
     util::PagedStorage<Shader, 128> shaderStorage = util::PagedStorage<Shader, 128>();
 }
 
-ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program)
-{
-    return ShaderPipelineLayout();
-}
-
-usize ShaderPipelineLayout::uboSize() const
-{
-    return 0;
-}
-
 Shader::Shader(gl::program_t programId)
     : programId(programId),
-      _layout(ShaderPipelineLayout::buildFromShader(programId)) { }
+      _layout(gfx::ShaderPipelineLayout::buildFromShader(programId)) { }
 
 Shader::~Shader()
 {
