@@ -44,7 +44,7 @@ namespace core::gfx
         std::variant<UniformInfo, SamplerInfo> data;
     };
 
-    struct ShaderPipelineLayout
+    struct ShaderLayout
     {
     private:
         constexpr static int MAX_BLOCKS = 4;
@@ -58,10 +58,10 @@ namespace core::gfx
         std::unordered_map<ShaderPropertyId, ShaderPropertyInfo> _shaderProperties;
         std::array<UniformBlockInfo, MAX_BLOCKS> _uniformBlocks;
 
-        explicit ShaderPipelineLayout(gl::program_t program);
+        explicit ShaderLayout(gl::program_t program);
 
     public:
-        static ShaderPipelineLayout buildFromShader(gl::program_t program);
+        static ShaderLayout buildFromProgram(gl::program_t program);
 
         bool hasMaterialBlock() const;
         bool hasFrameDataBlock() const;
@@ -74,9 +74,9 @@ namespace core::gfx
 }
 
 template<>
-struct fmt::formatter<core::gfx::ShaderPipelineLayout> : formatter<std::string>
+struct fmt::formatter<core::gfx::ShaderLayout> : formatter<std::string>
 {
-    auto format(const core::gfx::ShaderPipelineLayout& layout, format_context& ctx) const
+    auto format(const core::gfx::ShaderLayout& layout, format_context& ctx) const
     {
         return formatter<std::string>::format(layout.toString(), ctx);
     }

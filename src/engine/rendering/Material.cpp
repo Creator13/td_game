@@ -9,17 +9,16 @@ using namespace core::gfx;
 using namespace math;
 
 Material::Material(const Pipeline& pipeline)
-    : pipeline(pipeline), _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(false)
+    : pipeline(pipeline), _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true)
 {
-    const usize uboSize = _layout.getMaterialBlockInfo().dataSize;
+    if (!_layout.hasMaterialBlock()) return;
 
-    if (uboSize > 0)
+    if (const usize uboSize = _layout.getMaterialBlockInfo().dataSize; uboSize > 0)
     {
         glCreateBuffers(1, &_uboHandle.id);
         glNamedBufferStorage(_uboHandle, uboSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+        _materialBlockDdata.resize(uboSize);
     }
-
-    _materialBlockDdata.resize(uboSize);
 }
 
 Material::~Material()

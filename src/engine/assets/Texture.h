@@ -3,10 +3,9 @@
 #include <optional>
 #include <vector>
 
+#include "datatype.h"
 #include "assets/AssetRef.h"
 #include "assets/AssetTraits.h"
-#include "datatype.h"
-
 
 namespace core
 {

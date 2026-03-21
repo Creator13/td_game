@@ -1,6 +1,5 @@
 #pragma once
 
-#include "assets/Shader.h"
 #include "core/Color.h"
 #include "math/geom.h"
 #include "math/mat4.h"

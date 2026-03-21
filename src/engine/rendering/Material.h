@@ -1,11 +1,12 @@
 #pragma once
 
 #include "assets/AssetRef.h"
-#include "assets/Shader.h"
+#include "assets/AssetTraits.h"
 #include "assets/Texture.h"
 #include "core/Color.h"
 #include "math/vec3.h"
 #include "math/vec4.h"
+#include "rendering/ShaderPropertyId.h"
 
 namespace math {
     struct mat4;
@@ -14,9 +15,18 @@ namespace math {
 namespace core
 {
     namespace gfx {
+        struct ShaderLayout;
         class Pipeline;
         class Renderer;
     }
+
+    struct Material;
+
+    template<>
+    struct assets::AssetTraits<Material>
+    {
+        static constexpr AssetType type = AssetType::Material;
+    };
 
     struct Material
     {
@@ -43,7 +53,7 @@ namespace core
     private:
         // Note: AssetRef has stable pointer so we can just cache the reference to the layout here.
         // Beware if this ever changes.
-        const gfx::ShaderPipelineLayout& _layout;
+        const gfx::ShaderLayout& _layout;
 
         std::vector<u8> _materialBlockDdata;
         gl::buffer_t _uboHandle;

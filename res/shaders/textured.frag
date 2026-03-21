@@ -10,11 +10,11 @@ layout (binding = 1, std140) uniform MaterialBlock
     float someVal;
 };
 
-uniform sampler2D texSampler;
+uniform sampler2D _mainTex;
 
 out vec4 fragColor;
 
 void main() {
     vec4 realColor = colorrr * someVal;
-    fragColor = texture(texSampler, vTexCoord) * realColor;
+    fragColor = texture(_mainTex, vTexCoord) * realColor;
 }

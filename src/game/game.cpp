@@ -1,8 +1,6 @@
 #include <spdlog/spdlog.h>
 
 #include "engine.h"
-#include "assets/AssetDatabase.h"
-#include "assets/Shader.h"
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
@@ -30,9 +28,6 @@ WindowState engine::initial_window_state()
     return WindowState(1280, 720, "game", false);
 }
 
-Pipeline* pipeline = nullptr;
-Material* mat = nullptr;
-
 void engine::register_flecs(const flecs::world& world)
 {
     const flecs::entity cam = world.entity("Debug camera")
@@ -47,7 +42,6 @@ void engine::register_flecs(const flecs::world& world)
 
     // const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
-    const AssetRef<Shader> texShader = Shader::fromFiles("shaders/textured.vert", "shaders/textured.frag");
 
     AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
 
@@ -56,8 +50,9 @@ void engine::register_flecs(const flecs::world& world)
     pDesc.depthTest = true;
     pDesc.backfaceCulling = BackfaceCulling::Back;
 
-    pipeline = new Pipeline(pDesc, texShader);
-    mat = new Material(pipeline->newMaterialInstance());
+    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
+    AssetRef<Material> mat = pipeline->newMaterialInstance();
+    mat->setTexture2D("_mainTex"_spid, tex);
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)

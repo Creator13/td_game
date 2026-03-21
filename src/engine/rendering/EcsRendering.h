@@ -46,7 +46,7 @@ namespace core::ecs
     struct MeshRenderData
     {
         assets::AssetRef<Mesh> mesh;
-        Material* material;
+        assets::AssetRef<Material> material;
         CullReason cullReason;
     };
 

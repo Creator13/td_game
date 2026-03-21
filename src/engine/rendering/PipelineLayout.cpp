@@ -35,12 +35,12 @@ namespace
     }
 }
 
-ShaderPipelineLayout::ShaderPipelineLayout(gl::program_t program)
+ShaderLayout::ShaderLayout(gl::program_t program)
     : _numBlocks(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
 
-ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program)
+ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
 {
-    ShaderPipelineLayout resultLayout(program);
+    ShaderLayout resultLayout(program);
 
     // ## UBO reflection ##
     gl::Int numBlocks = 0;
@@ -48,7 +48,7 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
 
     resultLayout._numBlocks = numBlocks;
 
-    // TODO quick and dirty safety check, if we need more blocks in a shader then either extned the array by default
+    // TODO quick and dirty safety check, if we need more blocks in a shader then either extend the array by default or make it a vector
     ENGINE_ASSERT(numBlocks <= MAX_BLOCKS, "Shader has more blocks than supported by pipeline, aborting... (program id: {})", program);
 
     constexpr gl::enum_t blockProperties[] = {GL_BUFFER_BINDING, GL_BUFFER_DATA_SIZE, GL_NUM_ACTIVE_VARIABLES, GL_NAME_LENGTH};
@@ -57,15 +57,21 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
     for (int iBlock = 0; iBlock < numBlocks; ++iBlock)
     {
         UniformBlockInfo& blockInfo = resultLayout._uniformBlocks[iBlock];
-        blockInfo.index = iBlock; // ?? this seems unnecessary?
+        blockInfo.index = iBlock;
 
         gl::Int blockProps[4];
         glGetProgramResourceiv(program, GL_UNIFORM_BLOCK, iBlock, 4, blockProperties, 4, nullptr, blockProps);
-        blockInfo.binding = blockProps[0];
-        blockInfo.dataSize = blockProps[1];
 
         const gl::Int numActiveVariables = blockProps[2];
+        if (numActiveVariables == 0)
+        {
+            // Skip; Block contains 0 variables.
+            continue;
+        }
+
         blockInfo.propertyCount = numActiveVariables;
+        blockInfo.binding = blockProps[0];
+        blockInfo.dataSize = blockProps[1];
 
         const gl::Int blockNameLength = blockProps[3];
 
@@ -83,12 +89,6 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
         {
             ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second frame data block in program! (program id: {})", program);
             resultLayout._frameDataBlockIndex = iBlock;
-        }
-
-        if (numActiveVariables == 0)
-        {
-            // Skip; Block contains 0 variables.
-            continue;
         }
 
         std::vector<gl::Int> activeVariables(numActiveVariables);
@@ -177,29 +177,29 @@ ShaderPipelineLayout ShaderPipelineLayout::buildFromShader(gl::program_t program
     return resultLayout;
 }
 
-bool ShaderPipelineLayout::hasMaterialBlock() const
+bool ShaderLayout::hasMaterialBlock() const
 {
     return _materialBlockIndex > -1;
 }
 
-bool ShaderPipelineLayout::hasFrameDataBlock() const
+bool ShaderLayout::hasFrameDataBlock() const
 {
     return _frameDataBlockIndex > -1;
 }
 
-const UniformBlockInfo& ShaderPipelineLayout::getMaterialBlockInfo() const
+const UniformBlockInfo& ShaderLayout::getMaterialBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get material block on shader without said block. (This block should not be missing if you see this message.)");
     return _uniformBlocks[_materialBlockIndex];
 }
 
-const UniformBlockInfo& ShaderPipelineLayout::getFrameDataBlockInfo() const
+const UniformBlockInfo& ShaderLayout::getFrameDataBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get frame data block on shader without said block. (This block should not be missing if you see this message.)");
     return _uniformBlocks[_frameDataBlockIndex];
 }
 
-std::string ShaderPipelineLayout::toString() const
+std::string ShaderLayout::toString() const
 {
     using IdPropertyPair = std::pair<ShaderPropertyId, ShaderPropertyInfo>;
 

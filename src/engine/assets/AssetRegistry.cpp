@@ -23,6 +23,7 @@ fs::path assets::resolveResourcePath(std::string_view path)
 
 AssetId assets::registerAsset(std::string_view path, AssetType type, void* data)
 {
+    // TODO interesting that this does not actually register assets..??
     // globalAssetDatabase->metadata.try_emplace(path, id, type, data);
     return AssetId::idFromPath(path);
 }

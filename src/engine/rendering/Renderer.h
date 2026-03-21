@@ -3,15 +3,10 @@
 #include <vector>
 
 #include "datatype.h"
-#include "assets/Shader.h"
 #include "core/Color.h"
 #include "math/mat4.h"
+#include "rendering/Material.h"
 #include "rendering/pass/GeometryPass.h"
-
-namespace core
-{
-    struct Material;
-}
 
 namespace core::gfx
 {
@@ -32,7 +27,7 @@ namespace core::gfx
     struct DrawCommand
     {
         assets::AssetRef<Mesh> mesh;
-        Material* material;
+        assets::AssetRef<Material> material;
         math::mat4 modelMatrix;
     };
 

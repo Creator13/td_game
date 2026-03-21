@@ -4,7 +4,6 @@
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
-#include "assets/Shader.h"
 #include "core/Constants.h"
 #include "core/Mesh.h"
 #include "rendering/Material.h"
@@ -52,7 +51,7 @@ void Renderer::renderFrame()
 void Renderer::bindPipeline(const Pipeline& pipeline)
 {
     // Shader
-    glUseProgram(pipeline._shader->programId);
+    glUseProgram(pipeline._programId);
 
     // Depth testing
     if (pipeline._descriptor.depthTest)

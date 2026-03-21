@@ -110,6 +110,21 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
     return std::nullopt;
 }
 
+gl::program_t ShaderLoader::glProgramFromFiles(std::string_view vertPath, std::string_view fragPath)
+{
+    std::optional<gl::shader_t> vertId = loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
+    std::optional<gl::shader_t> fragId = loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
+    if (!vertId || !fragId)
+    {
+        return getErrorShader();
+    }
+
+    std::optional<gl::program_t> sId = linkShaderProgram({vertId.value(), fragId.value()});
+    if (!sId) return getErrorShader();
+
+    return sId.value();
+}
+
 gl::program_t ShaderLoader::getErrorShader()
 {
     if (_errorShaderId == 0)
