@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -42,6 +43,9 @@ namespace core::gfx
         gl::enum_t glType;
         PropertyType propertyType;
         std::variant<UniformInfo, SamplerInfo> data;
+
+        const UniformInfo& getUniformInfo() const;
+        const SamplerInfo& getSamplerInfo() const;
     };
 
     struct ShaderLayout
@@ -66,12 +70,27 @@ namespace core::gfx
         bool hasMaterialBlock() const;
         bool hasFrameDataBlock() const;
 
+        int getMaterialBlockIndex() const { return _materialBlockIndex; }
         const UniformBlockInfo& getMaterialBlockInfo() const;
+
+        int getFrameDataBlockIndex() const { return _frameDataBlockIndex; }
         const UniformBlockInfo& getFrameDataBlockInfo() const;
+
+        const ShaderPropertyInfo* getPropertyInfo(ShaderPropertyId id) const;
 
         std::string toString() const;
     };
 }
+
+template<>
+struct fmt::formatter<core::gfx::ShaderPropertyInfo> : formatter<std::string_view>
+{
+    auto format(const core::gfx::ShaderPropertyInfo& propInfo, format_context& ctx) const
+    {
+        return formatter<std::string_view>::format(
+            fmt::format("{} (id:{})", propInfo.name, core::gfx::makePropertyId(propInfo.name)), ctx);
+    }
+};
 
 template<>
 struct fmt::formatter<core::gfx::ShaderLayout> : formatter<std::string>

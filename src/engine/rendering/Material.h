@@ -6,21 +6,24 @@
 #include "core/Color.h"
 #include "math/vec3.h"
 #include "math/vec4.h"
+#include "rendering/PipelineLayout.h"
 #include "rendering/ShaderPropertyId.h"
 
-namespace math {
+namespace math
+{
     struct mat4;
 }
 
 namespace core
 {
-    namespace gfx {
+    namespace gfx
+    {
         struct ShaderLayout;
         class Pipeline;
         class Renderer;
     }
 
-    struct Material;
+    class Material;
 
     template<>
     struct assets::AssetTraits<Material>
@@ -28,14 +31,31 @@ namespace core
         static constexpr AssetType type = AssetType::Material;
     };
 
-    struct Material
+    class Material
     {
         friend gfx::Renderer;
         friend gfx::Pipeline;
 
-        const gfx::Pipeline& pipeline;
+        const gfx::Pipeline& _pipeline;
+        // Note: AssetRef has stable pointer so we can just cache the reference to the layout here.
+        // Beware if this ever changes.
+        const gfx::ShaderLayout& _layout;
 
+        std::vector<u8> _materialBlockData;
+        gl::buffer_t _uboHandle;
+
+        bool _dirty;
+
+        // Private constructor from pipeline object takes a Pipeline& and not an AssetRef because it should only be called by the owning pipeline.
         explicit Material(const gfx::Pipeline& pipeline);
+        void constructBuffers(); // constructor helper
+
+        template<typename T>
+        void setUniform(gfx::ShaderPropertyId id, const T& value, gl::enum_t expectedGlType);
+
+        void flushChangesToGpu();
+
+    public:
         ~Material();
 
         void setFloat(gfx::ShaderPropertyId id, float value);
@@ -49,15 +69,7 @@ namespace core
         void setMat4(gfx::ShaderPropertyId id, const math::mat4& value);
 
         void setTexture2D(gfx::ShaderPropertyId id, assets::AssetRef<Texture> tex);
-
-    private:
-        // Note: AssetRef has stable pointer so we can just cache the reference to the layout here.
-        // Beware if this ever changes.
-        const gfx::ShaderLayout& _layout;
-
-        std::vector<u8> _materialBlockDdata;
-        gl::buffer_t _uboHandle;
-
-        bool _dirty;
     };
+
+#include "Material.inl"
 }

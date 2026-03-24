@@ -50,9 +50,9 @@ void engine::register_flecs(const flecs::world& world)
     pDesc.depthTest = true;
     pDesc.backfaceCulling = BackfaceCulling::Back;
 
-    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
+    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/basic.vert", "shaders/color.frag");
     AssetRef<Material> mat = pipeline->newMaterialInstance();
-    mat->setTexture2D("_mainTex"_spid, tex);
+    mat->setColor("color"_spid, Color::fromSrgb(SrgbColor::darkGreen));
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)

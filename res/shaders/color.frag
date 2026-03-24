@@ -2,7 +2,7 @@
 
 layout (location = 1) in vec3 vPos;
 
-layout (binding = 1, std140) uniform MaterialBlock
+layout (binding = 2, std140) uniform MaterialBlock
 {
     vec4 color;
 };

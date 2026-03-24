@@ -156,14 +156,14 @@ void DebugRenderer::render()
     glBindVertexArray(_vao);
 
     const mat4 viewProjection = _viewportData.getCombinedViewProjectionMatrix();
-    const GLint vpLocation = glGetUniformLocation(_debugShader, "uViewProjection");
+    const gl::Int vpLocation = glGetUniformLocation(_debugShader, "uViewProjection");
     glUniformMatrix4fv(vpLocation, 1, GL_FALSE, viewProjection.m);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(_vertCount));
+    glDrawArrays(GL_LINES, 0, static_cast<gl::Sizei>(_vertCount));
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);

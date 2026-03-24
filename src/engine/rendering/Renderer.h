@@ -38,20 +38,20 @@ namespace core::gfx
         std::vector<DrawCommand> _geometryCommandBuffer;
         std::vector<DrawCommand> _uiCommandBuffer;
 
-        gl::Uint _sampler;
+        gl::buffer_t _frameDataUboHandle;
         gl::framebuffer_t _mainFramebuffer;
 
     public:
         Renderer();
 
-        void copyViewportData(const ViewportData& params);
+        void setViewportData(const ViewportData& params);
         void submitSceneGeometry(const DrawCommand& command);
-        void submitUI();
         void renderFrame();
 
     private:
         void bindPipeline(const Pipeline& pipeline);
-        void bindMaterial(const Material& material);
+        void bindMaterial(Material& material);
+        void bindFrameData() const;
 
         void renderSceneGeometry();
         void renderUI();

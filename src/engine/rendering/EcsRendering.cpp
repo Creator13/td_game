@@ -247,5 +247,5 @@ void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& camer
 void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& renderData)
 {
     Renderer& renderer = *r_ptr.ptr;
-    renderer.copyViewportData(renderData);
+    renderer.setViewportData(renderData);
 }

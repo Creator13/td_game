@@ -7,6 +7,8 @@
 
 #include "assets/AssetRegistery.h"
 #include "assets/File.h"
+#include "rendering/DataLayout.h"
+#include "util/StringExtensions.h"
 
 using namespace core;
 using namespace core::assets;
@@ -14,17 +16,54 @@ using namespace core::assets;
 gl::program_t ShaderLoader::compileInternalErrorShader()
 {
     // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
-    constexpr std::string_view ERROR_SHADER_VERT = "#version 430\n layout (location = 0) in vec3 pos;\nlayout (location = 1) in vec3 aNorm;\nlayout (location = 100) uniform mat4 model;\nlayout (location = 101) uniform mat4 vp_mat;void main() {gl_Position = vp_mat * model * vec4(pos, 1.0);}";
-    constexpr std::string_view ERROR_SHADER_FRAG = "#version 430\n out vec4 fragColor;void main() {fragColor = vec4(1.0, 0.0, 1.0, 1.0);}";
+    constexpr std::string_view errorShaderVert = R"(
+            #version 430 core
 
-    gl::shader_t vId = compileFromSource(ERROR_SHADER_VERT, GL_VERTEX_SHADER).value();
-    gl::shader_t fId = compileFromSource(ERROR_SHADER_FRAG, GL_FRAGMENT_SHADER).value();
+            #include "_FrameDataBlock"
+            #include "_PerDrawBlock"
+
+            layout (location = 0) in vec3 pos;
+            layout (location = 1) in vec3 aNorm;
+
+            layout (location = 100) uniform mat4 model;
+
+            void main() {
+                gl_Position = scene.viewProj * object.worldTransform * vec4(pos, 1.0);
+            }
+        )";
+
+    constexpr std::string_view errorShaderFrag = R"(
+            #version 430 core
+
+            out vec4 fragColor;
+
+            void main() {
+                fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+            }
+        )";
+
+    gl::shader_t vId = compileFromSource(preprocessShader(errorShaderVert), GL_VERTEX_SHADER).value();
+    gl::shader_t fId = compileFromSource(preprocessShader(errorShaderFrag), GL_FRAGMENT_SHADER).value();
     const gl::program_t pId = linkShaderProgram({vId, fId}).value();
 
     glDeleteShader(vId);
     glDeleteShader(fId);
 
     return pId;
+}
+
+std::string ShaderLoader::preprocessShader(std::string_view sourceString)
+{
+    std::string result = util::string::multiReplace(sourceString, {
+        {"#include \"_FrameDataBlock\"", gfx::FrameDataBlock::getShaderDeclaration()},
+        {"#include \"_PerDrawBlock\"", gfx::PerDrawBlock::getShaderDeclaration()}
+    });
+    return result;
+}
+
+ShaderLoader::~ShaderLoader()
+{
+    cleanCache();
 }
 
 std::optional<gl::shader_t> ShaderLoader::compileFromSource(std::string_view source, gl::enum_t shaderType)
@@ -94,14 +133,14 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
     const file::fs::path fullPath = resolveResourcePath(path);
     spdlog::debug("Loading shader stage file from {}", fullPath.generic_string());
 
-    const std::optional<std::string> source = file::readFileText(fullPath);
+    std::optional<std::string> source = file::readFileText(fullPath);
     if (!source.has_value())
     {
         spdlog::error("Failed to load shader stage: {}", path);
         return std::nullopt;
     }
 
-    std::optional<gl::shader_t> glShaderId = compileFromSource(source.value().data(), stageType);
+    std::optional<gl::shader_t> glShaderId = compileFromSource(preprocessShader(source.value()), stageType);
     if (glShaderId.has_value())
     {
         _shaderStageCache.insert({id, glShaderId.value()});
@@ -133,4 +172,12 @@ gl::program_t ShaderLoader::getErrorShader()
     }
 
     return _errorShaderId;
+}
+
+void ShaderLoader::cleanCache()
+{
+    for (auto& [_, shaderId] : _shaderStageCache)
+    {
+        glDeleteShader(shaderId);
+    }
 }

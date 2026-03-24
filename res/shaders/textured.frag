@@ -1,20 +1,23 @@
 #version 460 core
 
-layout (location = 0) in vec3 vPos;
-layout (location = 1) in vec3 vNorm;
-layout (location = 2) in vec2 vTexCoord;
+#include "_FrameDataBlock"
 
-layout (binding = 1, std140) uniform MaterialBlock
+in VertToFrag {
+    vec3 vPos;
+    vec3 vNorm;
+    vec2 vTexCoord;
+} fragIn;
+
+layout (binding = 2, std140) uniform MaterialBlock
 {
-    vec4 colorrr;
-    float someVal;
-};
+    vec4 color;
+} mat;
 
 uniform sampler2D _mainTex;
 
 out vec4 fragColor;
 
 void main() {
-    vec4 realColor = colorrr * someVal;
-    fragColor = texture(_mainTex, vTexCoord) * realColor;
+    vec4 finalColor = mat.color * sin(scene.time);
+    fragColor = texture(_mainTex, fragIn.vTexCoord) * finalColor;
 }

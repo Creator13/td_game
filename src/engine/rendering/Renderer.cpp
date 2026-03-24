@@ -6,6 +6,8 @@
 
 #include "core/Constants.h"
 #include "core/Mesh.h"
+#include "core/Time.h"
+#include "rendering/DataLayout.h"
 #include "rendering/Material.h"
 #include "rendering/Pipeline.h"
 
@@ -23,14 +25,17 @@ Renderer::Renderer()
     glFrontFace(GL_CCW);
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
 
-    glCreateSamplers(1, &_sampler);
-    glSamplerParameteri(_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glCreateBuffers(1, &_frameDataUboHandle.id);
+    glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+    // glCreateSamplers(1, &_sampler);
+    // glSamplerParameteri(_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glSamplerParameteri(_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-void Renderer::copyViewportData(const ViewportData& params)
+void Renderer::setViewportData(const ViewportData& params)
 {
     _viewportData = params;
 }
@@ -92,14 +97,25 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     }
 }
 
-void Renderer::bindMaterial(const Material& material)
+void Renderer::bindMaterial(Material& material)
 {
-    if (material._dirty)
-    {
-        // TODO upload data
-    }
+    material.flushChangesToGpu();
 
-    // TODO bind
+    if (!material._layout.hasMaterialBlock()) return;
+
+    const auto& blockInfo =  material._layout.getMaterialBlockInfo();
+    // TODO binding is supposed to be 1 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
+    glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material._uboHandle);
+}
+
+void Renderer::bindFrameData() const
+{
+    FrameDataBlock frameDataBlock;
+    frameDataBlock.viewProj = _viewportData.getCombinedViewProjectionMatrix();
+    frameDataBlock.time = time::sinceLoad();
+
+    glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(FrameDataBlock), &frameDataBlock);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, _frameDataUboHandle);
 }
 
 void Renderer::renderSceneGeometry()
@@ -107,19 +123,17 @@ void Renderer::renderSceneGeometry()
     ZoneScopedN("Renderer::renderSceneGeometry()");
     TracyGpuZone("Renderer::renderSceneGeometry()");
 
-    const mat4 vpMatrix = _viewportData.getCombinedViewProjectionMatrix();
+    bindFrameData();
 
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
         const DrawCommand& cmd = _geometryCommandBuffer[i];
 
-        bindPipeline(cmd.material->pipeline);
+        bindPipeline(cmd.material->_pipeline);
+        bindMaterial(*cmd.material);
 
         const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
         glBindVertexArray(handle.vao);
-
-        glUniformMatrix4fv(100, 1, GL_FALSE, cmd.modelMatrix.m);
-        glUniformMatrix4fv(101, 1, GL_FALSE, vpMatrix.m);
 
         glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }

@@ -35,6 +35,18 @@ namespace
     }
 }
 
+const UniformInfo& ShaderPropertyInfo::getUniformInfo() const
+{
+    ENGINE_ASSERT(propertyType == PropertyType::Uniform, "Cannot get uniform info on a sampler property.");
+    return std::get<UniformInfo>(data);
+}
+
+const SamplerInfo& ShaderPropertyInfo::getSamplerInfo() const
+{
+    ENGINE_ASSERT(propertyType == PropertyType::Sampler, "Cannot get sampler info on a uniform property.");
+    return std::get<SamplerInfo>(data);
+}
+
 ShaderLayout::ShaderLayout(gl::program_t program)
     : _numBlocks(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
 
@@ -197,6 +209,36 @@ const UniformBlockInfo& ShaderLayout::getFrameDataBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get frame data block on shader without said block. (This block should not be missing if you see this message.)");
     return _uniformBlocks[_frameDataBlockIndex];
+}
+
+const ShaderPropertyInfo* ShaderLayout::getPropertyInfo(ShaderPropertyId id) const
+{
+    const auto it = _shaderProperties.find(id);
+    if (it == _shaderProperties.end())
+    {
+        spdlog::debug("Shader property id {} does not exist on material. This is likely fine, but I'm warning you nonetheless.");
+        return nullptr;
+    }
+
+    return &it->second;
+
+    // // Validate that GL type is as expected, if provided
+    // if (expectedGlType != GL_NONE)
+    // {
+    //     if (property.glType != expectedGlType)
+    //     {
+    //         spdlog::warn("Type mismatch while accessing property {}: property has type [{}] but expected type is [{}].",
+    //             property, glTypeToString(property.glType), glTypeToString(expectedGlType));
+    //         return nullptr;
+    //     }
+    // }
+    //
+    // if (property.propertyType != ShaderPropertyInfo::PropertyType::Uniform)
+    // {
+    //     return nullptr;
+    // }
+    //
+    // return &std::get<UniformInfo>(property.data);
 }
 
 std::string ShaderLayout::toString() const

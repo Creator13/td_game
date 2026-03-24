@@ -34,8 +34,10 @@ Pipeline::~Pipeline()
 
 AssetRef<Material> Pipeline::newMaterialInstance() const
 {
-    Material& mat = materialStorage.emplace(*this);
-    return AssetRef(&mat, AssetId::idFromPath(fmt::format("Material {}", materialStorage.size())));
+    Material* mat = materialStorage.allocate_uninitialized();
+    ::new(mat) Material(*this);
+
+    return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size())));
 }
 
 const ShaderLayout& Pipeline::getShaderLayout() const
