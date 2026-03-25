@@ -26,6 +26,8 @@ namespace core::gfx
 
     struct FrameDataBlock
     {
+        math::mat4 view;
+        math::mat4 projection;
         math::mat4 viewProj;
         float time;
 
@@ -34,11 +36,15 @@ namespace core::gfx
             return R"(
 layout (binding = 0, std140) uniform FrameDataBlock
 {
+    mat4 view;
+    mat4 projection;
     mat4 viewProj;
     float time;
 } scene;
             )";
         }
+
+        constexpr static gl::Int BINDING = 0;
     };
 
     struct PerDrawBlock
@@ -54,5 +60,7 @@ layout (binding = 1, std140) uniform PerDrawBlock
 } object;
             )";
         }
+
+        constexpr static gl::Int BINDING = 1;
     };
 }

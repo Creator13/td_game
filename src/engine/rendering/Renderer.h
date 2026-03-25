@@ -5,6 +5,7 @@
 #include "datatype.h"
 #include "core/Color.h"
 #include "math/mat4.h"
+#include "rendering/GrowableUbo.h"
 #include "rendering/Material.h"
 #include "rendering/pass/GeometryPass.h"
 
@@ -39,6 +40,8 @@ namespace core::gfx
         std::vector<DrawCommand> _uiCommandBuffer;
 
         gl::buffer_t _frameDataUboHandle;
+        GrowableUbo _perFrameUbo;
+
         gl::framebuffer_t _mainFramebuffer;
 
     public:

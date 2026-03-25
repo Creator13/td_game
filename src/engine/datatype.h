@@ -20,6 +20,10 @@ namespace core
 
     using usize = size_t;
     using isize = ptrdiff_t;
+
+    constexpr u64 operator""_kB(u64 x) { return 1024ull * x; }
+    constexpr u64 operator""_MB(u64 x) { return 1024ull * 1024ull * x; }
+    constexpr u64 operator""_GB(u64 x) { return 1024ull * 1024ull * 1024ull * x; }
 }
 
 namespace core::gl

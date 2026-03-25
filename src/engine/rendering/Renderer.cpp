@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include <__msvc_ranges_to.hpp>
 #include <glad/gl.h>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
@@ -21,18 +22,13 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
 }
 
 Renderer::Renderer()
+    : _perFrameUbo(4_kB)
 {
     glFrontFace(GL_CCW);
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-    // glCreateSamplers(1, &_sampler);
-    // glSamplerParameteri(_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glSamplerParameteri(_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glSamplerParameteri(_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void Renderer::setViewportData(const ViewportData& params)
@@ -104,13 +100,15 @@ void Renderer::bindMaterial(Material& material)
     if (!material._layout.hasMaterialBlock()) return;
 
     const auto& blockInfo =  material._layout.getMaterialBlockInfo();
-    // TODO binding is supposed to be 1 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
+    // TODO binding is supposed to be 2 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
     glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material._uboHandle);
 }
 
 void Renderer::bindFrameData() const
 {
     FrameDataBlock frameDataBlock;
+    frameDataBlock.view = _viewportData.viewMatrix;
+    frameDataBlock.projection = _viewportData.projectionMatrix;
     frameDataBlock.viewProj = _viewportData.getCombinedViewProjectionMatrix();
     frameDataBlock.time = time::sinceLoad();
 
@@ -125,12 +123,20 @@ void Renderer::renderSceneGeometry()
 
     bindFrameData();
 
+    auto drawcallDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
+    {
+        return PerDrawBlock{input.modelMatrix};
+    });
+    _perFrameUbo.alignAndUpload(drawcallDataView);
+
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
         const DrawCommand& cmd = _geometryCommandBuffer[i];
 
         bindPipeline(cmd.material->_pipeline);
         bindMaterial(*cmd.material);
+
+        _perFrameUbo.bindIndex(i, PerDrawBlock::BINDING);
 
         const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
         glBindVertexArray(handle.vao);

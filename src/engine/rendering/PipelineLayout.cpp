@@ -18,12 +18,18 @@ namespace
     {
         switch (type)
         {
-            case GL_SAMPLER_2D: return GL_TEXTURE_2D;
-            case GL_SAMPLER_CUBE: return GL_TEXTURE_CUBE_MAP;
-            case GL_SAMPLER_2D_ARRAY: return GL_TEXTURE_2D_ARRAY;
-            case GL_SAMPLER_3D: return GL_TEXTURE_3D;
-            case GL_SAMPLER_2D_SHADOW: return GL_TEXTURE_2D;
-            default: return GL_TEXTURE_2D;
+            case GL_SAMPLER_2D:
+                return GL_TEXTURE_2D;
+            case GL_SAMPLER_CUBE:
+                return GL_TEXTURE_CUBE_MAP;
+            case GL_SAMPLER_2D_ARRAY:
+                return GL_TEXTURE_2D_ARRAY;
+            case GL_SAMPLER_3D:
+                return GL_TEXTURE_3D;
+            case GL_SAMPLER_2D_SHADOW:
+                return GL_TEXTURE_2D;
+            default:
+                ENGINE_ASSERT("please just don't call this function on non-sampler types?");
         }
     }
 
@@ -216,29 +222,11 @@ const ShaderPropertyInfo* ShaderLayout::getPropertyInfo(ShaderPropertyId id) con
     const auto it = _shaderProperties.find(id);
     if (it == _shaderProperties.end())
     {
-        spdlog::debug("Shader property id {} does not exist on material. This is likely fine, but I'm warning you nonetheless.");
+        spdlog::debug("Shader property id {} does not exist in shader (program id {}). This is likely fine, but I'm warning you nonetheless.", id, _program);
         return nullptr;
     }
 
     return &it->second;
-
-    // // Validate that GL type is as expected, if provided
-    // if (expectedGlType != GL_NONE)
-    // {
-    //     if (property.glType != expectedGlType)
-    //     {
-    //         spdlog::warn("Type mismatch while accessing property {}: property has type [{}] but expected type is [{}].",
-    //             property, glTypeToString(property.glType), glTypeToString(expectedGlType));
-    //         return nullptr;
-    //     }
-    // }
-    //
-    // if (property.propertyType != ShaderPropertyInfo::PropertyType::Uniform)
-    // {
-    //     return nullptr;
-    // }
-    //
-    // return &std::get<UniformInfo>(property.data);
 }
 
 std::string ShaderLayout::toString() const
