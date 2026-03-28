@@ -3,27 +3,15 @@
 #include <vector>
 
 #include "datatype.h"
-#include "core/Color.h"
 #include "math/mat4.h"
 #include "rendering/GrowableUbo.h"
 #include "rendering/Material.h"
+#include "rendering/RenderingDataStructures.h"
 #include "rendering/pass/GeometryPass.h"
 
 namespace core::gfx
 {
     class Pipeline;
-
-    struct ViewportData
-    {
-        Color clearColor;
-
-        math::mat4 projectionMatrix = math::mat4::identity;
-        math::mat4 viewMatrix = math::mat4::identity;
-
-        u16 pixelWidth, pixelHeight;
-
-        math::mat4 getCombinedViewProjectionMatrix() const;
-    };
 
     struct DrawCommand
     {

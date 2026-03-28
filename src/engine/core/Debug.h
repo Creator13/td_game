@@ -1,10 +1,11 @@
 #pragma once
 
+#include "datatype.h"
 #include "core/Color.h"
 #include "math/geom.h"
 #include "math/mat4.h"
 #include "math/vec3.h"
-#include "rendering/Renderer.h"
+#include "rendering/RenderingDataStructures.h"
 
 namespace core::ecs {
     struct PerspectiveCameraData;

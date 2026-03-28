@@ -121,15 +121,15 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
             fastgltf::iterateAccessorWithIndex<vec2>(asset, texAccessor,
                 [&](vec2 texcoord, size_t index)
                 {
-                    out.vertices[vertex_base+index].uv0 = texcoord;
+                    out.vertices[vertex_base + index].uv0 = texcoord;
                 });
         }
 
         vertex_base += count;
     }
 
-    Mesh* outMesh = meshStorage.allocate_uninitialized();
-    ::new (outMesh) Mesh();
+    void* meshMem = meshStorage.allocate_uninitialized();
+    Mesh* outMesh = ::new(meshMem) Mesh();
 
     outMesh->vertices = std::move(out.vertices);
     outMesh->indices = std::move(out.indices);

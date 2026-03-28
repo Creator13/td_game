@@ -50,7 +50,7 @@ namespace util
         /// Copy-insertion of an existing element.
         T& insert(const T& value);
 
-        T* allocate_uninitialized();
+        void* allocate_uninitialized();
 
         /// Checks if the element at given index exists and is currently alive.
         bool has_at(size_t index) const;

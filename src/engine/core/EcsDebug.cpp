@@ -1,7 +1,6 @@
 #include "EcsDebug.h"
 
 #include "Debug.h"
-#include "rendering/EcsRendering.h"
 
 using namespace debug;
 

@@ -50,8 +50,8 @@ AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
-    Texture* outTexture = textureStorage.allocate_uninitialized();
-    ::new(outTexture) Texture(width, height, format);
+    void* texMem = textureStorage.allocate_uninitialized();
+    Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = true;
     outTexture->_pixelData = std::vector<u8>(width * height * 4);
@@ -81,8 +81,8 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
         &width, &height, &channelsInFile,
         texture_util::getChannelCountInFormat(format));
 
-    Texture* outTexture = textureStorage.allocate_uninitialized();
-    ::new(outTexture) Texture(width, height, format);
+    void* texMem = textureStorage.allocate_uninitialized();
+    Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = readable;
     outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));

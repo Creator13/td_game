@@ -34,8 +34,8 @@ Pipeline::~Pipeline()
 
 AssetRef<Material> Pipeline::newMaterialInstance() const
 {
-    Material* mat = materialStorage.allocate_uninitialized();
-    ::new(mat) Material(*this);
+    void* mem = materialStorage.allocate_uninitialized();
+    Material* mat = ::new(mem) Material(*this);
 
     return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size())));
 }
@@ -49,8 +49,8 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
 {
     const gl::program_t program = shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
 
-    Pipeline* pipeline = pipelineStorage.allocate_uninitialized();
-    ::new(pipeline) Pipeline(descriptor, program);
+    void* mem = pipelineStorage.allocate_uninitialized();
+    Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program);
 
     return AssetRef(pipeline, AssetId::idFromPath(fmt::format("@internal/pipeline/{}", name)));
 }

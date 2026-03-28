@@ -106,7 +106,7 @@ namespace util
     }
 
     template<typename T, size_t PageSize>
-    T* PagedStorage<T, PageSize>::allocate_uninitialized()
+    void* PagedStorage<T, PageSize>::allocate_uninitialized()
     {
         return allocate_slot();
     }
