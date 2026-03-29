@@ -37,7 +37,7 @@ AssetRef<Material> Pipeline::newMaterialInstance() const
     void* mem = materialStorage.allocate_uninitialized();
     Material* mat = ::new(mem) Material(*this);
 
-    return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size())));
+    return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size() - 1)));
 }
 
 const ShaderLayout& Pipeline::getShaderLayout() const

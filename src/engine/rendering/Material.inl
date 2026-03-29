@@ -3,7 +3,7 @@
 template<typename T>
 void Material::setUniform(gfx::ShaderPropertyId id, const T& value, gl::enum_t expectedGlType)
 {
-    const auto property = _layout.getPropertyInfo(id);
+    const gfx::ShaderPropertyInfo* const property = _layout.getPropertyInfo(id);
     if (!property || property->propertyType != gfx::ShaderPropertyInfo::PropertyType::Uniform)
     {
         // Property does not exist; bounce

@@ -11,13 +11,14 @@ in VertToFrag {
 layout (binding = 2, std140) uniform MaterialBlock
 {
     vec4 color;
-} mat;
+};
 
 uniform sampler2D _mainTex;
 
 out vec4 fragColor;
 
 void main() {
-    vec4 finalColor = mat.color * sin(scene.time);
-    fragColor = texture(_mainTex, fragIn.vTexCoord) * finalColor;
+//    vec4 finalColor = color * sin(scene.time);
+    fragColor = texture(_mainTex, fragIn.vTexCoord) * color;
+//    fragColor = color;
 }

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -77,6 +78,14 @@ namespace core::gfx
         const UniformBlockInfo& getFrameDataBlockInfo() const;
 
         const ShaderPropertyInfo* getPropertyInfo(ShaderPropertyId id) const;
+
+        // auto iterateUniforms() const
+        // {
+        //     return _shaderProperties
+        //         | std::views::as_const
+        //         | std::views::filter([](const auto& kv) {return kv.second.propertyType == ShaderPropertyInfo::PropertyType::Uniform;})
+        //         | std::views::values;
+        // }
 
         std::string toString() const;
     };

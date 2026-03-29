@@ -32,7 +32,7 @@ namespace core::gfx
         bool depthTest;
         gl::enum_t depthFunc;
 
-        bool blend = false;
+        bool blend;
         gl::enum_t blendSource;
         gl::enum_t blendDestination;
 

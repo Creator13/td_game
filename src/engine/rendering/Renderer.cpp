@@ -29,6 +29,12 @@ Renderer::Renderer()
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+    glCreateSamplers(1, &_defaultSampler);
+    glSamplerParameteri(_defaultSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(_defaultSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void Renderer::setViewportData(const ViewportData& params)
@@ -93,15 +99,33 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     }
 }
 
-void Renderer::bindMaterial(Material& material)
+void Renderer::bindMaterial(assets::AssetRef<Material> material)
 {
-    material.flushChangesToGpu();
+    // Bind material ubo
+    material->flushUboChangesToGpu();
+    if (material->_layout.hasMaterialBlock())
+    {
+        const auto& blockInfo =  material->_layout.getMaterialBlockInfo();
+        // TODO block binding location is supposed to be 2 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
+        glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material->_uboHandle);
+    }
 
-    if (!material._layout.hasMaterialBlock()) return;
+    for (const auto& [propertyId, textureRef] : material->_textures)
+    {
+        assets::AssetRef<Texture> textureToBind = textureRef;
 
-    const auto& blockInfo =  material._layout.getMaterialBlockInfo();
-    // TODO binding is supposed to be 2 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
-    glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material._uboHandle);
+        if (textureRef.isNull())
+        {
+            textureToBind = Texture::fallbackWhite();
+        }
+
+        const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
+        ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
+
+        const SamplerInfo& samplerInfo = prop->getSamplerInfo();
+        glBindTextureUnit(samplerInfo.textureUnit, textureToBind->getGlBindPoint());
+        glBindSampler(samplerInfo.textureUnit, _defaultSampler);
+    }
 }
 
 void Renderer::bindFrameData() const
@@ -134,7 +158,7 @@ void Renderer::renderSceneGeometry()
         const DrawCommand& cmd = _geometryCommandBuffer[i];
 
         bindPipeline(cmd.material->_pipeline);
-        bindMaterial(*cmd.material);
+        bindMaterial(cmd.material);
 
         _perFrameUbo.bindIndex(i, PerDrawBlock::BINDING);
 

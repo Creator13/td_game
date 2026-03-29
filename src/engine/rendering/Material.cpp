@@ -29,7 +29,7 @@ void Material::constructBuffers()
     }
 }
 
-void Material::flushChangesToGpu()
+void Material::flushUboChangesToGpu()
 {
     if (!_layout.hasMaterialBlock()) return;
     if (!_dirty) return;
@@ -88,5 +88,12 @@ void Material::setMat4(ShaderPropertyId id, const mat4& value)
 
 void Material::setTexture2D(ShaderPropertyId id, assets::AssetRef<Texture> tex)
 {
-    _dirty = true;
+    const ShaderPropertyInfo* const property = _layout.getPropertyInfo(id);
+    if (!property || property->propertyType != ShaderPropertyInfo::PropertyType::Sampler)
+    {
+        // Property does not exist; bounce.
+        return;
+    }
+
+    _textures[id] = tex;
 }

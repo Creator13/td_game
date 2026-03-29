@@ -31,6 +31,7 @@ namespace core::gfx
         GrowableUbo _perFrameUbo;
 
         gl::framebuffer_t _mainFramebuffer;
+        gl::Uint _defaultSampler;
 
     public:
         Renderer();
@@ -41,7 +42,7 @@ namespace core::gfx
 
     private:
         void bindPipeline(const Pipeline& pipeline);
-        void bindMaterial(Material& material);
+        void bindMaterial(assets::AssetRef<Material> material);
         void bindFrameData() const;
 
         void renderSceneGeometry();

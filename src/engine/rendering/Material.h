@@ -36,15 +36,16 @@ namespace core
         friend gfx::Renderer;
         friend gfx::Pipeline;
 
-        const gfx::Pipeline& _pipeline;
-        // Note: AssetRef has stable pointer so we can just cache the reference to the layout here.
+        // Note: AssetRef has stable pointer so we can just cache the references to the layout & pipeline here.
         // Beware if this ever changes.
+        const gfx::Pipeline& _pipeline;
         const gfx::ShaderLayout& _layout;
 
+        std::unordered_map<gfx::ShaderPropertyId, assets::AssetRef<Texture>> _textures;
         std::vector<u8> _materialBlockData;
         gl::buffer_t _uboHandle;
 
-        bool _dirty;
+        mutable bool _dirty;
 
         // Private constructor from pipeline object takes a Pipeline& and not an AssetRef because it should only be called by the owning pipeline.
         explicit Material(const gfx::Pipeline& pipeline);
@@ -53,7 +54,7 @@ namespace core
         template<typename T>
         void setUniform(gfx::ShaderPropertyId id, const T& value, gl::enum_t expectedGlType);
 
-        void flushChangesToGpu();
+        void flushUboChangesToGpu();
 
     public:
         ~Material();

@@ -1,6 +1,7 @@
 #include "PipelineLayout.h"
 
 #include <algorithm>
+#include <ranges>
 #include <string>
 #include <vector>
 #include <glad/gl.h>
@@ -29,11 +30,11 @@ namespace
             case GL_SAMPLER_2D_SHADOW:
                 return GL_TEXTURE_2D;
             default:
-                ENGINE_ASSERT("please just don't call this function on non-sampler types?");
+                ENGINE_ASSERT(false, "please just don't call this function on non-sampler types?");
         }
     }
 
-    constexpr bool isGlSampler(GLenum type)
+    constexpr bool glTypeIsSampler(GLenum type)
     {
         return type == GL_SAMPLER_2D || type == GL_SAMPLER_CUBE ||
                type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_3D ||
@@ -165,7 +166,7 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
             continue;
         }
 
-        if (!isGlSampler(params[1]))
+        if (!glTypeIsSampler(params[1]))
         {
             // Not a sampler, ignore. TODO revisit this? at least set up some conventions for what kind of loose uniforms are allowed.
             continue;

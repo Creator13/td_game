@@ -238,6 +238,8 @@ void Application::initFlecs()
 #endif
 
     _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
+    _ecs.component<ecs::RendererSingleton>().add(flecs::Singleton);
+    _ecs.component<ecs::GlobalInput>().add(flecs::Singleton);
 
     // Attach application state to flecs singletons (relies on engine_core module)
     _ecs.set<ecs::WindowSingleton>({&_windowState});

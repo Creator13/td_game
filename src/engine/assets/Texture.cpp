@@ -6,6 +6,7 @@
 #include "assets/AssetDatabase.h"
 #include "assets/File.h"
 #include "core/Assert.h"
+#include "core/Color.h"
 #include "math/func.h"
 #include "util/PagedStorage.h"
 
@@ -32,6 +33,7 @@ namespace
         const int mipLevels = static_cast<int>(math::floor(math::log2(math::max(width, height)))) + 1;
 
         glTextureStorage2D(texName, mipLevels, internalFormat, width, height);
+
         return texName;
     }
 }
@@ -46,18 +48,29 @@ u32 Texture::rawSizeBytes() const
     return _width * _height * texture_util::getChannelCountInFormat(_format);
 }
 
-AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat format)
+AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat format, bool createMips, bool readOnly)
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
     void* texMem = textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
-    outTexture->_isReadable = true;
-    outTexture->_pixelData = std::vector<u8>(width * height * 4);
     outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));
-    outTexture->_genMipMaps = false;
-    return AssetRef<Texture>::null(); // TODO ????
+
+    outTexture->_isReadable = !readOnly;
+
+    if (readOnly)
+    {
+        outTexture->_pixelData = std::nullopt;
+    }
+    else
+    {
+        outTexture->_pixelData = std::vector<u8>(width * height * 4);
+    }
+
+    outTexture->_genMipMaps = createMips;
+
+    return AssetRef(outTexture, AssetId::idFromPath(fmt::format("@internal/texture/{}", textureStorage.size() - 1)));
 }
 
 AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat format, bool readable)
@@ -80,6 +93,14 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
         static_cast<int>(fileData.value().size()),
         &width, &height, &channelsInFile,
         texture_util::getChannelCountInFormat(format));
+
+    const int requestedChannels = texture_util::getChannelCountInFormat(format);
+    ENGINE_ASSERT(requestedChannels != 0, "getChannelCountInFormat returned 0 — stbi will not convert.");
+
+    // decodedPixelData row stride should match what GL expects
+    const int expectedChannels = requestedChannels > 0 ? requestedChannels : channelsInFile;
+    spdlog::debug("Decoded: {}x{}, file channels: {}, decoded as: {}", width, height, channelsInFile, expectedChannels);
+    ENGINE_ASSERT(decodedPixelData != nullptr, "stbi failed to decode texture '{}': {}", path, stbi_failure_reason());
 
     void* texMem = textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
@@ -104,13 +125,25 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     return AssetRef(outTexture, id);
 }
 
+AssetRef<Texture> Texture::fallbackWhite()
+{
+    constexpr u8 whitePixel[] = {255, 255, 255, 255};
+
+    if (!_fallbackWhiteRef)
+    {
+        _fallbackWhiteRef = create(1, 1, TextureFormat::RGBA8_SRGB, false, true);
+        _fallbackWhiteRef->uploadExternalData(whitePixel, GL_RGBA, GL_UNSIGNED_BYTE, false);
+    }
+    return _fallbackWhiteRef;
+}
+
 void Texture::uploadPixelData() const
 {
     ENGINE_ASSERT(_isReadable, "Cannot upload pixel data when data is not available in CPU memory (texture is not marked readable).");
     uploadExternalData(_pixelData->data(), texture_util::getGlPixelFormat(_format), texture_util::getGlPixelDataType(_format), _genMipMaps);
 }
 
-void Texture::uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const
+void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const
 {
     glTextureSubImage2D(_glBindPoint, 0, 0, 0, _width, _height, pixelFormat, pixelType, pixelData);
 
@@ -119,6 +152,8 @@ void Texture::uploadExternalData(const uint8_t* pixelData, gl::enum_t pixelForma
         glGenerateTextureMipmap(_glBindPoint);
     }
 }
+
+AssetRef<Texture> Texture::_fallbackWhiteRef= AssetRef<Texture>::null();
 
 constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
 {
@@ -199,6 +234,9 @@ constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
         case TextureFormat::R16_FLOAT:
         case TextureFormat::R32_FLOAT:
         case TextureFormat::BC4_UNORM:
+        case TextureFormat::D16_UNORM:
+        case TextureFormat::D32_FLOAT:
+        case TextureFormat::D24_UNORM_S8_UINT:
             return 1;
 
         case TextureFormat::RG8_UNORM:
@@ -214,6 +252,7 @@ constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
             return 3;
 
         case TextureFormat::RGBA8_UNORM:
+        case TextureFormat::RGBA8_SRGB:
         case TextureFormat::RGBA16_UNORM:
         case TextureFormat::RGBA16_FLOAT:
         case TextureFormat::RGBA32_FLOAT:
@@ -223,9 +262,9 @@ constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
         case TextureFormat::BC7_RGBA_UNORM:
         case TextureFormat::BC7_RGBA_SRGB:
             return 4;
-
+        case TextureFormat::Unknown:
         default:
-            return 0;
+            ENGINE_ASSERT(false, "Invalid usage of Texture format");
     }
 }
 

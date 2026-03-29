@@ -44,15 +44,18 @@ void engine::register_flecs(const flecs::world& world)
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
 
     AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
+    AssetRef<Texture> otherTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false);
 
     PipelineDescriptor pDesc;
     pDesc.blend = false;
     pDesc.depthTest = true;
     pDesc.backfaceCulling = BackfaceCulling::Back;
 
-    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/basic.vert", "shaders/color.frag");
+    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
     AssetRef<Material> mat = pipeline->newMaterialInstance();
-    mat->setColor("color"_spid, Color::fromSrgb(SrgbColor::darkGreen));
+    spdlog::debug(pipeline->getShaderLayout().toString());
+    mat->setTexture2D("_mainTex"_spid, tex);
+    mat->setColor("color"_spid, Color::white);
 
     constexpr int count = 25;
     for (int i = 0; i < count; i++)
