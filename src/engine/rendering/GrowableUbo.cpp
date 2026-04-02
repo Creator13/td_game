@@ -18,7 +18,8 @@ GrowableUbo::GrowableUbo(u32 size)
     }
 
     glCreateBuffers(1, &_handle.id);
-    glNamedBufferStorage(_handle, size, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    // glNamedBufferStorage(_handle, size, nullptr, GL_DYNAMIC_STORAGE_BIT); // TODO persistent mapping/triple buffer
+    glNamedBufferData(_handle, size, nullptr, GL_DYNAMIC_DRAW);
 
     _localBuffer.resize(size);
 }
@@ -39,13 +40,16 @@ void GrowableUbo::bindIndex(u32 i, gl::Int binding) const
 
 void GrowableUbo::resize(u32 newSize)
 {
+    ZoneScopedN("GrowableUbo::resize");
+
     if (_handle.id != 0)
     {
         glDeleteBuffers(1, &_handle.id);
     }
 
     glCreateBuffers(1, &_handle.id);
-    glNamedBufferStorage(_handle, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    // glNamedBufferStorage(_handle, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT); // TODO persistent mapping/triple buffer
+    glNamedBufferData(_handle, newSize, nullptr, GL_DYNAMIC_DRAW);
 
     _localBuffer.resize(newSize);
 
@@ -56,5 +60,8 @@ void GrowableUbo::resize(u32 newSize)
 
 void GrowableUbo::upload() const
 {
+    ZoneScopedN("GrowableUbo::upload");
+
+    glNamedBufferData(_handle, _size, nullptr, GL_DYNAMIC_DRAW);
     glNamedBufferSubData(_handle, 0, _localBuffer.size(), _localBuffer.data());
 }

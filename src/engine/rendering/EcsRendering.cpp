@@ -7,6 +7,7 @@
 #include "core/Transform.h"
 #include "core/Window.h"
 #include "math/geom.h"
+#include "rendering/Pipeline.h"
 #include "rendering/Renderer.h"
 
 using namespace math;
@@ -53,10 +54,8 @@ namespace
             .constant("Frustum", CullReason::Frustum)
             .constant("LOD", CullReason::LOD);
 
-        ecs.component<MeshRenderData>()
-            .member<uint64_t>("Mesh id")
-            .member<uint64_t>("Shader id")
-            .member<CullReason>("Culling reason");
+        ecs.component<MeshRenderData>();
+        // TODO minimal reflection data
 
         ecs.component<ViewportData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
@@ -65,6 +64,13 @@ namespace
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
     flecs::entity currentActiveCameraEntity;
+}
+
+core::u64 MeshRenderData::buildSortKey() const
+{
+    return (static_cast<u64>(material->pipeline.sortKey) << 32) |
+           (static_cast<u64>(material->sortKey) << 16) |
+           (static_cast<u64>(mesh->sortKey));
 }
 
 rendering::rendering(flecs::world& ecs)
@@ -182,17 +188,20 @@ rendering::rendering(flecs::world& ecs)
 
                 for (auto i : it)
                 {
-                    const auto& [mesh, material, cullReason] = f_renderData[i];
+                    const auto& renderData = f_renderData[i];
                     total++;
 
-                    if (cullReason != CullReason::None) continue;
+                    // Exclude culled entities
+                    if (renderData.cullReason != CullReason::None) continue;
 
-                    DrawCommand renderable;
-                    renderable.mesh = mesh;
-                    renderable.material = material;
-                    renderable.modelMatrix = f_transform[i].getWorldMatrix();
+                    // Submit command
+                    DrawCommand command;
+                    command.sortKey = renderData.buildSortKey(); // TODO consider: sortKey *could* be cached to save a tiny bit of compute, but this requires a solid observer that changes it should the material/mesh asset refs ever change.
+                    command.mesh = renderData.mesh;
+                    command.material = renderData.material;
+                    command.modelMatrix = f_transform[i].getWorldMatrix();
 
-                    renderer.ptr->submitSceneGeometry(renderable);
+                    renderer.ptr->submitSceneGeometry(command);
                     rendered++;
                 }
             }
@@ -201,18 +210,21 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(cullingSystem);
 }
 
-bool rendering::submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData)
+void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& renderData)
 {
-    // Do not render culled objects
-    if (renderData.cullReason != CullReason::None) return false;
+    Renderer& renderer = *r_ptr.ptr;
+    renderer.setViewportData(renderData);
+}
 
-    DrawCommand renderable;
-    renderable.mesh = renderData.mesh;
-    renderable.material = renderData.material;
-    renderable.modelMatrix = transform.getWorldMatrix();
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
+{
+    float aspect = window.state->getFrameBufferAspect();
 
-    renderer.ptr->submitSceneGeometry(renderable);
-    return true;
+    renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
+    renderData.viewMatrix = inverse(transform.getWorldMatrix());
+
+    renderData.pixelWidth = window.state->fbWidth;
+    renderData.pixelHeight = window.state->fbHeight;
 }
 
 void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
@@ -231,21 +243,4 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
 
     renderData.pixelWidth = window.state->fbWidth;
     renderData.pixelHeight = window.state->fbHeight;
-}
-
-void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
-{
-    float aspect = window.state->getFrameBufferAspect();
-
-    renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
-    renderData.viewMatrix = inverse(transform.getWorldMatrix());
-
-    renderData.pixelWidth = window.state->fbWidth;
-    renderData.pixelHeight = window.state->fbHeight;
-}
-
-void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& renderData)
-{
-    Renderer& renderer = *r_ptr.ptr;
-    renderer.setViewportData(renderData);
 }

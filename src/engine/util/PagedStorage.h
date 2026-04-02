@@ -1,7 +1,6 @@
 #pragma once
 
 #include <bitset>
-#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -43,13 +42,18 @@ namespace util
         /// Allocates `count` additional pages. This might be useful when many elements will be added at once.
         void preallocate_pages(size_t count);
 
-        /// In-place construction of an element of type T.
+        /// In-place construction of an element of type T. Works only for public constructors.
+        /// For private constructors, use the combination of allocate_uninitialized() and placement-new.
         template<typename... Args>
         T& emplace(Args&&... args);
 
         /// Copy-insertion of an existing element.
         T& insert(const T& value);
 
+        /// Allocate a block of memory in the container guaranteed to be the exact size of T. Use in combination with placement-new to construct
+        /// objects with a private constructor in-place.
+        /// Example: void* mem = storage.allocate_uninitialized();
+        /// T* myObj = ::new(mem) T(args...)
         void* allocate_uninitialized();
 
         /// Checks if the element at given index exists and is currently alive.

@@ -38,7 +38,6 @@ namespace core
 
         // Note: AssetRef has stable pointer so we can just cache the references to the layout & pipeline here.
         // Beware if this ever changes.
-        const gfx::Pipeline& _pipeline;
         const gfx::ShaderLayout& _layout;
 
         std::unordered_map<gfx::ShaderPropertyId, assets::AssetRef<Texture>> _textures;
@@ -48,7 +47,7 @@ namespace core
         mutable bool _dirty;
 
         // Private constructor from pipeline object takes a Pipeline& and not an AssetRef because it should only be called by the owning pipeline.
-        explicit Material(const gfx::Pipeline& pipeline);
+        explicit Material(const gfx::Pipeline& pipeline, u16 sortKey);
         void constructBuffers(); // constructor helper
 
         template<typename T>
@@ -57,6 +56,9 @@ namespace core
         void flushUboChangesToGpu();
 
     public:
+        const gfx::Pipeline& pipeline;
+        const u16 sortKey;
+
         ~Material();
 
         void setFloat(gfx::ShaderPropertyId id, float value);

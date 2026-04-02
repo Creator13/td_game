@@ -27,7 +27,13 @@ namespace core
 
     struct Mesh
     {
+    private:
+        explicit Mesh(u16 sortKey);
+
+    public:
         ~Mesh();
+
+        const u16 sortKey;
 
         std::vector<Vertex> vertices;
         std::vector<u32> indices;
@@ -39,9 +45,6 @@ namespace core
 
         static assets::AssetRef<Mesh> loadFromFile(std::string_view path);
         static assets::AssetRef<Mesh> create();
-
-    private:
-        Mesh() = default;
     };
 
     template<std::ranges::input_range R>

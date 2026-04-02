@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <tracy/Tracy.hpp>
 
 #include "datatype.h"
 
@@ -38,6 +39,8 @@ template<std::ranges::input_range R>
     requires std::ranges::sized_range<R>
 void core::gfx::GrowableUbo::alignAndUpload(R&& data)
 {
+    ZoneScopedN("GrowableUbo::alignAndUpload");
+
     using T = std::ranges::range_value_t<R>;
     _elemSize = sizeof(T);
     _stride = (_elemSize + _glUboOffsetAlignment - 1) & ~(_glUboOffsetAlignment - 1);
@@ -48,7 +51,6 @@ void core::gfx::GrowableUbo::alignAndUpload(R&& data)
         resize(std::ranges::size(data) * 1.5 * _stride);
     }
 
-    //test
     i32 i = 0;
     for (const T& elem : data)
     {

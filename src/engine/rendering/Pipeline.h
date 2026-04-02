@@ -47,9 +47,11 @@ namespace core::gfx
         gl::program_t _programId;
         ShaderLayout _shaderLayout;
 
-        Pipeline(const PipelineDescriptor& descriptor, gl::program_t shader);
+        Pipeline(const PipelineDescriptor& descriptor, gl::program_t shader, u16 sortKey);
 
     public:
+        const u16 sortKey;
+
         ~Pipeline();
 
         assets::AssetRef<Material> newMaterialInstance() const;

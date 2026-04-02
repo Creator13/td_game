@@ -27,6 +27,12 @@ namespace
     }
 }
 
+Mesh::Mesh(u16 sortKey)
+    : sortKey(sortKey)
+{
+    ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
+}
+
 Mesh::~Mesh()
 {
     allocator.destroyMesh(gpuHandle);
@@ -60,13 +66,14 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 
     fastgltf::Asset asset = std::move(load.get());
 
-    const fastgltf::Mesh& mesh = asset.meshes[0];
+    const fastgltf::Mesh& gltfMesh = asset.meshes[0];
 
-    Mesh out;
+    void* meshMem = meshStorage.allocate_uninitialized();
+    Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1);
 
     size_t vertex_base = 0;
 
-    for (const auto& primitive : mesh.primitives)
+    for (const auto& primitive : gltfMesh.primitives)
     {
         // position
         auto posAttribute = primitive.findAttribute("POSITION");
@@ -78,7 +85,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
         const fastgltf::Accessor& posAccessor = asset.accessors[posAttribute->accessorIndex];
 
         size_t count = posAccessor.count;
-        out.vertices.resize(vertex_base + count);
+        outMesh->vertices.resize(vertex_base + count);
 
         fastgltf::iterateAccessorWithIndex<vec3>(asset, posAccessor,
             [&](vec3 pos, size_t index)
@@ -87,7 +94,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
                 v.position = transformGltfToEngineCoordinateSpace(pos);
                 v.normal = vec3::zero;
                 v.uv0 = vec2::one;
-                out.vertices[vertex_base + index] = v;
+                outMesh->vertices[vertex_base + index] = v;
             });
 
 
@@ -99,7 +106,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
             fastgltf::iterateAccessorWithIndex<vec3>(asset, normalAccessor,
                 [&](vec3 normal, size_t index)
                 {
-                    out.vertices[vertex_base + index].normal = transformGltfToEngineCoordinateSpace(normal);
+                    outMesh->vertices[vertex_base + index].normal = transformGltfToEngineCoordinateSpace(normal);
                 });
         }
         else
@@ -110,8 +117,8 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
         if (primitive.indicesAccessor.has_value())
         {
             const fastgltf::Accessor& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
-            out.indices.resize(indexAccessor.count);
-            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, out.indices.data());
+            outMesh->indices.resize(indexAccessor.count);
+            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, outMesh->indices.data());
         }
 
         auto texcoordAttribute = primitive.findAttribute("TEXCOORD_0");
@@ -121,20 +128,14 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
             fastgltf::iterateAccessorWithIndex<vec2>(asset, texAccessor,
                 [&](vec2 texcoord, size_t index)
                 {
-                    out.vertices[vertex_base + index].uv0 = texcoord;
+                    outMesh->vertices[vertex_base + index].uv0 = texcoord;
                 });
         }
 
         vertex_base += count;
     }
 
-    void* meshMem = meshStorage.allocate_uninitialized();
-    Mesh* outMesh = ::new(meshMem) Mesh();
-
-    outMesh->vertices = std::move(out.vertices);
-    outMesh->indices = std::move(out.indices);
     outMesh->recalculateBounds();
-
     outMesh->gpuHandle = allocator.uploadMesh(*outMesh);
 
     registerAsset(path, AssetType::Mesh, outMesh);

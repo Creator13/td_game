@@ -48,6 +48,8 @@ namespace core::ecs
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
         CullReason cullReason;
+
+        u64 buildSortKey() const;
     };
 
     struct BoxBoundsData
@@ -80,6 +82,5 @@ namespace core::ecs
         static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& renderData);
         static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
         static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
-        static bool submitRenderable(const RendererSingleton& renderer, const HierarchyTransform& transform, const MeshRenderData& renderData);
     };
 }

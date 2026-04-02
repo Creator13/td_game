@@ -9,9 +9,10 @@ using namespace core;
 using namespace core::gfx;
 using namespace math;
 
-Material::Material(const Pipeline& pipeline)
-    : _pipeline(pipeline), _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true)
+Material::Material(const Pipeline& pipeline, u16 sortKey)
+    : pipeline(pipeline), _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true), sortKey(sortKey)
 {
+    ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
     constructBuffers();
 }
 

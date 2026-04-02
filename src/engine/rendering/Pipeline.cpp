@@ -24,8 +24,12 @@ PipelineDescriptor::PipelineDescriptor()
       blend(false), blendSource(GL_SRC_ALPHA), blendDestination(GL_ONE_MINUS_SRC_ALPHA),
       backfaceCulling(BackfaceCulling::Back) { }
 
-Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program)
-    : _descriptor(descriptor), _programId(program), _shaderLayout(ShaderLayout::buildFromProgram(program)) { }
+Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey)
+    : sortKey(sortKey), _descriptor(descriptor), _programId(program),
+      _shaderLayout(ShaderLayout::buildFromProgram(program))
+{
+    ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
+}
 
 Pipeline::~Pipeline()
 {
@@ -35,7 +39,7 @@ Pipeline::~Pipeline()
 AssetRef<Material> Pipeline::newMaterialInstance() const
 {
     void* mem = materialStorage.allocate_uninitialized();
-    Material* mat = ::new(mem) Material(*this);
+    Material* mat = ::new(mem) Material(*this, materialStorage.size() - 1);
 
     return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size() - 1)));
 }
@@ -50,7 +54,7 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
     const gl::program_t program = shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
 
     void* mem = pipelineStorage.allocate_uninitialized();
-    Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program);
+    Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, pipelineStorage.size() - 1);
 
     return AssetRef(pipeline, AssetId::idFromPath(fmt::format("@internal/pipeline/{}", name)));
 }

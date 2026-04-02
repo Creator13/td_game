@@ -49,6 +49,8 @@ void Renderer::submitSceneGeometry(const DrawCommand& command)
 
 void Renderer::renderFrame()
 {
+    ZoneScopedN("Renderer::renderFrame");
+
     glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -57,6 +59,8 @@ void Renderer::renderFrame()
 
 void Renderer::bindPipeline(const Pipeline& pipeline)
 {
+    ZoneScopedN("Renderer::bindPipeline");
+
     // Shader
     glUseProgram(pipeline._programId);
 
@@ -101,6 +105,8 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
 
 void Renderer::bindMaterial(assets::AssetRef<Material> material)
 {
+    ZoneScopedN("Renderer::bindMaterial");
+
     // Bind material ubo
     material->flushUboChangesToGpu();
     if (material->_layout.hasMaterialBlock())
@@ -142,23 +148,36 @@ void Renderer::bindFrameData() const
 
 void Renderer::renderSceneGeometry()
 {
-    ZoneScopedN("Renderer::renderSceneGeometry()");
-    TracyGpuZone("Renderer::renderSceneGeometry()");
+    ZoneScopedN("Renderer::renderSceneGeometry");
+    TracyGpuZone("Renderer::renderSceneGeometry");
 
     bindFrameData();
 
-    auto drawCommandToPerDrawDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
     {
-        return PerDrawBlock{input.modelMatrix};
-    });
-    _perFrameUbo.alignAndUpload(drawCommandToPerDrawDataView);
+        ZoneScopedN("sorting")
+        std::ranges::sort(_geometryCommandBuffer, {}, &DrawCommand::sortKey);
+    }
 
+    {
+        ZoneScopedN("command data upload")
+        auto drawCommandToPerDrawDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
+        {
+            return PerDrawBlock{input.modelMatrix};
+        });
+        _perFrameUbo.alignAndUpload(drawCommandToPerDrawDataView);
+    }
+
+    u64 currentSortKey = 0;
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
         const DrawCommand& cmd = _geometryCommandBuffer[i];
 
-        bindPipeline(cmd.material->_pipeline);
-        bindMaterial(cmd.material);
+        if (cmd.sortKey > currentSortKey)
+        {
+            bindPipeline(cmd.material->pipeline);
+            bindMaterial(cmd.material);
+            currentSortKey = cmd.sortKey;
+        }
 
         _perFrameUbo.bindIndex(i, PerDrawBlock::BINDING);
 

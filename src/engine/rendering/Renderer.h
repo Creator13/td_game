@@ -15,6 +15,7 @@ namespace core::gfx
 
     struct DrawCommand
     {
+        u64 sortKey;
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
         math::mat4 modelMatrix;
