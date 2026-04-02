@@ -23,12 +23,12 @@ struct RotateData
     float angularVelocity;
 };
 
-WindowState engine::initial_window_state()
+WindowState engine::getInitialWindowState()
 {
     return WindowState(1280, 720, "game", false);
 }
 
-void engine::register_flecs(const flecs::world& world)
+void engine::setupGame(const flecs::world& world)
 {
     const flecs::entity cam = world.entity("Debug camera")
         .set<PerspectiveCameraData>({60, .1, 100})
@@ -40,11 +40,11 @@ void engine::register_flecs(const flecs::world& world)
     transform::add(cam, camPos, quaternion::eulerAngles(-25, 0, 0));
     cam.set<FreeLookCameraControlData>({.targetSpeed = 5, .speedMultiplier = 1.75f});
 
-    // const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
-    const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
+    const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
+    const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
 
-    AssetRef<Texture> tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
-    AssetRef<Texture> otherTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false);
+    AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
+    AssetRef<Texture> avacadoo = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false);
 
     PipelineDescriptor pDesc;
     pDesc.blend = false;
@@ -52,19 +52,32 @@ void engine::register_flecs(const flecs::world& world)
     pDesc.backfaceCulling = BackfaceCulling::Back;
 
     AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
-    AssetRef<Material> mat = pipeline->newMaterialInstance();
-    spdlog::debug(pipeline->getShaderLayout().toString());
-    mat->setTexture2D("_mainTex"_spid, tex);
-    mat->setColor("color"_spid, Color::white);
+
+    AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance();
+    uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
+    uvCheckerMat->setColor("color"_spid, Color::fromSrgb(SrgbColor::green));
+
+    AssetRef<Material> avacadooMat = pipeline->newMaterialInstance();
+    avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
 
     constexpr int count = 25;
+    int n = 0;
     for (int i = 0; i < count; i++)
     {
-        for (int j = 0; j < count; j++)
+        for (int j = 0; j < count; j++, n++)
         {
-            auto e = world.entity(fmt::format("cube {}-{}", i, j).c_str())
-                .set<MeshRenderData>({.mesh = avocado, .material = mat})
-                .set<RotateData>({((i % 5) - 2) * 30.f});
+            flecs::entity e ;
+            if (n % 3 == 0)
+            {
+                e = world.entity(fmt::format("avacadoo {}-{}", i, j).c_str())
+                    .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
+            }
+            else
+            {
+                e = world.entity(fmt::format("sphere {}-{}", i, j).c_str())
+                    .set<MeshRenderData>({.mesh = sphere, .material = uvCheckerMat})
+                    .set<RotateData>({((i % 5) - 2) * 30.f});
+            }
             transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
         }
     }

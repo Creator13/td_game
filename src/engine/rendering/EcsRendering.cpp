@@ -168,7 +168,7 @@ rendering::rendering(flecs::world& ecs)
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .run([](flecs::iter& it)
         {
-            ZoneScopedN("Scene geometry collection");
+            ZoneScopedN("Scene geometry collection system");
 
             const auto& renderer = it.world().get<const RendererSingleton>();
 

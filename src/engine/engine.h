@@ -8,6 +8,6 @@ namespace core {
 
 namespace engine
 {
-    extern core::WindowState initial_window_state();
-    extern void register_flecs(const flecs::world& world);
+    extern core::WindowState getInitialWindowState();
+    extern void setupGame(const flecs::world& world);
 }

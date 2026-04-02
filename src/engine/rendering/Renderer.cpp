@@ -22,7 +22,7 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
 }
 
 Renderer::Renderer()
-    : _perFrameUbo(4_kB)
+    : _perFrameUbo(4_MB)
 {
     glFrontFace(GL_CCW);
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
@@ -42,9 +42,9 @@ void Renderer::setViewportData(const ViewportData& params)
     _viewportData = params;
 }
 
-void Renderer::submitSceneGeometry(const DrawCommand& renderable)
+void Renderer::submitSceneGeometry(const DrawCommand& command)
 {
-    _geometryCommandBuffer.push_back(renderable);
+    _geometryCommandBuffer.push_back(command);
 }
 
 void Renderer::renderFrame()
@@ -147,11 +147,11 @@ void Renderer::renderSceneGeometry()
 
     bindFrameData();
 
-    auto drawcallDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
+    auto drawCommandToPerDrawDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
     {
         return PerDrawBlock{input.modelMatrix};
     });
-    _perFrameUbo.alignAndUpload(drawcallDataView);
+    _perFrameUbo.alignAndUpload(drawCommandToPerDrawDataView);
 
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {

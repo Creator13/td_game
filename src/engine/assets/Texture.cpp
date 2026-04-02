@@ -94,12 +94,6 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
         &width, &height, &channelsInFile,
         texture_util::getChannelCountInFormat(format));
 
-    const int requestedChannels = texture_util::getChannelCountInFormat(format);
-    ENGINE_ASSERT(requestedChannels != 0, "getChannelCountInFormat returned 0 — stbi will not convert.");
-
-    // decodedPixelData row stride should match what GL expects
-    const int expectedChannels = requestedChannels > 0 ? requestedChannels : channelsInFile;
-    spdlog::debug("Decoded: {}x{}, file channels: {}, decoded as: {}", width, height, channelsInFile, expectedChannels);
     ENGINE_ASSERT(decodedPixelData != nullptr, "stbi failed to decode texture '{}': {}", path, stbi_failure_reason());
 
     void* texMem = textureStorage.allocate_uninitialized();
