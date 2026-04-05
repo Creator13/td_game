@@ -25,8 +25,8 @@ PipelineDescriptor::PipelineDescriptor()
       backfaceCulling(BackfaceCulling::Back) { }
 
 Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey)
-    : sortKey(sortKey), _descriptor(descriptor), _programId(program),
-      _shaderLayout(ShaderLayout::buildFromProgram(program))
+    : _descriptor(descriptor), _programId(program), _shaderLayout(ShaderLayout::buildFromProgram(program)),
+      sortKey(sortKey)
 {
     ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
 }

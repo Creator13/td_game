@@ -47,7 +47,7 @@ namespace core::gfx
         gl::program_t _programId;
         ShaderLayout _shaderLayout;
 
-        Pipeline(const PipelineDescriptor& descriptor, gl::program_t shader, u16 sortKey);
+        Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey);
 
     public:
         const u16 sortKey;

@@ -52,16 +52,17 @@ namespace core::gfx
     struct ShaderLayout
     {
     private:
-        constexpr static int MAX_BLOCKS = 4;
+        constexpr static int MAX_UBOS = 4;
 
-        int _numBlocks;
+        int _numUBOs;
+
         int _materialBlockIndex = -1;
         int _frameDataBlockIndex = -1;
 
         gl::program_t _program;
 
         std::unordered_map<ShaderPropertyId, ShaderPropertyInfo> _shaderProperties;
-        std::array<UniformBlockInfo, MAX_BLOCKS> _uniformBlocks;
+        std::array<UniformBlockInfo, MAX_UBOS> _uniformBlocks;
 
         explicit ShaderLayout(gl::program_t program);
 

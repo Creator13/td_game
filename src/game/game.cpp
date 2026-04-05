@@ -66,7 +66,7 @@ void engine::setupGame(const flecs::world& world)
     {
         for (int j = 0; j < count; j++, n++)
         {
-            flecs::entity e ;
+            flecs::entity e;
             if (n % 3 == 0)
             {
                 e = world.entity(fmt::format("avacadoo {}-{}", i, j).c_str())
@@ -144,6 +144,10 @@ void engine::setupGame(const flecs::world& world)
     const flecs::entity ui = world.entity("UI root")
         .set<ui::UiRoot>({1920, 1080});
 
+    const flecs::entity text = world.entity("Text")
+        .emplace<ui::Text>("Yes")
+        .set<ui::Rect>({{10, 10}, {50, 50}});
+
     world.entity("Beautiful panel")
-        .set<ui::UiRect>({{0, 0}, {100, 50}});
+        .set<ui::Rect>({{0, 0}, {100, 50}});
 }

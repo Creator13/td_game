@@ -19,6 +19,10 @@ namespace core::gfx
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
         math::mat4 modelMatrix;
+
+        u16 getPipelineId() const { return (sortKey >> 32) & 0xFFFF; }
+        u16 getMaterialId() const { return (sortKey >> 16) & 0xFFFF; }
+        u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
     class Renderer

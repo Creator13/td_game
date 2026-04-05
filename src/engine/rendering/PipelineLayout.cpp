@@ -55,7 +55,7 @@ const SamplerInfo& ShaderPropertyInfo::getSamplerInfo() const
 }
 
 ShaderLayout::ShaderLayout(gl::program_t program)
-    : _numBlocks(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
+    : _numUBOs(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
 
 ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
 {
@@ -65,10 +65,10 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
     gl::Int numBlocks = 0;
     glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numBlocks);
 
-    resultLayout._numBlocks = numBlocks;
+    resultLayout._numUBOs = numBlocks;
 
     // TODO quick and dirty safety check, if we need more blocks in a shader then either extend the array by default or make it a vector
-    ENGINE_ASSERT(numBlocks <= MAX_BLOCKS, "Shader has more blocks than supported by pipeline, aborting... (program id: {})", program);
+    ENGINE_ASSERT(numBlocks <= MAX_UBOS, "Shader has more blocks than supported by pipeline, aborting... (program id: {})", program);
 
     constexpr gl::enum_t blockProperties[] = {GL_BUFFER_BINDING, GL_BUFFER_DATA_SIZE, GL_NUM_ACTIVE_VARIABLES, GL_NAME_LENGTH};
     constexpr gl::enum_t blockUniformProps[] = {GL_TYPE, GL_OFFSET, GL_ARRAY_SIZE, GL_NAME_LENGTH};
@@ -238,7 +238,7 @@ std::string ShaderLayout::toString() const
 
     fmt::format_to(std::back_inserter(buffer), "\nShaderPipelineLayout (program id {}):\n", _program);
 
-    for (int i = 0; i < _numBlocks; i++)
+    for (int i = 0; i < _numUBOs; i++)
     {
         const UniformBlockInfo& block = _uniformBlocks[i];
 

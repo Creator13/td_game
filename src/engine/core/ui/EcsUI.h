@@ -13,7 +13,7 @@ namespace flecs
 
 namespace core::ui
 {
-    struct UiRect
+    struct Rect
     {
         math::vec2 offset;
         math::vec2 size;
@@ -25,8 +25,9 @@ namespace core::ui
         u16 referenceWidth, referenceHeight;
     };
 
-    struct TextData
+    struct Text
     {
+        explicit Text(std::string_view text);
         std::string text;
     };
 

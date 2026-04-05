@@ -111,7 +111,7 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
     material->flushUboChangesToGpu();
     if (material->_layout.hasMaterialBlock())
     {
-        const auto& blockInfo =  material->_layout.getMaterialBlockInfo();
+        const auto& blockInfo = material->_layout.getMaterialBlockInfo();
         // TODO block binding location is supposed to be 2 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
         glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material->_uboHandle);
     }
@@ -155,7 +155,7 @@ void Renderer::renderSceneGeometry()
 
     {
         ZoneScopedN("sorting")
-        std::ranges::sort(_geometryCommandBuffer, {}, &DrawCommand::sortKey);
+        std::ranges::sort(_geometryCommandBuffer, { }, &DrawCommand::sortKey);
     }
 
     {
@@ -167,23 +167,33 @@ void Renderer::renderSceneGeometry()
         _perFrameUbo.alignAndUpload(drawCommandToPerDrawDataView);
     }
 
-    u64 currentSortKey = 0;
+    u16 currentPipelineId = 0xFFFF;
+    u16 currentMaterialId = 0xFFFF;
+    u16 currentMeshId = 0xFFFF;
     for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
     {
         const DrawCommand& cmd = _geometryCommandBuffer[i];
+        const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
 
-        if (cmd.sortKey > currentSortKey)
+        if (cmd.getPipelineId() != currentPipelineId)
         {
             bindPipeline(cmd.material->pipeline);
+            currentPipelineId = cmd.material->pipeline.sortKey;
+        }
+
+        if (cmd.getMaterialId() != currentMaterialId)
+        {
             bindMaterial(cmd.material);
-            currentSortKey = cmd.sortKey;
+            currentMaterialId = cmd.material->sortKey;
+        }
+
+        if (cmd.getMeshId() != currentMeshId)
+        {
+            glBindVertexArray(handle.vao);
+            currentMeshId = cmd.mesh->sortKey;
         }
 
         _perFrameUbo.bindIndex(i, PerDrawBlock::BINDING);
-
-        const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
-        glBindVertexArray(handle.vao);
-
         glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
     }
 
