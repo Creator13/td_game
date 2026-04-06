@@ -11,13 +11,6 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::assets;
 
-namespace
-{
-    ShaderLoader shaderLoader;
-
-    util::PagedStorage<Pipeline, 64> pipelineStorage;
-    util::PagedStorage<Material, 64> materialStorage;
-}
 
 PipelineDescriptor::PipelineDescriptor()
     : depthTest(true), depthFunc(GL_LESS),
@@ -36,12 +29,13 @@ Pipeline::~Pipeline()
     glDeleteProgram(_programId);
 }
 
-AssetRef<Material> Pipeline::newMaterialInstance() const
+AssetRef<Material> Pipeline::newMaterialInstance(std::string_view name) const
 {
+    auto& materialStorage = AssetDatabase::instance->_materialStorage;
     void* mem = materialStorage.allocate_uninitialized();
     Material* mat = ::new(mem) Material(*this, materialStorage.size() - 1);
 
-    return AssetRef(mat, AssetId::idFromPath(fmt::format("@internal/material/{}", materialStorage.size() - 1)));
+    return AssetDatabase::registerRuntimeAsset<Material>(name, mat);
 }
 
 const ShaderLayout& Pipeline::getShaderLayout() const
@@ -51,10 +45,11 @@ const ShaderLayout& Pipeline::getShaderLayout() const
 
 AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertProgram, std::string_view fragProgram)
 {
-    const gl::program_t program = shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
+    const gl::program_t program = AssetDatabase::instance->_shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
 
+    auto& pipelineStorage = AssetDatabase::instance->_pipelineStorage;
     void* mem = pipelineStorage.allocate_uninitialized();
     Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, pipelineStorage.size() - 1);
 
-    return AssetRef(pipeline, AssetId::idFromPath(fmt::format("@internal/pipeline/{}", name)));
+    return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline);
 }

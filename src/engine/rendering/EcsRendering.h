@@ -2,7 +2,7 @@
 
 #include "datatype.h"
 #include "assets/AssetId.h"
-#include "core/Mesh.h"
+#include "../assets/Mesh.h"
 #include "core/Transform.h"
 #include "math/geom.h"
 #include "rendering/Material.h"

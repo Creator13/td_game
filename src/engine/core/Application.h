@@ -49,7 +49,6 @@ namespace core
         InputState _inputState;
         WindowState _windowState;
 
-        std::unique_ptr<assets::AssetDatabase> _assetDb = nullptr;
         std::unique_ptr<debug::DebugRenderer> _debugRenderer = nullptr;
         std::unique_ptr<gfx::Renderer> _renderer = nullptr;
 

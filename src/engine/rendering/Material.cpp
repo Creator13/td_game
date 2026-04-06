@@ -4,6 +4,7 @@
 
 #include "math/mat4.h"
 #include "rendering/Pipeline.h"
+#include "formatting/fmt_gl.h"
 
 using namespace core;
 using namespace core::gfx;
@@ -125,5 +126,5 @@ void Material::setTexture2D(ShaderPropertyId id, assets::AssetRef<Texture> tex)
         return;
     }
 
-    _textures[id] = tex;
+    _textures.insert_or_assign(id, tex);
 }

@@ -15,10 +15,11 @@ namespace core::assets
         std::string path;
         AssetId id;
         AssetType type;
+        bool isRuntime;
         void* data;
 
-        AssetInfo(std::string_view path, AssetId id, AssetType type, void* data)
-            : path(path), id(id), type(type), data(data) { }
+        AssetInfo(std::string_view path, AssetId id, AssetType type, bool isRuntime, void* data)
+            : path(path), id(id), type(type), isRuntime(isRuntime), data(data) { }
 
         template<C_AssetType T>
         AssetRef<T> getRef()

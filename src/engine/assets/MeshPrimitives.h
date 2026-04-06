@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Mesh.h"
+#include "Mesh.h"
 
 namespace core::assets::mesh_primitives
 {

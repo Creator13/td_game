@@ -9,8 +9,6 @@
 
 namespace core::assets
 {
-    class AssetDatabase;
-
     class ShaderLoader
     {
         std::unordered_map<AssetId, gl::shader_t> _shaderStageCache;

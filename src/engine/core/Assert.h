@@ -20,3 +20,9 @@ namespace core::debug
 #else
 #define ENGINE_ASSERT(condition, ...) ((void)0)
 #endif
+
+#if defined(_MSC_VER)
+#define ENGINE_UNREACHABLE() __assume(false)
+#else
+#define ENGINE_UNREACHABLE() __builtin_unreachable()
+#endif

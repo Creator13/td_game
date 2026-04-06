@@ -86,7 +86,6 @@ namespace core
         TextureFormat _format = TextureFormat::Unknown;
 
         bool _isReadable = false;
-        std::optional<assets::AssetId> _uid;
         std::optional<std::vector<u8>> _pixelData;
 
         void uploadPixelData() const;

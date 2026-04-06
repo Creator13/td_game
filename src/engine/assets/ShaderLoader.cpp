@@ -5,7 +5,7 @@
 #include <glad/gl.h>
 #include <spdlog/spdlog.h>
 
-#include "assets/AssetRegistery.h"
+#include "assets/AssetDatabase.h"
 #include "assets/File.h"
 #include "rendering/DataLayout.h"
 #include "util/StringExtensions.h"
@@ -144,7 +144,7 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
     }
 
     // Not cached -> load into cache
-    const file::fs::path fullPath = resolveResourcePath(path);
+    const file::fs::path fullPath = AssetDatabase::resolveResourcePath(path);
     spdlog::debug("Loading shader stage file from {}", fullPath.generic_string());
 
     std::optional<std::string> source = file::readFileText(fullPath);

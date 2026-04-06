@@ -5,7 +5,7 @@
 #include <tracy/TracyOpenGL.hpp>
 
 #include "core/Constants.h"
-#include "core/Mesh.h"
+#include "../assets/Mesh.h"
 #include "core/Time.h"
 #include "rendering/DataLayout.h"
 #include "rendering/Material.h"

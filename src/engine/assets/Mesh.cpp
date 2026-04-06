@@ -1,12 +1,12 @@
+#include "Mesh.h"
+
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 
 #include "Logging.h"
-#include "assets/AssetInfo.h"
-#include "assets/AssetRegistery.h"
+#include "assets/AssetDatabase.h"
 #include "assets/File.h"
 #include "assets/GltfElementTraits.h"
-#include "core/Mesh.h"
 #include "rendering/MeshGpuAllocator.h"
 #include "util/PagedStorage.h"
 
@@ -19,7 +19,6 @@ namespace
 {
     fastgltf::Parser gltfParser = fastgltf::Parser();
     gpu::MeshGpuAllocator allocator;
-    util::PagedStorage<Mesh, 64> meshStorage;
 
     constexpr vec3 transformGltfToEngineCoordinateSpace(const vec3& in)
     {
@@ -45,9 +44,7 @@ void Mesh::recalculateBounds()
 
 AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 {
-    AssetId id = AssetId::idFromPath(path);
-
-    fs::path absPath = fs::path(resolveResourcePath(path));
+    fs::path absPath = fs::path(AssetDatabase::resolveResourcePath(path));
 
     auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
     if (data.error() != fastgltf::Error::None)
@@ -68,6 +65,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 
     const fastgltf::Mesh& gltfMesh = asset.meshes[0];
 
+    auto& meshStorage = AssetDatabase::instance->_meshStorage;
     void* meshMem = meshStorage.allocate_uninitialized();
     Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1);
 
@@ -138,8 +136,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     outMesh->recalculateBounds();
     outMesh->gpuHandle = allocator.uploadMesh(*outMesh);
 
-    registerAsset(path, AssetType::Mesh, outMesh);
-    return AssetRef(outMesh, id);
+    return AssetDatabase::registerAsset<Mesh>(path, outMesh);
 }
 
 AssetRef<Mesh> Mesh::create()

@@ -3,7 +3,7 @@
 #include <string>
 
 #include "assets/AssetRef.h"
-#include "core/Mesh.h"
+#include "../../assets/Mesh.h"
 
 namespace core
 {

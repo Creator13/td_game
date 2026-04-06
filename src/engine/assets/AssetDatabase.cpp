@@ -1,37 +1,40 @@
 #include "AssetDatabase.h"
 
-#include "Logging.h"
 #include "assets/File.h"
-#include "core/Assert.h"
 
-namespace fs = std::filesystem;
-
-using namespace core;
 using namespace core::assets;
 
-namespace
-{
-    constexpr std::string_view RUNTIME_PATH = "@runtime";
-    constexpr std::string_view INTERNAL_PATH = "@internal";
-}
+std::unique_ptr<AssetDatabase> AssetDatabase::instance = nullptr;
 
 AssetDatabase::AssetDatabase(std::string_view resourceRoot)
-    : _rootPath(file::getExecutableDir() / resourceRoot) { }
+    : _resourceRootPath(file::getExecutableDir() / resourceRoot) { }
 
-const AssetInfo& AssetDatabase::getAssetInfo(AssetId id)
+void AssetDatabase::initialize(std::string_view resourceRoot)
 {
-    ENGINE_ASSERT(metadata.contains(id), "Asset not found: {}", id);
-    return metadata.at(id);
+    instance = std::unique_ptr<AssetDatabase>(new AssetDatabase(resourceRoot));
 }
 
-fs::path AssetDatabase::resolveResourcePath(std::string_view path) const
+void AssetDatabase::destroy()
 {
-    return _rootPath / fs::path(path);
+    instance.reset();
 }
 
-std::string AssetDatabase::makeInternalPath(AssetType type, std::string_view name)
+const AssetInfo& AssetDatabase::getAssetInfo(AssetId assetId)
 {
-    // std::string_view typePath = mapAssetTypeName(type);
-    // return fmt::format("{}/{}/{}", INTERNAL_PATH, typePath, name);
-    return "";
+    return instance->_registry.at(assetId);
+}
+
+file::fs::path AssetDatabase::resolveResourcePath(std::string_view path)
+{
+    return instance->_resourceRootPath / file::fs::path(path);
+}
+
+bool AssetDatabase::hasAsset(std::string_view assetName)
+{
+    return hasAsset(AssetId::idFromPath(assetName));
+}
+
+bool AssetDatabase::hasAsset(AssetId assetId)
+{
+    return instance->_registry.contains(assetId);
 }

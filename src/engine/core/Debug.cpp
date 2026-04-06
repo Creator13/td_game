@@ -8,7 +8,7 @@
 #include "Constants.h"
 #include "assets/AssetDatabase.h"
 #include "assets/ShaderLoader.h"
-#include "Mesh.h"
+#include "../assets/Mesh.h"
 
 using namespace core;
 using namespace math;

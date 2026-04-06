@@ -31,6 +31,7 @@ namespace
                 return GL_TEXTURE_2D;
             default:
                 ENGINE_ASSERT(false, "please just don't call this function on non-sampler types?");
+                ENGINE_UNREACHABLE();
         }
     }
 

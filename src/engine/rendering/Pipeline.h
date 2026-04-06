@@ -54,7 +54,7 @@ namespace core::gfx
 
         ~Pipeline();
 
-        assets::AssetRef<Material> newMaterialInstance() const;
+        assets::AssetRef<Material> newMaterialInstance(std::string_view name) const;
         const ShaderLayout& getShaderLayout() const;
 
         static assets::AssetRef<Pipeline> create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertProgram, std::string_view fragProgram);

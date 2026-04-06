@@ -4,7 +4,8 @@
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
-#include "core/Mesh.h"
+#include "../engine/assets/Mesh.h"
+#include "assets/AssetDatabase.h"
 #include "core/Time.h"
 #include "core/Transform.h"
 #include "core/Window.h"
@@ -53,12 +54,14 @@ void engine::setupGame(const flecs::world& world)
 
     AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
 
-    AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance();
-    // uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
+    AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance("mat");
+    uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
     uvCheckerMat->setColor("color"_spid, Color::fromSrgb(SrgbColor::green));
 
-    AssetRef<Material> avacadooMat = pipeline->newMaterialInstance();
-    // avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
+    AssetRef<Material> avacadooMat = pipeline->newMaterialInstance("mat");
+    avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
+
+    // spdlog::debug("uvcheckerpath: {}, avacadoo path: {}", AssetDatabase::getAssetInfo(uvCheckerMat).path, AssetDatabase::getAssetInfo(avacadooMat).path);
 
     constexpr int count = 50;
     int n = 0;

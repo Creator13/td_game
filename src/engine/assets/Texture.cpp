@@ -15,11 +15,6 @@ using namespace assets;
 
 namespace
 {
-    util::PagedStorage<Texture, 128> textureStorage;
-}
-
-namespace
-{
     gl::texture_t createGlTexture(int width, int height, gl::enum_t internalFormat)
     {
         gl::texture_t texName;
@@ -52,7 +47,7 @@ AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
-    void* texMem = textureStorage.allocate_uninitialized();
+    void* texMem = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));
@@ -70,7 +65,8 @@ AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat
 
     outTexture->_genMipMaps = createMips;
 
-    return AssetRef(outTexture, AssetId::idFromPath(fmt::format("@internal/texture/{}", textureStorage.size() - 1)));
+    // return AssetRef(outTexture, AssetId::idFromPath(fmt::format("@internal/texture/{}", textureStorage.size() - 1)));
+    return AssetDatabase::registerRuntimeAsset("tex", outTexture);
 }
 
 AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat format, bool readable)
@@ -79,7 +75,9 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     //  system conversion I do from opengl standard Y+ up to my Z+ up.
     // stbi_set_flip_vertically_on_load(true);
 
-    const auto fullPath = resolveResourcePath(path);
+    // TODO verify texture has not already been loaded earlier
+
+    const auto fullPath = AssetDatabase::resolveResourcePath(path);
     std::optional<std::vector<u8>> fileData = file::readFileBinary(fullPath);
     if (!fileData)
     {
@@ -96,7 +94,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
 
     ENGINE_ASSERT(decodedPixelData != nullptr, "stbi failed to decode texture '{}': {}", path, stbi_failure_reason());
 
-    void* texMem = textureStorage.allocate_uninitialized();
+    void* texMem = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = readable;
@@ -115,8 +113,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
 
     stbi_image_free(decodedPixelData);
 
-    const AssetId id = registerAsset(path, AssetType::Texture, outTexture);
-    return AssetRef(outTexture, id);
+    return AssetDatabase::registerAsset(path, outTexture);
 }
 
 AssetRef<Texture> Texture::fallbackWhite()
@@ -216,6 +213,7 @@ constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
+            ENGINE_UNREACHABLE();
     }
 }
 
@@ -259,6 +257,7 @@ constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Invalid usage of Texture format");
+            ENGINE_UNREACHABLE();
     }
 }
 
@@ -311,6 +310,7 @@ constexpr gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
+            ENGINE_UNREACHABLE();
     }
 }
 
@@ -360,5 +360,6 @@ constexpr gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format.");
+            ENGINE_UNREACHABLE();
     }
 }

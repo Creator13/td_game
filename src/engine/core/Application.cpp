@@ -97,8 +97,8 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     createWindow(windowState);
 
     // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
-    _assetDb = std::make_unique<assets::AssetDatabase>(resourceRoot);
-    assets::bindAssetDatabase(*_assetDb);
+    assets::AssetDatabase::initialize(resourceRoot);
+
     _renderer = std::make_unique<gfx::Renderer>();
     _debugRenderer = std::make_unique<debug::DebugRenderer>();
     debug::bindDebugRenderer(*_debugRenderer);
@@ -249,11 +249,13 @@ void Application::initFlecs()
 
 void Application::cleanup()
 {
+    assets::AssetDatabase::destroy();
     cleanWindow();
 }
 
 void Application::cleanWindow()
 {
+    spdlog::debug("Destroying window, ending OpenGL context.");
     glfwDestroyWindow(_windowPtr);
     glfwTerminate();
 }
