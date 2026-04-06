@@ -14,6 +14,7 @@ Material::Material(const Pipeline& pipeline, u16 sortKey)
 {
     ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
     constructBuffers();
+    initializeData();
 }
 
 void Material::constructBuffers()
@@ -28,7 +29,35 @@ void Material::constructBuffers()
         glNamedBufferStorage(_uboHandle, uboSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
         _materialBlockData.resize(uboSize);
     }
+
+    _textures.reserve(_layout.getSamplerCount());
 }
+
+void Material::initializeData()
+{
+    // Init all data to zero.
+    std::memset(_materialBlockData.data(), 0, _materialBlockData.size());
+
+    for (auto& [id, property] : _layout.properties())
+    {
+        // Assign null ref to every texture unit; rely on renderer to know how to deal with null refs.
+        if (property.propertyType == ShaderPropertyInfo::PropertyType::Sampler)
+        {
+            _textures.insert_or_assign(id, assets::AssetRef<Texture>::null());
+        }
+
+        // Most uniforms will have {0} as their default value
+        if (property.propertyType == ShaderPropertyInfo::PropertyType::Uniform)
+        {
+            // Exception is mat4s, better to set those to identity.
+            if (property.glType == GL_FLOAT_MAT4)
+            {
+                setMat4(id, mat4::identity);
+            }
+        }
+    }
+}
+
 
 void Material::flushUboChangesToGpu()
 {

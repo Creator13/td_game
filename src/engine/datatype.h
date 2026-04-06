@@ -40,22 +40,22 @@ namespace core::gl
 
 namespace core::gl
 {
-    template<typename>
+    template<typename Tag, typename T = Uint>
     struct Handle
     {
-        Uint id;
+        T id;
 
-        constexpr Handle() : id(0) { }
-        constexpr Handle(Uint id) : id(id) { }
+        constexpr Handle() : id(static_cast<T>(0)) { }
+        constexpr Handle(T id) : id(id) { }
 
-        operator gl::Uint() const { return id; }
-        explicit constexpr operator bool() const { return id != 0; }
+        operator T() const { return id; }
+        explicit constexpr operator bool() const { return id != static_cast<T>(0); }
 
-        template<typename OtherTag>
-        Handle(Handle<OtherTag>) = delete;
+        template<typename OtherTag, typename OtherT>
+        Handle(Handle<OtherTag, OtherT>) = delete;
 
-        template<typename OtherTag>
-        Handle& operator=(Handle<OtherTag>) = delete;
+        template<typename OtherTag, typename OtherT>
+        Handle& operator=(Handle<OtherTag, OtherT>) = delete;
     };
 
     struct TextureTag { };
@@ -70,10 +70,13 @@ namespace core::gl
 
     struct FrameBufferTag { };
 
+    struct SyncTag {};
+
     using texture_t = Handle<TextureTag>;
     using shader_t = Handle<ShaderTag>;
     using program_t = Handle<ProgramTag>;
     using buffer_t = Handle<BufferTag>;
     using vert_arr_t = Handle<VertexArrayTag>;
     using framebuffer_t = Handle<FrameBufferTag>;
+    using sync_t = Handle<SyncTag, void*>;
 }

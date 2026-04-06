@@ -43,7 +43,7 @@ namespace core::assets
         };
         bool operator!=(const AssetRef& other) const { return !operator==(other); };
 
-        explicit operator bool() const noexcept { return isNull(); }
+        explicit operator bool() const noexcept { return !isNull(); }
 
         AssetRef() : _assetPtr(nullptr), _id(0) { } // TODO Not super liking the fact that this has a default constructor...
         AssetRef(T* asset, AssetId id) : _assetPtr(asset), _id(id) { }

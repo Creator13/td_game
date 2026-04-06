@@ -52,12 +52,26 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
     return pId;
 }
 
+std::string injectSystemHeader(std::string_view src)
+{
+    std::string result{src};
+
+    const usize versionPos = src.find("#version");
+    if (versionPos != std::string::npos)
+    {
+        const usize nextLine = src.find('\n', versionPos) + 1;
+
+        // For simplicity we keep inserting at the top, but for readability we
+        // want the bindings to appear in order of value so we insert high to low.
+        result.insert(nextLine, gfx::InstanceData::getShaderDeclaration()); // binding 1
+        result.insert(nextLine, gfx::FrameDataBlock::getShaderDeclaration()); // binding 0
+    }
+    return result;
+}
+
 std::string ShaderLoader::preprocessShader(std::string_view sourceString)
 {
-    std::string result = util::string::multiReplace(sourceString, {
-        {"#include \"_FrameDataBlock\"", gfx::FrameDataBlock::getShaderDeclaration()},
-        {"#include \"_PerDrawBlock\"", gfx::PerDrawBlock::getShaderDeclaration()}
-    });
+    std::string result = injectSystemHeader(sourceString);
     return result;
 }
 

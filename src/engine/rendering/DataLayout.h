@@ -31,6 +31,8 @@ namespace core::gfx
         math::mat4 viewProj;
         float time;
 
+        constexpr static gl::Int SHADER_BINDING = 0;
+
         constexpr static std::string_view getShaderDeclaration()
         {
             return R"(
@@ -43,24 +45,27 @@ layout (binding = 0, std140) uniform FrameDataBlock
 } scene;
             )";
         }
-
-        constexpr static gl::Int BINDING = 0;
     };
 
-    struct PerDrawBlock
+    struct InstanceData
     {
-        math::mat4 model;
+        math::mat4 transform;
+
+        constexpr static gl::Int SHADER_BINDING = 1;
 
         constexpr static std::string_view getShaderDeclaration()
         {
             return R"(
-layout (binding = 1, std140) uniform PerDrawBlock
-{
-    mat4 worldTransform;
-} object;
+struct InstanceData {
+    mat4 transform;
+};
+
+layout (std430, binding = 1) readonly buffer instanceSSBO {
+    InstanceData instances[];
+};
+
+#define INSTANCE_TRANSFORM (instances[gl_BaseInstance + gl_InstanceID].transform)
             )";
         }
-
-        constexpr static gl::Int BINDING = 1;
     };
 }

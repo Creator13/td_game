@@ -52,6 +52,11 @@ static_assert(alignof(gl::framebuffer_t) == alignof(GLuint));
 static_assert(std::is_standard_layout_v<gl::framebuffer_t>);
 static_assert(std::is_trivially_copyable_v<gl::framebuffer_t>);
 
+static_assert(sizeof(gl::sync_t) == sizeof(GLsync));
+static_assert(alignof(gl::sync_t) == alignof(GLsync));
+static_assert(std::is_standard_layout_v<gl::sync_t>);
+static_assert(std::is_trivially_copyable_v<gl::sync_t>);
+
 namespace _internal_datatype
 {
     void verified() { }

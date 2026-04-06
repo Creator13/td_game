@@ -54,13 +54,13 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
 
     AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance();
-    uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
+    // uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
     uvCheckerMat->setColor("color"_spid, Color::fromSrgb(SrgbColor::green));
 
     AssetRef<Material> avacadooMat = pipeline->newMaterialInstance();
-    avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
+    // avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
 
-    constexpr int count = 25;
+    constexpr int count = 50;
     int n = 0;
     for (int i = 0; i < count; i++)
     {
@@ -141,13 +141,13 @@ void engine::setupGame(const flecs::world& world)
         });
 
     // UI stuff concept
-    const flecs::entity ui = world.entity("UI root")
-        .set<ui::UiRoot>({1920, 1080});
-
-    const flecs::entity text = world.entity("Text")
-        .emplace<ui::Text>("Yes")
-        .set<ui::Rect>({{10, 10}, {50, 50}});
-
-    world.entity("Beautiful panel")
-        .set<ui::Rect>({{0, 0}, {100, 50}});
+    // const flecs::entity ui = world.entity("UI root")
+    //     .set<ui::UiRoot>({1920, 1080});
+    //
+    // const flecs::entity text = world.entity("Text")
+    //     .emplace<ui::Text>("Yes")
+    //     .set<ui::Rect>({{10, 10}, {50, 50}});
+    //
+    // world.entity("Beautiful panel")
+    //     .set<ui::Rect>({{0, 0}, {100, 50}});
 }

@@ -1,6 +1,5 @@
 #include "Renderer.h"
 
-#include <__msvc_ranges_to.hpp>
 #include <glad/gl.h>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
@@ -22,7 +21,7 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
 }
 
 Renderer::Renderer()
-    : _perFrameUbo(4_MB)
+    : _instanceDataBuffer(1_MB)
 {
     glFrontFace(GL_CCW);
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
@@ -116,21 +115,24 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
         glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material->_uboHandle);
     }
 
-    for (const auto& [propertyId, textureRef] : material->_textures)
+    if (material->_textures.size() > 0)
     {
-        assets::AssetRef<Texture> textureToBind = textureRef;
-
-        if (textureRef.isNull())
+        for (const auto& [propertyId, textureRef] : material->_textures)
         {
-            textureToBind = Texture::fallbackWhite();
+            assets::AssetRef<Texture> textureToBind = textureRef;
+
+            if (textureRef.isNull())
+            {
+                textureToBind = Texture::fallbackWhite();
+            }
+
+            const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
+            ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
+
+            const SamplerInfo& samplerInfo = prop->getSamplerInfo();
+            glBindTextureUnit(samplerInfo.textureUnit, textureToBind->getGlBindPoint());
+            glBindSampler(samplerInfo.textureUnit, _defaultSampler);
         }
-
-        const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
-        ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
-
-        const SamplerInfo& samplerInfo = prop->getSamplerInfo();
-        glBindTextureUnit(samplerInfo.textureUnit, textureToBind->getGlBindPoint());
-        glBindSampler(samplerInfo.textureUnit, _defaultSampler);
     }
 }
 
@@ -146,55 +148,74 @@ void Renderer::bindFrameData() const
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, _frameDataUboHandle);
 }
 
+void Renderer::sortCommandList()
+{
+    ZoneScopedN("Command list sorting")
+    std::ranges::sort(_geometryCommandBuffer, { }, &DrawCommand::sortKey);
+}
+
+void Renderer::bindInstanceData()
+{
+    ZoneScopedN("Instance data fetch & upload")
+    auto instanceDataFromDrawCommandView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
+    {
+        InstanceData data;
+        data.transform = input.modelMatrix;
+        return data;
+    });
+    _instanceDataBuffer.setData(instanceDataFromDrawCommandView);
+    _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
+}
+
 void Renderer::renderSceneGeometry()
 {
     ZoneScopedN("Renderer::renderSceneGeometry");
     TracyGpuZone("Renderer::renderSceneGeometry");
 
     bindFrameData();
-
-    {
-        ZoneScopedN("sorting")
-        std::ranges::sort(_geometryCommandBuffer, { }, &DrawCommand::sortKey);
-    }
-
-    {
-        ZoneScopedN("command data upload")
-        auto drawCommandToPerDrawDataView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
-        {
-            return PerDrawBlock{input.modelMatrix};
-        });
-        _perFrameUbo.alignAndUpload(drawCommandToPerDrawDataView);
-    }
+    sortCommandList();
+    bindInstanceData();
 
     u16 currentPipelineId = 0xFFFF;
     u16 currentMaterialId = 0xFFFF;
     u16 currentMeshId = 0xFFFF;
-    for (usize i = 0; i < _geometryCommandBuffer.size(); i++)
+
+    usize batchStart = 0;
+    while (batchStart < _geometryCommandBuffer.size())
     {
-        const DrawCommand& cmd = _geometryCommandBuffer[i];
-        const gpu::MeshGpuHandle& handle = cmd.mesh->gpuHandle;
+        const DrawCommand& baseCommand = _geometryCommandBuffer[batchStart];
 
-        if (cmd.getPipelineId() != currentPipelineId)
+        usize batchEnd = batchStart + 1;
+        while (batchEnd < _geometryCommandBuffer.size() &&
+               _geometryCommandBuffer[batchEnd].sortKey == baseCommand.sortKey)
         {
-            bindPipeline(cmd.material->pipeline);
-            currentPipelineId = cmd.material->pipeline.sortKey;
+            batchEnd++;
         }
 
-        if (cmd.getMaterialId() != currentMaterialId)
+        const usize batchCount = batchEnd - batchStart;
+        const gpu::MeshGpuHandle& handle = baseCommand.mesh->gpuHandle;
+
+        if (baseCommand.getPipelineId() != currentPipelineId)
         {
-            bindMaterial(cmd.material);
-            currentMaterialId = cmd.material->sortKey;
+            bindPipeline(baseCommand.material->pipeline);
+            currentPipelineId = baseCommand.getPipelineId();
         }
 
-        if (cmd.getMeshId() != currentMeshId)
+        if (baseCommand.getMaterialId() != currentMaterialId)
+        {
+            bindMaterial(baseCommand.material);
+            currentMaterialId = baseCommand.getMaterialId();
+        }
+
+        if (baseCommand.getMeshId() != currentMeshId)
         {
             glBindVertexArray(handle.vao);
-            currentMeshId = cmd.mesh->sortKey;
+            currentMeshId = baseCommand.getMeshId();
         }
 
-        _perFrameUbo.bindIndex(i, PerDrawBlock::BINDING);
-        glDrawElements(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr, batchCount, batchStart);
+
+        batchStart = batchEnd;
     }
 
     _geometryCommandBuffer.clear();

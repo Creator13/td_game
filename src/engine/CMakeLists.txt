@@ -5,10 +5,11 @@ include(FetchContent)
 # =============================
 
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
-        "assets/*.cpp" "assets/*.h"
-        "core/*.cpp" "core/*.h"
-        "rendering/*.cpp" "rendering/*.h"
+        "assets/*.cpp" "assets/*.h" "assets/*.inl"
+        "core/*.cpp" "core/*.h" "core/*.inl"
+        "rendering/*.cpp" "rendering/*.h" "rendering/*.inl"
         "util/*.cpp" "util/*.h" "util/*.inl"
+        "datatype.h" "datatype.cpp"
 )
 
 ## Vcpkg packages

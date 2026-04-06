@@ -3,18 +3,16 @@
 #include <datatype.h>
 #include <fmt/format.h>
 
-using namespace core;
-
 template<typename Tag>
-struct fmt::formatter<gl::Handle<Tag>> : formatter<gl::Uint>
+struct fmt::formatter<core::gl::Handle<Tag>> : formatter<core::gl::Uint>
 {
-    auto format(const gl::Handle<Tag>& handle, format_context& ctx) const
+    auto format(const core::gl::Handle<Tag>& handle, format_context& ctx) const
     {
-        return formatter<gl::Uint>::format(handle.id, ctx);
+        return formatter<core::gl::Uint>::format(handle.id, ctx);
     }
 };
 
-inline std::string_view glTypeToString(gl::enum_t type)
+inline std::string_view glTypeToString(core::gl::enum_t type)
 {
     switch (type)
     {

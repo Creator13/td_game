@@ -11,6 +11,11 @@
 #include "datatype.h"
 #include "rendering/ShaderPropertyId.h"
 
+namespace core
+{
+    class Material;
+}
+
 namespace core::gfx
 {
     struct UniformBlockInfo
@@ -55,6 +60,7 @@ namespace core::gfx
         constexpr static int MAX_UBOS = 4;
 
         int _numUBOs;
+        int _numSamplers;
 
         int _materialBlockIndex = -1;
         int _frameDataBlockIndex = -1;
@@ -71,6 +77,7 @@ namespace core::gfx
 
         bool hasMaterialBlock() const;
         bool hasFrameDataBlock() const;
+        int getSamplerCount() const { return _numSamplers; }
 
         int getMaterialBlockIndex() const { return _materialBlockIndex; }
         const UniformBlockInfo& getMaterialBlockInfo() const;
@@ -79,6 +86,7 @@ namespace core::gfx
         const UniformBlockInfo& getFrameDataBlockInfo() const;
 
         const ShaderPropertyInfo* getPropertyInfo(ShaderPropertyId id) const;
+        auto properties() const { return std::views::all(_shaderProperties); }
 
         std::string toString() const;
     };

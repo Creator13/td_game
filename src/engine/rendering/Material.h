@@ -49,6 +49,7 @@ namespace core
         // Private constructor from pipeline object takes a Pipeline& and not an AssetRef because it should only be called by the owning pipeline.
         explicit Material(const gfx::Pipeline& pipeline, u16 sortKey);
         void constructBuffers(); // constructor helper
+        void initializeData();
 
         template<typename T>
         void setUniform(gfx::ShaderPropertyId id, const T& value, gl::enum_t expectedGlType);

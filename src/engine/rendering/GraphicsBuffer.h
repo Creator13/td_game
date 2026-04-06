@@ -1,0 +1,56 @@
+#pragma once
+
+#include <vector>
+#include <tracy/Tracy.hpp>
+
+#include "datatype.h"
+
+namespace core
+{
+    class GraphicsBuffer
+    {
+        u32 _size;
+
+        gl::buffer_t _handle;
+        std::vector<std::byte> _localBuffer;
+
+    public:
+        explicit GraphicsBuffer(u32 size);
+        ~GraphicsBuffer();
+
+        template<std::ranges::input_range R>
+            requires std::ranges::sized_range<R>
+        void setData(R&& data);
+
+        void bind(gl::Int binding) const;
+
+    private:
+        void resize(u32 newSize);
+        void uploadLocalBuffer(usize dataSize);
+    };
+
+    template<std::ranges::input_range R>
+        requires std::ranges::sized_range<R>
+    void GraphicsBuffer::setData(R&& data)
+    {
+        ZoneScopedN("GraphicsBuffer::upload");
+
+        using T = std::ranges::range_value_t<R>;
+        usize elemSize = sizeof(T);
+        const u32 requiredSize = elemSize * std::ranges::size(data);
+
+        if (requiredSize > _size)
+        {
+            resize(requiredSize * 1.5f);
+        }
+
+        i32 i = 0;
+        for (const T& elem : data)
+        {
+            std::memcpy(_localBuffer.data() + i * elemSize, &elem, elemSize);
+            i++;
+        }
+
+        uploadLocalBuffer(requiredSize);
+    }
+}

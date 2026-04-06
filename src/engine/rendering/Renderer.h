@@ -4,6 +4,7 @@
 
 #include "datatype.h"
 #include "math/mat4.h"
+#include "rendering/GraphicsBuffer.h"
 #include "rendering/GrowableUbo.h"
 #include "rendering/Material.h"
 #include "rendering/RenderingDataStructures.h"
@@ -33,7 +34,7 @@ namespace core::gfx
         std::vector<DrawCommand> _uiCommandBuffer;
 
         gl::buffer_t _frameDataUboHandle;
-        GrowableUbo _perFrameUbo;
+        GraphicsBuffer _instanceDataBuffer;
 
         gl::framebuffer_t _mainFramebuffer;
         gl::Uint _defaultSampler;
@@ -49,6 +50,9 @@ namespace core::gfx
         void bindPipeline(const Pipeline& pipeline);
         void bindMaterial(assets::AssetRef<Material> material);
         void bindFrameData() const;
+
+        void sortCommandList();
+        void bindInstanceData();
 
         void renderSceneGeometry();
         void renderUI();

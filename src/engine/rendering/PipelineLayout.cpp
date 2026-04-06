@@ -55,7 +55,7 @@ const SamplerInfo& ShaderPropertyInfo::getSamplerInfo() const
 }
 
 ShaderLayout::ShaderLayout(gl::program_t program)
-    : _numUBOs(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
+    : _numUBOs(0), _numSamplers(0), _program(program), _shaderProperties(8), _uniformBlocks() { }
 
 ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
 {
@@ -192,6 +192,7 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
         ShaderPropertyId spid = makePropertyId(shaderPropInfo.name);
         resultLayout._shaderProperties[spid] = shaderPropInfo;
     }
+    resultLayout._numSamplers = textureUnit;
 
     return resultLayout;
 }
