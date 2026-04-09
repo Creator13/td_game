@@ -64,7 +64,7 @@ std::string injectSystemHeader(std::string_view src)
         // For simplicity we keep inserting at the top, but for readability we
         // want the bindings to appear in order of value so we insert high to low.
         result.insert(nextLine, gfx::InstanceData::getShaderDeclaration()); // binding 1
-        result.insert(nextLine, gfx::FrameDataBlock::getShaderDeclaration()); // binding 0
+        result.insert(nextLine, gfx::PassDataBlock::getShaderDeclaration()); // binding 0
     }
     return result;
 }

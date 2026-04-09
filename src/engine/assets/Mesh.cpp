@@ -26,8 +26,8 @@ namespace
     }
 }
 
-Mesh::Mesh(u16 sortKey)
-    : sortKey(sortKey)
+Mesh::Mesh(u16 sortKey, bool cpuReadable)
+    : sortKey(sortKey), _cpuReadable(cpuReadable)
 {
     ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
 }
@@ -41,6 +41,9 @@ void Mesh::recalculateBounds()
 {
     bounds = boundsFromVertices(vertices);
 };
+
+// TODO clean up mesh creation. Introduce a MeshView, holding spans to const data. Move sortkey to handle (or move handle data to mesh?).
+//  meshView infers vertex format, index format (templating?)
 
 AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 {
@@ -67,7 +70,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
 
     auto& meshStorage = AssetDatabase::instance->_meshStorage;
     void* meshMem = meshStorage.allocate_uninitialized();
-    Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1);
+    Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1, true);
 
     size_t vertex_base = 0;
 
@@ -139,7 +142,17 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     return AssetDatabase::registerAsset<Mesh>(path, outMesh);
 }
 
-AssetRef<Mesh> Mesh::create()
+AssetRef<Mesh> Mesh::create(std::string_view name)
 {
     ENGINE_ASSERT(false, "TODO not implemented");
+}
+
+AssetRef<Mesh> Mesh::createView(std::string_view name, std::span<const Vertex> vertices, std::span<const u32> indices, AABB bounds)
+{
+    void* mem = AssetDatabase::instance->_meshStorage.allocate_uninitialized();
+    Mesh* mesh = ::new(mem) Mesh(AssetDatabase::instance->_meshStorage.size() - 1, false);
+
+    mesh->bounds = bounds;
+    mesh->gpuHandle = allocator.uploadMeshView(vertices, indices);
+    return AssetDatabase::registerRuntimeAsset<Mesh>(name, mesh);
 }

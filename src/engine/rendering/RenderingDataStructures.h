@@ -16,5 +16,6 @@ namespace core::gfx
         u16 pixelWidth, pixelHeight;
 
         math::mat4 getCombinedViewProjectionMatrix() const;
+        math::mat4 get2dProjectionMatrix() const;
     };
 }

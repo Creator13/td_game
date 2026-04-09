@@ -66,13 +66,6 @@ namespace
     flecs::entity currentActiveCameraEntity;
 }
 
-core::u64 MeshRenderData::buildSortKey() const
-{
-    return (static_cast<u64>(material->pipeline.sortKey) << 32) |
-           (static_cast<u64>(material->sortKey) << 16) |
-           (static_cast<u64>(mesh->sortKey));
-}
-
 rendering::rendering(flecs::world& ecs)
 {
     ecs.module<rendering>("Rendering");
@@ -186,7 +179,7 @@ rendering::rendering(flecs::world& ecs)
                 auto f_transform = it.field<const HierarchyTransform>(0);
                 auto f_renderData = it.field<const MeshRenderData>(1);
 
-                for (auto i : it)
+                for (const auto i : it)
                 {
                     const auto& renderData = f_renderData[i];
                     total++;
@@ -196,12 +189,13 @@ rendering::rendering(flecs::world& ecs)
 
                     // Submit command
                     DrawCommand command;
-                    command.sortKey = renderData.buildSortKey(); // TODO consider: sortKey *could* be cached to save a tiny bit of compute, but this requires a solid observer that changes it should the material/mesh asset refs ever change.
-                    command.mesh = renderData.mesh;
+                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
+                    command.mesh = renderData.mesh->gpuHandle;
                     command.material = renderData.material;
                     command.modelMatrix = f_transform[i].getWorldMatrix();
+                    command.queue = DrawCommand::RenderQueue::OPAQUE;
 
-                    renderer.ptr->submitSceneGeometry(command);
+                    renderer.ptr->submitDrawCommand(command);
                     rendered++;
                 }
             }

@@ -15,7 +15,7 @@ class GLFWwindow;
 namespace core
 {
     namespace debug {
-        struct DebugRenderer;
+        class DebugRenderer;
     }
 
     class Application

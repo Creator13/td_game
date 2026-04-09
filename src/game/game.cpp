@@ -1,11 +1,11 @@
 #include <spdlog/spdlog.h>
 
 #include "engine.h"
+#include "assets/AssetDatabase.h"
+#include "assets/Mesh.h"
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
 #include "core/Input.h"
-#include "../engine/assets/Mesh.h"
-#include "assets/AssetDatabase.h"
 #include "core/Time.h"
 #include "core/Transform.h"
 #include "core/Window.h"
@@ -146,11 +146,11 @@ void engine::setupGame(const flecs::world& world)
     // UI stuff concept
     // const flecs::entity ui = world.entity("UI root")
     //     .set<ui::UiRoot>({1920, 1080});
-    //
+
     // const flecs::entity text = world.entity("Text")
     //     .emplace<ui::Text>("Yes")
     //     .set<ui::Rect>({{10, 10}, {50, 50}});
-    //
-    // world.entity("Beautiful panel")
-    //     .set<ui::Rect>({{0, 0}, {100, 50}});
+
+    world.entity("Beautiful panel")
+        .set<ui::Rect>({{50, 100}, {100, 50}});
 }

@@ -63,7 +63,7 @@ namespace core::gfx
         int _numSamplers;
 
         int _materialBlockIndex = -1;
-        int _frameDataBlockIndex = -1;
+        int _passDataBlockIndex = -1;
 
         gl::program_t _program;
 
@@ -82,8 +82,8 @@ namespace core::gfx
         int getMaterialBlockIndex() const { return _materialBlockIndex; }
         const UniformBlockInfo& getMaterialBlockInfo() const;
 
-        int getFrameDataBlockIndex() const { return _frameDataBlockIndex; }
-        const UniformBlockInfo& getFrameDataBlockInfo() const;
+        int getPassDataBlockIndex() const { return _passDataBlockIndex; }
+        const UniformBlockInfo& getPassDataBlockInfo() const;
 
         const ShaderPropertyInfo* getPropertyInfo(ShaderPropertyId id) const;
         auto properties() const { return std::views::all(_shaderProperties); }

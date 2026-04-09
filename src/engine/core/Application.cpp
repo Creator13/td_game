@@ -11,6 +11,7 @@
 #include "core/EcsCore.h"
 #include "core/Time.h"
 #include "core/Window.h"
+#include "core/ui/EcsUI.h"
 #include "rendering/EcsRendering.h"
 #include "rendering/Renderer.h"
 
@@ -226,6 +227,7 @@ void Application::initFlecs()
 
     _ecs.import<ecs::engine_core>();
     _ecs.import<ecs::rendering>();
+    _ecs.import<ui::engine_ui>();
 
     // Add debug modules if in debug build TODO change this to dev build, they are not always compiled in debug mode
 #ifdef DEBUG_BUILD

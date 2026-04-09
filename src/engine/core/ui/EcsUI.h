@@ -4,7 +4,8 @@
 
 #include "datatype.h"
 #include "assets/AssetRef.h"
-#include "math/geom.h"
+#include "assets/Mesh.h"
+#include "rendering/Material.h"
 
 namespace flecs
 {
@@ -40,5 +41,9 @@ namespace core::ui
     struct engine_ui
     {
         explicit engine_ui(flecs::world& ecs);
+
+    private:
+        assets::AssetRef<Mesh> _uiQuad;
+        assets::AssetRef<Material> _uiMaterial;
     };
 }

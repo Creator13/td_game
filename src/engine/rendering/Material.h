@@ -6,7 +6,7 @@
 #include "core/Color.h"
 #include "math/vec3.h"
 #include "math/vec4.h"
-#include "rendering/PipelineLayout.h"
+#include "rendering/ShaderLayout.h"
 #include "rendering/ShaderPropertyId.h"
 
 namespace math
@@ -19,17 +19,8 @@ namespace core
     namespace gfx
     {
         struct ShaderLayout;
-        class Pipeline;
         class Renderer;
     }
-
-    class Material;
-
-    template<>
-    struct assets::AssetTraits<Material>
-    {
-        static constexpr AssetType type = AssetType::Material;
-    };
 
     class Material
     {

@@ -1,4 +1,4 @@
-#include "PipelineLayout.h"
+#include "ShaderLayout.h"
 
 #include <algorithm>
 #include <ranges>
@@ -105,10 +105,10 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
             ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second material block in program! (program id: {})", program);
             resultLayout._materialBlockIndex = iBlock;
         }
-        else if (blockInfo.name == "FrameDataBlock" || blockInfo.name == "Frame" || blockInfo.name == "FrameData")
+        else if (blockInfo.name == "PassDataBlock" || blockInfo.name == "Pass" || blockInfo.name == "PassData")
         {
-            ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second frame data block in program! (program id: {})", program);
-            resultLayout._frameDataBlockIndex = iBlock;
+            ENGINE_ASSERT(resultLayout._passDataBlockIndex == -1, "Found illegal second pass data block in program! (program id: {})", program);
+            resultLayout._passDataBlockIndex = iBlock;
         }
 
         std::vector<gl::Int> activeVariables(numActiveVariables);
@@ -205,7 +205,7 @@ bool ShaderLayout::hasMaterialBlock() const
 
 bool ShaderLayout::hasFrameDataBlock() const
 {
-    return _frameDataBlockIndex > -1;
+    return _passDataBlockIndex > -1;
 }
 
 const UniformBlockInfo& ShaderLayout::getMaterialBlockInfo() const
@@ -214,10 +214,10 @@ const UniformBlockInfo& ShaderLayout::getMaterialBlockInfo() const
     return _uniformBlocks[_materialBlockIndex];
 }
 
-const UniformBlockInfo& ShaderLayout::getFrameDataBlockInfo() const
+const UniformBlockInfo& ShaderLayout::getPassDataBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get frame data block on shader without said block. (This block should not be missing if you see this message.)");
-    return _uniformBlocks[_frameDataBlockIndex];
+    return _uniformBlocks[_passDataBlockIndex];
 }
 
 const ShaderPropertyInfo* ShaderLayout::getPropertyInfo(ShaderPropertyId id) const

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "Mesh.h"
 
 namespace core::assets::mesh_primitives
@@ -48,16 +50,16 @@ namespace core::assets::mesh_primitives
     };
     inline constexpr math::AABB CUBE_BOUNDS = boundsFromVertices(CUBE_VERTICES);
 
-    inline constexpr Vertex QUAD_VERTICES[] =
-    {
-        {math::vec3(0, 0, 0), math::vec3(0, 1, 0)},
-        {math::vec3(1, 0, 0), math::vec3(0, 1, 0)},
-        {math::vec3(1, 0, 1), math::vec3(0, 1, 0)},
-        {math::vec3(0, 0, 1), math::vec3(0, 1, 0)},
-    };
-    inline constexpr uint32_t QUAD_INDICES[] =
-    {
-        0, 1, 2, 2, 3, 0
-    };
+    inline constexpr std::array QUAD_VERTICES = std::to_array<Vertex>(
+        {
+            {math::vec3(0, 0, 0), math::vec3(0, 1, 0), math::vec2(0, 0)},
+            {math::vec3(1, 0, 0), math::vec3(0, 1, 0), math::vec2(1, 0)},
+            {math::vec3(1, 0, 1), math::vec3(0, 1, 0), math::vec2(1, 1)},
+            {math::vec3(0, 0, 1), math::vec3(0, 1, 0), math::vec2(0, 1)},
+        });
+    inline constexpr std::array QUAD_INDICES = std::to_array<u32>(
+        {
+            0, 1, 2, 2, 3, 0
+        });
     inline constexpr math::AABB QUAD_BOUNDS = boundsFromVertices(QUAD_VERTICES);
 };

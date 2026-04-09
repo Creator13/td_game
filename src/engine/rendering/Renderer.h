@@ -3,12 +3,13 @@
 #include <vector>
 
 #include "datatype.h"
+#include "assets/Mesh.h"
 #include "math/mat4.h"
+#include "rendering/DataLayout.h"
 #include "rendering/GraphicsBuffer.h"
-#include "rendering/GrowableUbo.h"
 #include "rendering/Material.h"
+#include "rendering/MeshGpuHandle.h"
 #include "rendering/RenderingDataStructures.h"
-#include "rendering/pass/GeometryPass.h"
 
 namespace core::gfx
 {
@@ -16,10 +17,13 @@ namespace core::gfx
 
     struct DrawCommand
     {
+        enum class RenderQueue { OPAQUE, UI, SHADOW, INVALID };
+
         u64 sortKey;
-        assets::AssetRef<Mesh> mesh;
+        gpu::MeshGpuHandle mesh;
         assets::AssetRef<Material> material;
         math::mat4 modelMatrix;
+        RenderQueue queue = RenderQueue::INVALID;
 
         u16 getPipelineId() const { return (sortKey >> 32) & 0xFFFF; }
         u16 getMaterialId() const { return (sortKey >> 16) & 0xFFFF; }
@@ -28,10 +32,12 @@ namespace core::gfx
 
     class Renderer
     {
+        using CommandQueue = std::vector<DrawCommand>;
+
         ViewportData _viewportData = ViewportData();
 
-        std::vector<DrawCommand> _geometryCommandBuffer;
-        std::vector<DrawCommand> _uiCommandBuffer;
+        CommandQueue _opaqueCommandQueue;
+        CommandQueue _uiCommandQueue;
 
         gl::buffer_t _frameDataUboHandle;
         GraphicsBuffer _instanceDataBuffer;
@@ -43,18 +49,19 @@ namespace core::gfx
         Renderer();
 
         void setViewportData(const ViewportData& params);
-        void submitSceneGeometry(const DrawCommand& command);
+        void submitDrawCommand(const DrawCommand& command);
         void renderFrame();
+
+        static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
 
     private:
         void bindPipeline(const Pipeline& pipeline);
         void bindMaterial(assets::AssetRef<Material> material);
-        void bindFrameData() const;
+        void bindPassData(const PassDataBlock& passData) const;
 
-        void sortCommandList();
-        void bindInstanceData();
+        void appendInstanceData(CommandQueue& queue);
+        void executePass(const PassDataBlock& passData, CommandQueue& queue, usize instanceIndex);
 
-        void renderSceneGeometry();
-        void renderUI();
+        static void sortCommandList(std::vector<DrawCommand>& queue);
     };
 }

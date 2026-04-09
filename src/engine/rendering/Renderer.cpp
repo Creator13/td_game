@@ -1,11 +1,12 @@
 #include "Renderer.h"
 
 #include <glad/gl.h>
+#include <magic_enum/magic_enum.hpp>
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
+#include "assets/Mesh.h"
 #include "core/Constants.h"
-#include "../assets/Mesh.h"
 #include "core/Time.h"
 #include "rendering/DataLayout.h"
 #include "rendering/Material.h"
@@ -20,6 +21,11 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
     return projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
 }
 
+mat4 ViewportData::get2dProjectionMatrix() const
+{
+    return mat4::makeOrtho(0, pixelWidth, 0, pixelHeight, -1, 1) * constants::COORDINATE_BASIS;
+}
+
 Renderer::Renderer()
     : _instanceDataBuffer(1_MB)
 {
@@ -27,7 +33,8 @@ Renderer::Renderer()
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
-    glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(_frameDataUboHandle, sizeof(PassDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
 
     glCreateSamplers(1, &_defaultSampler);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -41,9 +48,24 @@ void Renderer::setViewportData(const ViewportData& params)
     _viewportData = params;
 }
 
-void Renderer::submitSceneGeometry(const DrawCommand& command)
+void Renderer::submitDrawCommand(const DrawCommand& command)
 {
-    _geometryCommandBuffer.push_back(command);
+    std::vector<DrawCommand>* targetQueue = nullptr;
+
+    switch (command.queue)
+    {
+        case DrawCommand::RenderQueue::OPAQUE:
+            targetQueue = &_opaqueCommandQueue;
+            break;
+        case DrawCommand::RenderQueue::UI:
+            targetQueue = &_uiCommandQueue;
+            break;
+        case DrawCommand::RenderQueue::INVALID:
+        default:
+            ENGINE_ASSERT(false, "Draw command requests a non-existing or invalid command queue (\"{}\").", magic_enum::enum_name(command.queue));
+    }
+
+    targetQueue->push_back(command);
 }
 
 void Renderer::renderFrame()
@@ -53,7 +75,49 @@ void Renderer::renderFrame()
     glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    renderSceneGeometry();
+    const float currentTime = time::sinceLoad();
+
+    // Upload instance data for all passes in the same buffer
+    // TODO revisit this and see if an asynchronous buffer could work too?
+    _instanceDataBuffer.clear();
+
+    sortCommandList(_opaqueCommandQueue);
+    sortCommandList(_uiCommandQueue);
+
+    appendInstanceData(_opaqueCommandQueue);
+    appendInstanceData(_uiCommandQueue);
+
+    _instanceDataBuffer.upload();
+    _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
+
+    usize instanceIndex = 0;
+
+    // Execute opaque pass
+    PassDataBlock opaqueData;
+    opaqueData.view = _viewportData.viewMatrix;
+    opaqueData.projection = _viewportData.projectionMatrix;
+    opaqueData.viewProj = _viewportData.getCombinedViewProjectionMatrix();
+    opaqueData.time = currentTime;
+    executePass(opaqueData, _opaqueCommandQueue, instanceIndex);
+    instanceIndex += _opaqueCommandQueue.size();
+    _opaqueCommandQueue.clear();
+
+    // Execute UI pass
+    PassDataBlock uiPassData;
+    uiPassData.view = mat4::identity;
+    uiPassData.projection = _viewportData.get2dProjectionMatrix();
+    uiPassData.viewProj = uiPassData.projection; // view matrix is identity, so view-projection is simply the projection mat
+    uiPassData.time = currentTime;
+    executePass(uiPassData, _uiCommandQueue, instanceIndex);
+    instanceIndex += _uiCommandQueue.size();
+    _uiCommandQueue.clear();
+}
+
+u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
+{
+    return (static_cast<u64>(material->pipeline.sortKey) << 32) |
+           (static_cast<u64>(material->sortKey) << 16) |
+           (static_cast<u64>(mesh->sortKey));
 }
 
 void Renderer::bindPipeline(const Pipeline& pipeline)
@@ -67,6 +131,7 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     if (pipeline._descriptor.depthTest)
     {
         glEnable(GL_DEPTH_TEST);
+        ENGINE_ASSERT(pipeline._descriptor.depthFunc > 0, "No depth function set on pipeline with depth testing enabled.");
         glDepthFunc(pipeline._descriptor.depthFunc);
     }
     else
@@ -94,6 +159,8 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     if (pipeline._descriptor.blend)
     {
         glEnable(GL_BLEND);
+        ENGINE_ASSERT(pipeline._descriptor.blendSource > 0, "No blend source set on pipeline with blending enabled.");
+        ENGINE_ASSERT(pipeline._descriptor.blendDestination > 0, "No blend destination set on pipeline with blending enabled.");
         glBlendFunc(pipeline._descriptor.blendSource, pipeline._descriptor.blendDestination);
     }
     else
@@ -136,64 +203,56 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
     }
 }
 
-void Renderer::bindFrameData() const
+void Renderer::bindPassData(const PassDataBlock& passData) const
 {
-    FrameDataBlock frameDataBlock;
-    frameDataBlock.view = _viewportData.viewMatrix;
-    frameDataBlock.projection = _viewportData.projectionMatrix;
-    frameDataBlock.viewProj = _viewportData.getCombinedViewProjectionMatrix();
-    frameDataBlock.time = time::sinceLoad();
-
-    glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(FrameDataBlock), &frameDataBlock);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, _frameDataUboHandle);
+    glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(PassDataBlock), &passData);
+    glBindBufferBase(GL_UNIFORM_BUFFER, PassDataBlock::SHADER_BINDING, _frameDataUboHandle);
 }
 
-void Renderer::sortCommandList()
+void Renderer::sortCommandList(CommandQueue& queue)
 {
     ZoneScopedN("Command list sorting")
-    std::ranges::sort(_geometryCommandBuffer, { }, &DrawCommand::sortKey);
+    std::ranges::sort(queue, { }, &DrawCommand::sortKey);
 }
 
-void Renderer::bindInstanceData()
+void Renderer::appendInstanceData(CommandQueue& queue)
 {
     ZoneScopedN("Instance data fetch & upload")
-    auto instanceDataFromDrawCommandView = _geometryCommandBuffer | std::ranges::views::transform([](const auto& input)
+    auto instanceDataFromDrawCommandView = queue | std::ranges::views::transform([](const auto& input)
     {
         InstanceData data;
         data.transform = input.modelMatrix;
         return data;
     });
-    _instanceDataBuffer.setData(instanceDataFromDrawCommandView);
-    _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
+    _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
 }
 
-void Renderer::renderSceneGeometry()
+void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, usize instanceIndex)
 {
+    if (queue.empty()) return;
+
     ZoneScopedN("Renderer::renderSceneGeometry");
     TracyGpuZone("Renderer::renderSceneGeometry");
 
-    bindFrameData();
-    sortCommandList();
-    bindInstanceData();
+    bindPassData(passData);
 
     u16 currentPipelineId = 0xFFFF;
     u16 currentMaterialId = 0xFFFF;
     u16 currentMeshId = 0xFFFF;
 
     usize batchStart = 0;
-    while (batchStart < _geometryCommandBuffer.size())
+    while (batchStart < queue.size())
     {
-        const DrawCommand& baseCommand = _geometryCommandBuffer[batchStart];
+        const DrawCommand& baseCommand = queue[batchStart];
 
         usize batchEnd = batchStart + 1;
-        while (batchEnd < _geometryCommandBuffer.size() &&
-               _geometryCommandBuffer[batchEnd].sortKey == baseCommand.sortKey)
+        while (batchEnd < queue.size() &&
+               queue[batchEnd].sortKey == baseCommand.sortKey)
         {
             batchEnd++;
         }
 
         const usize batchCount = batchEnd - batchStart;
-        const gpu::MeshGpuHandle& handle = baseCommand.mesh->gpuHandle;
 
         if (baseCommand.getPipelineId() != currentPipelineId)
         {
@@ -209,20 +268,12 @@ void Renderer::renderSceneGeometry()
 
         if (baseCommand.getMeshId() != currentMeshId)
         {
-            glBindVertexArray(handle.vao);
+            glBindVertexArray(baseCommand.mesh.vao);
             currentMeshId = baseCommand.getMeshId();
         }
 
-        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, handle.indexCount, GL_UNSIGNED_INT, nullptr, batchCount, batchStart);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, baseCommand.mesh.indexCount, GL_UNSIGNED_INT, nullptr, batchCount, batchStart + instanceIndex);
 
         batchStart = batchEnd;
     }
-
-    _geometryCommandBuffer.clear();
-}
-
-void Renderer::renderUI()
-{
-    ZoneScopedN("Renderer::renderSceneGeometry()");
-    TracyGpuZone("Renderer::renderSceneGeometry()");
 }

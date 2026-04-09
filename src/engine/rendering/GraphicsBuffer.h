@@ -10,6 +10,7 @@ namespace core
     class GraphicsBuffer
     {
         u32 _size;
+        u32 _currentDataSize;
 
         gl::buffer_t _handle;
         std::vector<std::byte> _localBuffer;
@@ -20,24 +21,25 @@ namespace core
 
         template<std::ranges::input_range R>
             requires std::ranges::sized_range<R>
-        void setData(R&& data);
+        void appendRange(R&& data);
 
+        void clear();
+        void upload();
         void bind(gl::Int binding) const;
 
     private:
         void resize(u32 newSize);
-        void uploadLocalBuffer(usize dataSize);
     };
 
     template<std::ranges::input_range R>
         requires std::ranges::sized_range<R>
-    void GraphicsBuffer::setData(R&& data)
+    void GraphicsBuffer::appendRange(R&& data)
     {
         ZoneScopedN("GraphicsBuffer::upload");
 
         using T = std::ranges::range_value_t<R>;
         usize elemSize = sizeof(T);
-        const u32 requiredSize = elemSize * std::ranges::size(data);
+        const u32 requiredSize = elemSize * std::ranges::size(data) + _currentDataSize;
 
         if (requiredSize > _size)
         {
@@ -47,10 +49,10 @@ namespace core
         i32 i = 0;
         for (const T& elem : data)
         {
-            std::memcpy(_localBuffer.data() + i * elemSize, &elem, elemSize);
+            std::memcpy(_currentDataSize + _localBuffer.data() + i * elemSize, &elem, elemSize);
             i++;
         }
 
-        uploadLocalBuffer(requiredSize);
+        _currentDataSize = requiredSize;
     }
 }

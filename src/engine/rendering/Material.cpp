@@ -2,16 +2,16 @@
 
 #include <glad/gl.h>
 
+#include "formatting/fmt_gl.h"
 #include "math/mat4.h"
 #include "rendering/Pipeline.h"
-#include "formatting/fmt_gl.h"
 
 using namespace core;
 using namespace core::gfx;
 using namespace math;
 
 Material::Material(const Pipeline& pipeline, u16 sortKey)
-    : pipeline(pipeline), _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true), sortKey(sortKey)
+    : _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true), pipeline(pipeline), sortKey(sortKey)
 {
     ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
     constructBuffers();
@@ -36,7 +36,7 @@ void Material::constructBuffers()
 
 void Material::initializeData()
 {
-    // Init all data to zero.
+    // Init all data to zero (probably unnecessary considering constructBuffers does a resize, aka zero-init)
     std::memset(_materialBlockData.data(), 0, _materialBlockData.size());
 
     for (auto& [id, property] : _layout.properties())
@@ -58,7 +58,6 @@ void Material::initializeData()
         }
     }
 }
-
 
 void Material::flushUboChangesToGpu()
 {

@@ -4,16 +4,21 @@
 
 core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMesh(const Mesh& mesh)
 {
+    return uploadMeshView(mesh.vertices, mesh.indices);
+}
+
+core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMeshView(std::span<const Vertex> vertices, std::span<const u32> indices)
+{
     gl::buffer_t vbo, ebo;
     gl::vert_arr_t vao;
 
     glCreateVertexArrays(1, &vao.id);
 
     glCreateBuffers(1, &vbo.id);
-    glNamedBufferStorage(vbo, mesh.vertices.size() * sizeof(Vertex), mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(vbo, vertices.size() * sizeof(Vertex), vertices.data(), 0);
 
     glCreateBuffers(1, &ebo.id);
-    glNamedBufferStorage(ebo, mesh.indices.size() * sizeof(uint32_t), mesh.indices.data(), GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(ebo, indices.size() * sizeof(u32), indices.data(), 0);
 
     glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(Vertex));
     glVertexArrayElementBuffer(vao, ebo);
@@ -37,7 +42,7 @@ core::gpu::MeshGpuHandle core::gpu::MeshGpuAllocator::uploadMesh(const Mesh& mes
     handle.vao = vao;
     handle.vbo = vbo;
     handle.ebo = ebo;
-    handle.indexCount = mesh.indices.size();
+    handle.indexCount = indices.size();
     return handle;
 }
 

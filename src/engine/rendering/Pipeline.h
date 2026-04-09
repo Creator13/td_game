@@ -1,23 +1,9 @@
 #pragma once
 
 #include "datatype.h"
+#include "assets/AssetRef.h"
 #include "assets/AssetTraits.h"
-#include "rendering/Material.h"
-#include "rendering/PipelineLayout.h"
-
-namespace core
-{
-    namespace gfx
-    {
-        class Pipeline;
-    }
-
-    template<>
-    struct assets::AssetTraits<gfx::Pipeline>
-    {
-        static constexpr AssetType type = AssetType::Pipeline;
-    };
-}
+#include "rendering/ShaderLayout.h"
 
 namespace core::gfx
 {

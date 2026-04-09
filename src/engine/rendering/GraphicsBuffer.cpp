@@ -8,7 +8,7 @@
 #include "formatting/fmt_gl.h"
 
 core::GraphicsBuffer::GraphicsBuffer(u32 size)
-    : _size(size)
+    : _size(size), _currentDataSize(0)
 {
     glCreateBuffers(1, &_handle.id);
     glNamedBufferData(_handle.id, size, nullptr, GL_DYNAMIC_DRAW);
@@ -22,6 +22,12 @@ core::GraphicsBuffer::~GraphicsBuffer()
     {
         glDeleteBuffers(1, &_handle.id);
     }
+}
+
+void core::GraphicsBuffer::clear()
+{
+    _currentDataSize = 0;
+    _localBuffer.clear();
 }
 
 void core::GraphicsBuffer::bind(gl::Int binding) const
@@ -47,11 +53,11 @@ void core::GraphicsBuffer::resize(u32 newSize)
     spdlog::debug("Resizing graphics buffer (id:{}) to {:b}.", _handle, FormattableBytes{newSize});
 }
 
-void core::GraphicsBuffer::uploadLocalBuffer(usize dataSize)
+void core::GraphicsBuffer::upload()
 {
     ZoneScopedN("GraphicsBuffer::uploadLocalBuffer");
 
     glNamedBufferData(_handle, _size, nullptr, GL_DYNAMIC_DRAW);
-    glNamedBufferSubData(_handle, 0, dataSize, _localBuffer.data());
+    glNamedBufferSubData(_handle, 0, _currentDataSize, _localBuffer.data());
 }
 

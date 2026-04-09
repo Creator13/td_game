@@ -69,6 +69,8 @@ namespace math
         static constexpr mat4 makeTRS(vec3 t, const rot3x3& r, vec3 s);
         static constexpr mat4 makeTRS(vec3 t, quaternion r, vec3 s);
 
+        static constexpr mat4 make2dTRS(vec2 pos, float rot, vec2 size);
+
         static constexpr mat4 makeOrtho(float left, float right, float bottom, float top, float near, float far);
         /**
          * Creates a perspective matrix to convert from view space to clip space.

@@ -1,4 +1,7 @@
 #pragma once
+
+#include <string_view>
+
 #include "math/mat4.h"
 
 namespace core::gfx
@@ -24,7 +27,7 @@ namespace core::gfx
         constexpr operator math::vec3() const { return value.xyz(); }
     };
 
-    struct FrameDataBlock
+    struct alignas(16) PassDataBlock
     {
         math::mat4 view;
         math::mat4 projection;
@@ -36,7 +39,7 @@ namespace core::gfx
         constexpr static std::string_view getShaderDeclaration()
         {
             return R"(
-layout (binding = 0, std140) uniform FrameDataBlock
+layout (binding = 0, std140) uniform PassDataBlock
 {
     mat4 view;
     mat4 projection;
@@ -47,7 +50,7 @@ layout (binding = 0, std140) uniform FrameDataBlock
         }
     };
 
-    struct InstanceData
+    struct alignas(16) InstanceData
     {
         math::mat4 transform;
 

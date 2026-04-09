@@ -4,7 +4,7 @@
 
 #include "assets/AssetDatabase.h"
 #include "assets/ShaderLoader.h"
-#include "rendering/PipelineLayout.h"
+#include "rendering/ShaderLayout.h"
 #include "util/PagedStorage.h"
 
 using namespace core;

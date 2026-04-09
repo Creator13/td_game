@@ -2,7 +2,7 @@
 
 #include "datatype.h"
 #include "assets/AssetId.h"
-#include "../assets/Mesh.h"
+#include "assets/Mesh.h"
 #include "core/Transform.h"
 #include "math/geom.h"
 #include "rendering/Material.h"
@@ -48,8 +48,6 @@ namespace core::ecs
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
         CullReason cullReason;
-
-        u64 buildSortKey() const;
     };
 
     struct BoxBoundsData

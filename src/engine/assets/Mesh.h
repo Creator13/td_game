@@ -28,8 +28,9 @@ namespace core
     struct Mesh
     {
     private:
-        explicit Mesh(u16 sortKey);
+        Mesh(u16 sortKey, bool cpuReadable);
 
+        const bool _cpuReadable;
     public:
         ~Mesh();
 
@@ -44,7 +45,8 @@ namespace core
         void recalculateBounds();
 
         static assets::AssetRef<Mesh> loadFromFile(std::string_view path);
-        static assets::AssetRef<Mesh> create();
+        static assets::AssetRef<Mesh> create(std::string_view name);
+        static assets::AssetRef<Mesh> createView(std::string_view name, std::span<const Vertex> vertices, std::span<const u32> indices, math::AABB bounds);
     };
 
     template<std::ranges::input_range R>
