@@ -30,6 +30,8 @@ namespace core::gfx
         u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
+    static_assert(std::is_trivially_destructible_v<DrawCommand>, "DrawCommand should be a trivially destructible type for good performance.");
+
     class Renderer
     {
         using CommandQueue = std::vector<DrawCommand>;

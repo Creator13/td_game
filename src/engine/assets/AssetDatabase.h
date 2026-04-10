@@ -46,6 +46,9 @@ namespace core::assets
         template<C_AssetType T>
         static const AssetInfo& getAssetInfo(AssetRef<T> assetId);
 
+        template<C_AssetType T>
+        static AssetRef<T> tryGetAsset(AssetId assetId);
+
         static bool hasAsset(std::string_view assetName);
         static bool hasAsset(AssetId assetId);
 
@@ -60,6 +63,16 @@ namespace core::assets
     const AssetInfo& AssetDatabase::getAssetInfo(AssetRef<T> assetId)
     {
         return getAssetInfo(assetId.id());
+    }
+
+    template<C_AssetType T>
+    AssetRef<T> AssetDatabase::tryGetAsset(AssetId assetId)
+    {
+        if (hasAsset(assetId))
+        {
+            return instance->_registry.at(assetId).getRef<T>();
+        }
+        return AssetRef<T>::null();
     }
 
     template<C_AssetType T>

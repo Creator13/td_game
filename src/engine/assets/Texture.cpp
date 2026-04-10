@@ -75,7 +75,10 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     //  system conversion I do from opengl standard Y+ up to my Z+ up.
     // stbi_set_flip_vertically_on_load(true);
 
-    // TODO verify texture has not already been loaded earlier
+    if (auto existing = AssetDatabase::tryGetAsset<Texture>(AssetId::idFromPath(path)); !existing.isNull())
+    {
+        return existing;
+    }
 
     const auto fullPath = AssetDatabase::resolveResourcePath(path);
     std::optional<std::vector<u8>> fileData = file::readFileBinary(fullPath);

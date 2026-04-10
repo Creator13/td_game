@@ -30,6 +30,14 @@ void core::GraphicsBuffer::clear()
     _localBuffer.clear();
 }
 
+void core::GraphicsBuffer::upload()
+{
+    ZoneScopedN("GraphicsBuffer::uploadLocalBuffer");
+
+    glNamedBufferData(_handle, _size, nullptr, GL_DYNAMIC_DRAW);
+    glNamedBufferSubData(_handle, 0, _currentDataSize, _localBuffer.data());
+}
+
 void core::GraphicsBuffer::bind(gl::Int binding) const
 {
     ENGINE_ASSERT(_handle != 0, "Trying to bind to uninitialized buffer");
@@ -51,13 +59,5 @@ void core::GraphicsBuffer::resize(u32 newSize)
     _size = newSize;
 
     spdlog::debug("Resizing graphics buffer (id:{}) to {:b}.", _handle, FormattableBytes{newSize});
-}
-
-void core::GraphicsBuffer::upload()
-{
-    ZoneScopedN("GraphicsBuffer::uploadLocalBuffer");
-
-    glNamedBufferData(_handle, _size, nullptr, GL_DYNAMIC_DRAW);
-    glNamedBufferSubData(_handle, 0, _currentDataSize, _localBuffer.data());
 }
 

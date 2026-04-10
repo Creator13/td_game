@@ -14,11 +14,27 @@ namespace flecs
 
 namespace core::ui
 {
+    namespace anchor
+    {
+        constexpr math::vec2 topLeft = math::vec2(0.0f, 0.0f);
+        constexpr math::vec2 topCenter = math::vec2(0.5f, 0.0f);
+        constexpr math::vec2 topRight = math::vec2(1.0f, 0.0f);
+
+        constexpr math::vec2 middleLeft = math::vec2(0.0f, 0.5f);
+        constexpr math::vec2 middleCenter = math::vec2(0.5f, 0.5f);
+        constexpr math::vec2 middleRight = math::vec2(1.0f, 0.5f);
+
+        constexpr math::vec2 bottomLeft = math::vec2(0.0f, 1.0f);
+        constexpr math::vec2 bottomCenter = math::vec2(0.5f, 1.0f);
+        constexpr math::vec2 bottomRight = math::vec2(1.0f, 1.0f);
+    }
+
     struct Rect
     {
         math::vec2 offset;
         math::vec2 size;
         float rotation;
+        math::vec2 anchor = anchor::middleCenter;
     };
 
     struct UiRoot

@@ -23,7 +23,7 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
 
 mat4 ViewportData::get2dProjectionMatrix() const
 {
-    return mat4::makeOrtho(0, pixelWidth, 0, pixelHeight, -1, 1) * constants::COORDINATE_BASIS;
+    return mat4::makeOrtho(0, pixelWidth, pixelHeight, 0, -1, 1) * constants::COORDINATE_BASIS;
 }
 
 Renderer::Renderer()

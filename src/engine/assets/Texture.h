@@ -69,9 +69,9 @@ namespace core
 
         // TODO things like editing (setPixel, apply)
 
-        static assets::AssetRef<Texture> create(u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly);
-        static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable = true);
-        static assets::AssetRef<Texture> fallbackWhite();
+        [[nodiscard]] static assets::AssetRef<Texture> create(u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly);
+        [[nodiscard]] static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable = true);
+        [[nodiscard]] static assets::AssetRef<Texture> fallbackWhite();
 
     private:
         Texture() = default;

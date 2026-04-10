@@ -16,19 +16,29 @@ namespace
 {
     void registerComponents(flecs::world& ecs) { }
 
-    constexpr mat4 make2dTRS(vec2 pos, float rot, vec2 size)
+    constexpr mat4 make2dTRS(vec2 pos, float rot, vec2 size, vec2 anchor = anchor::middleCenter)
     {
-        const float wdt = size.x;
-        const float hgt = size.y;
-        const float cx = pos.x + wdt * 0.5f;
-        const float cz = pos.y + hgt * 0.5f;
+        rot *= DEG2RAD;
+
         const float cosR = math::cos(rot);
         const float sinR = math::sin(rot);
 
+        const float scaledPivotX = anchor.x * size.x;
+        const float scaledPivotY = anchor.y * size.y;
+
+        const float offsetX = (scaledPivotX * cosR) - (scaledPivotY * sinR);
+        const float offsetZ = (scaledPivotX * sinR) + (scaledPivotY * cosR);
+
+        const float wdt = size.x;
+        const float hgt = size.y;
+
+        const float tx = pos.x - offsetX;
+        const float tz = pos.y - offsetZ;
+
         return mat4(
-            wdt * cosR, 0, -hgt * sinR, cx,
+            wdt * cosR, 0, -hgt * sinR, tx,
             0, 1, 0, 0,
-            wdt * sinR, 0, hgt * cosR, cz,
+            wdt * sinR, 0, hgt * cosR, tz,
             0, 0, 0, 1
         );
     }
@@ -43,12 +53,15 @@ engine_ui::engine_ui(flecs::world& ecs)
 
     registerComponents(ecs);
 
+    auto tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
+
     PipelineDescriptor desc;
     desc.blend = false;
-    desc.backfaceCulling = BackfaceCulling::Back;
+    desc.backfaceCulling = BackfaceCulling::None;
     desc.depthTest = false;
     auto uiRenderPipeline = Pipeline::create("UI sprite", desc, "shaders/basic.vert", "shaders/ui.frag");
     _uiMaterial = uiRenderPipeline->newMaterialInstance("UI material");
+    _uiMaterial->setTexture2D("_texture"_spid, tex);
 
     _uiQuad = Mesh::createView("UI quad",
         assets::mesh_primitives::QUAD_VERTICES,
@@ -74,7 +87,7 @@ engine_ui::engine_ui(flecs::world& ecs)
                     command.mesh = _uiQuad->gpuHandle;
                     command.material = _uiMaterial;
                     command.sortKey = Renderer::buildSortKey(_uiMaterial, _uiQuad);
-                    command.modelMatrix = make2dTRS(rect.offset, rect.rotation, rect.size);
+                    command.modelMatrix = make2dTRS(rect.offset, rect.rotation, rect.size, rect.anchor);
                     command.queue = DrawCommand::RenderQueue::UI;
 
                     renderer->submitDrawCommand(command);

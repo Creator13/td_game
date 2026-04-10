@@ -11,7 +11,9 @@ namespace core::assets
     template<C_AssetType T>
     struct AssetRef
     {
+        // The only two types allowed to construct an asset ref manually:
         friend class AssetDatabase;
+        friend struct AssetInfo;
 
         static constexpr AssetType assetType = AssetTraits<T>::type;
 

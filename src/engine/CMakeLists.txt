@@ -31,6 +31,7 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
+set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE) # Enable on-demand mode
 FetchContent_MakeAvailable(tracy)
 
 ## Declare engine_core library

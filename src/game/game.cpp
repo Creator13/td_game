@@ -147,10 +147,17 @@ void engine::setupGame(const flecs::world& world)
     // const flecs::entity ui = world.entity("UI root")
     //     .set<ui::UiRoot>({1920, 1080});
 
-    // const flecs::entity text = world.entity("Text")
-    //     .emplace<ui::Text>("Yes")
-    //     .set<ui::Rect>({{10, 10}, {50, 50}});
-
     world.entity("Beautiful panel")
-        .set<ui::Rect>({{50, 100}, {100, 50}});
+        .set<ui::Rect>({{100, 100}, {100, 50}, 0})
+        .set<RotateData>({.angularVelocity = 15});
+
+    world.system<ui::Rect, const RotateData>().each([](ui::Rect& rect, const RotateData& rotation)
+    {
+        rect.rotation += rotation.angularVelocity * time::delta();
+    });
+
+    world.entity("Text")
+        .set<ui::Rect>({{0, 0}, {1000, 1000}, 0, ui::anchor::topLeft})
+        .emplace<ui::Text>("Blabla")
+        .set<ui::TextRenderData>({.size = 12});
 }
