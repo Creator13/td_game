@@ -38,8 +38,13 @@ namespace core::debug
         ~DebugRenderer();
 
         void copyViewportData(const gfx::ViewportData& viewportData);
+
         void submitLine(const DebugVertex& a, const DebugVertex& b);
         void submitRect(const DebugVertex& a, const DebugVertex& b, const DebugVertex& c, const DebugVertex& d);
+
+        void submitScreenSpaceLine(math::vec2 a, math::vec2 b, Color color);
+        void submitScreenSpaceRect(math::rect rect, Color color);
+
         void render();
     };
 
@@ -49,5 +54,7 @@ namespace core::debug
     void drawRay(math::vec3 origin, math::vec3 direction, Color color);
     void drawPlane(math::plane, Color color);
     void drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera);
+    void draw2DRect(math::rect rect, Color color);
+    void draw2DLine(math::vec2 start, math::vec2 end, Color color);
 }
 

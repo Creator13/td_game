@@ -4,7 +4,9 @@
 #include <tracy/Tracy.hpp>
 
 #include "assets/MeshPrimitives.h"
+#include "core/Debug.h"
 #include "core/EcsCore.h"
+#include "core/EcsDebug.h"
 #include "rendering/EcsRendering.h"
 #include "rendering/Pipeline.h"
 #include "math/geom.h"
@@ -116,7 +118,9 @@ engine_ui::engine_ui(flecs::world& ecs)
                 const Rect& rect = f_rect[i];
                 const Text& text = f_text[i];
                 const TextRenderData& renderData = f_renderData[i];
-                const float size = renderData.size;
+                const float fontSize = renderData.size;
+
+                debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
 
                 DrawCommand baseCommand;
                 baseCommand.mesh = glyphMesh->gpuHandle;
@@ -126,18 +130,25 @@ engine_ui::engine_ui(flecs::world& ecs)
 
                 mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
 
-                vec2 pen = vec2(0, renderData.font->getFontMetrics().ascenderY) * size;
+                const assets::FontMetrics& fontMetrics = renderData.font->getFontMetrics();
+                float ascender = fontMetrics.ascenderY * fontSize;
+                float descender = fontMetrics.descenderY * fontSize;
+                float baselineHeight = ascender;
+                vec2 pen = vec2(0, baselineHeight);
+                debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
+                debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
+                debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
                 for (const auto c : text.text)
                 {
                     DrawCommand command = baseCommand;
 
-                    assets::GlyphMetrics glyphMetrics = renderData.font->getGlyphMetrics(c);
+                    const assets::GlyphMetrics& glyphMetrics = renderData.font->getGlyphMetrics(c);
                     math::rect glyphRect = glyphMetrics.quadRect;
-                    glyphRect.offset *= size;
-                    glyphRect.extents *= size;
+                    glyphRect.offset *= fontSize;
+                    glyphRect.extents *= fontSize;
                     glyphRect = translate(glyphRect, pen);
                     command.modelMatrix = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
-                    pen.x += glyphMetrics.advance * size;
+                    pen.x += glyphMetrics.advance * fontSize;
 
                     renderer->submitDrawCommand(command);
                 }

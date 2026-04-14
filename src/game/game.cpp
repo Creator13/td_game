@@ -161,10 +161,11 @@ void engine::setupGame(const flecs::world& world)
     desc.depthTest = false;
     const auto fontPipeline = Pipeline::create("MSDF font", desc, "shaders/basic.vert", "shaders/font.frag");
 
-    auto font = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
+    auto font_lekton = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
+    auto font_jbmono = Font::loadFromFile("font/JetBrainsMono-Regular.ttf", fontPipeline);
 
     world.entity("Text")
-        .set<ui::Rect>({{100, 100}, {1000, 1000}, 0, ui::anchor::topLeft})
-        .emplace<ui::Text>("Blabla")
-        .set<ui::TextRenderData>({.font = font, .size = 350});
+        .set<ui::Rect>({{100, 100}, {500, 500}, 0, ui::anchor::topLeft})
+        .emplace<ui::Text>("Blablg")
+        .set<ui::TextRenderData>({.font = font_jbmono, .size = 72});
 }

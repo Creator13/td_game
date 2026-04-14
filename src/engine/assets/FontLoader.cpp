@@ -160,8 +160,8 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         double atlasL, atlasB, atlasR, atlasT;
         glyph.getQuadAtlasBounds(atlasL, atlasB, atlasR, atlasT);
 
-        current.quadRect.offset = math::vec2(planeL, planeT);
-        current.quadRect.extents = math::vec2(planeR - planeL, planeB - planeT);
+        current.quadRect.offset = math::vec2(planeL, -planeB);
+        current.quadRect.extents = math::vec2(planeR - planeL, -(planeT - planeB));
 
         current.uvRect.offset = math::vec2(atlasL / bmp.width, atlasT / bmp.height);
         current.uvRect.extents = math::vec2((atlasR - atlasL) / bmp.height, (atlasB - atlasT) / bmp.height);

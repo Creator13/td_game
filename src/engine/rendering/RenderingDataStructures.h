@@ -16,6 +16,8 @@ namespace core::gfx
         u16 pixelWidth, pixelHeight;
 
         math::mat4 getCombinedViewProjectionMatrix() const;
-        math::mat4 get2dProjectionMatrix() const;
+        math::mat4 getScreenSpaceProjectionMatrix() const;
+        math::vec3 screenToWorld(math::vec2 pixelPos, float depth = 0.5f) const;
+        math::vec2 worldToScreen(math::vec3 worldPos) const;
     };
 }

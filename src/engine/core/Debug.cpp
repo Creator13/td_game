@@ -171,6 +171,32 @@ void DebugRenderer::render()
     _vertCount = 0;
 }
 
+void DebugRenderer::submitScreenSpaceLine(vec2 a, vec2 b, Color color)
+{
+    submitLine(
+        {_viewportData.screenToWorld(a, 0.001f), color},
+        {_viewportData.screenToWorld(b, 0.001f), color}
+    );
+}
+
+void DebugRenderer::submitScreenSpaceRect(rect rect, Color color)
+{
+    const float x0 = rect.offset.x, y0 = rect.offset.y;
+    const float x1 = rect.offset.x + rect.extents.x, y1 = rect.offset.y + rect.extents.y;
+
+    // place the rect just in front of the near plane
+    constexpr float depth = 0.001f;
+
+    // TODO fix screen space debug drawing flicker: the _viewportData here is *last* frame's viewport data and not *this* frame's. Either delay
+    //  drawing, or change frame order such that the viewport data is stable from the beginning of the frame until the end of it.
+    const vec3 tl = _viewportData.screenToWorld({x0, y0}, depth);
+    const vec3 tr = _viewportData.screenToWorld({x1, y0}, depth);
+    const vec3 br = _viewportData.screenToWorld({x1, y1}, depth);
+    const vec3 bl = _viewportData.screenToWorld({x0, y1}, depth);
+
+    submitRect({tl, color}, {tr, color}, {br, color}, {bl, color});
+}
+
 void debug::bindDebugRenderer(DebugRenderer& renderer)
 {
     globalDebugRenderer = &renderer;
@@ -188,3 +214,13 @@ void debug::drawRay(vec3 origin, vec3 direction, Color color)
 
 void debug::drawPlane(plane plane, Color color) { }
 void debug::drawCameraFrustum(vec3 pos, ecs::PerspectiveCameraData& camera) { }
+
+void debug::draw2DRect(rect rect, Color color)
+{
+    globalDebugRenderer->submitScreenSpaceRect(rect, color);
+}
+
+void debug::draw2DLine(vec2 start, vec2 end, Color color)
+{
+    globalDebugRenderer->submitScreenSpaceLine(start, end, color);
+}

@@ -21,9 +21,44 @@ mat4 ViewportData::getCombinedViewProjectionMatrix() const
     return projectionMatrix * constants::COORDINATE_BASIS * viewMatrix;
 }
 
-mat4 ViewportData::get2dProjectionMatrix() const
+mat4 ViewportData::getScreenSpaceProjectionMatrix() const
 {
     return mat4::makeOrtho(0, pixelWidth, pixelHeight, 0, -1, 1) * constants::COORDINATE_BASIS;
+}
+
+// In ViewportData, or as free functions taking a ViewportData
+
+// depth: 0.0 = on near plane, 1.0 = on far plane
+vec3 ViewportData::screenToWorld(vec2 pixelPos, float depth) const
+{
+    // 1. pixel → NDC (OpenGL: y flipped, z remapped to [-1, 1])
+    const float ndcX =  (pixelPos.x / pixelWidth)  * 2.f - 1.f;
+    const float ndcY = -(pixelPos.y / pixelHeight) * 2.f + 1.f; // flip Y
+    const float ndcZ =   depth * 2.f - 1.f;
+
+    // 2. unproject through inverse VP
+    const mat4  vpInv = inverse(getCombinedViewProjectionMatrix());
+    const vec4  clip  = { ndcX, ndcY, ndcZ, 1.f };
+    const vec4  world = vpInv * clip;
+
+    // 3. CRITICAL: perspective divide
+    return vec3{ world.x, world.y, world.z } / world.w;
+}
+
+vec2 ViewportData::worldToScreen(vec3 worldPos) const
+{
+    // 1. world → clip space
+    const vec4 clip = getCombinedViewProjectionMatrix() * vec4{ worldPos, 1.f };
+
+    // 2. perspective divide → NDC
+    const float ndcX = clip.x / clip.w;
+    const float ndcY = clip.y / clip.w;
+
+    // 3. NDC → pixel (y flipped back)
+    return {
+        (ndcX + 1.f) * 0.5f *  pixelWidth,
+        (1.f - ndcY) * 0.5f * pixelHeight
+    };
 }
 
 Renderer::Renderer()
@@ -105,7 +140,7 @@ void Renderer::renderFrame()
     // Execute UI pass
     PassDataBlock uiPassData;
     uiPassData.view = mat4::identity;
-    uiPassData.projection = _viewportData.get2dProjectionMatrix();
+    uiPassData.projection = _viewportData.getScreenSpaceProjectionMatrix();
     uiPassData.viewProj = uiPassData.projection; // view matrix is identity, so view-projection is simply the projection mat
     uiPassData.time = currentTime;
     executePass(uiPassData, _uiCommandQueue, instanceIndex);
