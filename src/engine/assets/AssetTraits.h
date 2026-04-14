@@ -2,7 +2,7 @@
 
 namespace core::assets
 {
-    enum class AssetType { Mesh, Texture, Pipeline, Material };
+    enum class AssetType { Mesh, Texture, Pipeline, Material, Font };
 
     template<typename T>
     struct AssetTraits;

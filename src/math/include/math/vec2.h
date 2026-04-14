@@ -155,4 +155,16 @@ namespace math
     {
         return min(in.x, in.y);
     }
+
+    /**
+     * Perform a component-wise multiplication of two vectors. Each component is multiplied by the component in the same
+     * position of the misc vector.
+     */
+    constexpr vec2 comptMul(vec2 lhs, vec2 rhs) noexcept
+    {
+        return vec2{
+            lhs.x * rhs.x,
+            lhs.y * rhs.y
+        };
+    }
 }

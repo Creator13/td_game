@@ -32,10 +32,10 @@ Pipeline::~Pipeline()
 AssetRef<Material> Pipeline::newMaterialInstance(std::string_view name) const
 {
     auto& materialStorage = AssetDatabase::instance->_materialStorage;
-    void* mem = materialStorage.allocate_uninitialized();
+    auto [mem, index] = materialStorage.allocate_uninitialized();
     Material* mat = ::new(mem) Material(*this, materialStorage.size() - 1);
 
-    return AssetDatabase::registerRuntimeAsset<Material>(name, mat);
+    return AssetDatabase::registerRuntimeAsset<Material>(name, mat, index);
 }
 
 const ShaderLayout& Pipeline::getShaderLayout() const
@@ -48,8 +48,8 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
     const gl::program_t program = AssetDatabase::instance->_shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
 
     auto& pipelineStorage = AssetDatabase::instance->_pipelineStorage;
-    void* mem = pipelineStorage.allocate_uninitialized();
+    auto [mem, index] = pipelineStorage.allocate_uninitialized();
     Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, pipelineStorage.size() - 1);
 
-    return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline);
+    return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline, index);
 }

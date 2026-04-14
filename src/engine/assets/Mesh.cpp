@@ -69,7 +69,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     const fastgltf::Mesh& gltfMesh = asset.meshes[0];
 
     auto& meshStorage = AssetDatabase::instance->_meshStorage;
-    void* meshMem = meshStorage.allocate_uninitialized();
+    auto [meshMem, index] = meshStorage.allocate_uninitialized();
     Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1, true);
 
     size_t vertex_base = 0;
@@ -139,7 +139,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     outMesh->recalculateBounds();
     outMesh->gpuHandle = allocator.uploadMesh(*outMesh);
 
-    return AssetDatabase::registerAsset<Mesh>(path, outMesh);
+    return AssetDatabase::registerAsset<Mesh>(path, outMesh, index);
 }
 
 AssetRef<Mesh> Mesh::create(std::string_view name)
@@ -149,10 +149,10 @@ AssetRef<Mesh> Mesh::create(std::string_view name)
 
 AssetRef<Mesh> Mesh::createView(std::string_view name, std::span<const Vertex> vertices, std::span<const u32> indices, AABB bounds)
 {
-    void* mem = AssetDatabase::instance->_meshStorage.allocate_uninitialized();
-    Mesh* mesh = ::new(mem) Mesh(AssetDatabase::instance->_meshStorage.size() - 1, false);
+    auto [mem, index] = AssetDatabase::instance->_meshStorage.allocate_uninitialized();
+    Mesh* mesh = ::new(mem) Mesh(index, false);
 
     mesh->bounds = bounds;
     mesh->gpuHandle = allocator.uploadMeshView(vertices, indices);
-    return AssetDatabase::registerRuntimeAsset<Mesh>(name, mesh);
+    return AssetDatabase::registerRuntimeAsset<Mesh>(name, mesh, index);
 }

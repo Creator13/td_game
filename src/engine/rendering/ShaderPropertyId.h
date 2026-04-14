@@ -19,9 +19,9 @@ namespace core::gfx
         }
         return h ? h : 1u;
     }
+}
 
-    constexpr ShaderPropertyId operator""_spid(const char* name, size_t size) noexcept
-    {
-        return makePropertyId({name, size});
-    }
+constexpr core::gfx::ShaderPropertyId operator""_spid(const char* name, size_t size) noexcept
+{
+    return core::gfx::makePropertyId({name, size});
 }

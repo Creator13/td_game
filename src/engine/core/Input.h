@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <unordered_map>
 
 #include "math/vec2.h"
 

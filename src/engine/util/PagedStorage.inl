@@ -11,7 +11,7 @@ namespace util
     }
 
     template<typename T, size_t PageSize>
-    T* PagedStorage<T, PageSize>::allocate_slot()
+    std::pair<T*, size_t> PagedStorage<T, PageSize>::allocate_slot()
     {
         if (nextElementIndex >= PageSize)
         {
@@ -30,7 +30,7 @@ namespace util
         T* element = std::launder(reinterpret_cast<T*>(base));
 
         nextElementIndex++;
-        return element;
+        return {element, nextElementIndex - 1};
     }
 
     template<typename T, size_t PageSize>
@@ -90,23 +90,23 @@ namespace util
 
     template<typename T, size_t PageSize>
     template<typename... Args>
-    T& PagedStorage<T, PageSize>::emplace(Args&&... args)
+    std::pair<T&, size_t> PagedStorage<T, PageSize>::emplace(Args&&... args)
     {
-        T* ptr = allocate_slot();
+        auto [ptr, index] = allocate_slot();
         std::construct_at(ptr, std::forward<Args>(args)...);
-        return *ptr;
+        return {*ptr, index};
     }
 
     template<typename T, size_t PageSize>
-    T& PagedStorage<T, PageSize>::insert(const T& value)
+    std::pair<T&, size_t> PagedStorage<T, PageSize>::insert(const T& value)
     {
-        T* ptr = allocate_slot();
+        auto [ptr, index] = allocate_slot();
         std::construct_at(ptr, value);
-        return *ptr;
+        return {*ptr, index};
     }
 
     template<typename T, size_t PageSize>
-    void* PagedStorage<T, PageSize>::allocate_uninitialized()
+    std::pair<void*, size_t> PagedStorage<T, PageSize>::allocate_uninitialized()
     {
         return allocate_slot();
     }

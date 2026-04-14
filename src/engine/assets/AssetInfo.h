@@ -3,6 +3,7 @@
 #include <string>
 #include <magic_enum/magic_enum.hpp>
 
+#include "datatype.h"
 #include "assets/AssetId.h"
 #include "assets/AssetRef.h"
 #include "assets/AssetTraits.h"
@@ -17,9 +18,10 @@ namespace core::assets
         AssetType type;
         bool isRuntime;
         void* data;
+        usize containerIndex;
 
-        AssetInfo(std::string_view path, AssetId id, AssetType type, bool isRuntime, void* data)
-            : path(path), id(id), type(type), isRuntime(isRuntime), data(data) { }
+        AssetInfo(std::string_view path, AssetId id, AssetType type, bool isRuntime, void* data, usize containerIndex)
+            : path(path), id(id), type(type), isRuntime(isRuntime), data(data), containerIndex(containerIndex) { }
 
         template<C_AssetType T>
         AssetRef<T> getRef()

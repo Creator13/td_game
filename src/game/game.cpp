@@ -1,7 +1,6 @@
 #include <spdlog/spdlog.h>
 
 #include "engine.h"
-#include "assets/AssetDatabase.h"
 #include "assets/Mesh.h"
 #include "assets/Texture.h"
 #include "core/EcsCore.h"
@@ -148,7 +147,7 @@ void engine::setupGame(const flecs::world& world)
     //     .set<ui::UiRoot>({1920, 1080});
 
     world.entity("Beautiful panel")
-        .set<ui::Rect>({{100, 100}, {100, 50}, 0})
+        .set<ui::Rect>({{500, 500}, {100, 50}, 0})
         .set<RotateData>({.angularVelocity = 15});
 
     world.system<ui::Rect, const RotateData>().each([](ui::Rect& rect, const RotateData& rotation)
@@ -156,8 +155,16 @@ void engine::setupGame(const flecs::world& world)
         rect.rotation += rotation.angularVelocity * time::delta();
     });
 
+    PipelineDescriptor desc;
+    desc.blend = false;
+    desc.backfaceCulling = BackfaceCulling::None;
+    desc.depthTest = false;
+    const auto fontPipeline = Pipeline::create("MSDF font", desc, "shaders/basic.vert", "shaders/font.frag");
+
+    auto font = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
+
     world.entity("Text")
-        .set<ui::Rect>({{0, 0}, {1000, 1000}, 0, ui::anchor::topLeft})
+        .set<ui::Rect>({{100, 100}, {1000, 1000}, 0, ui::anchor::topLeft})
         .emplace<ui::Text>("Blabla")
-        .set<ui::TextRenderData>({.size = 12});
+        .set<ui::TextRenderData>({.font = font, .size = 350});
 }

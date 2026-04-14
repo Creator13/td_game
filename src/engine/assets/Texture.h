@@ -69,9 +69,12 @@ namespace core
 
         // TODO things like editing (setPixel, apply)
 
-        [[nodiscard]] static assets::AssetRef<Texture> create(u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly);
+        [[nodiscard]] static assets::AssetRef<Texture> create(std::string_view name, u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly);
         [[nodiscard]] static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable = true);
         [[nodiscard]] static assets::AssetRef<Texture> fallbackWhite();
+
+        // TODO make this function much more safe
+        void uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const;
 
     private:
         Texture() = default;
@@ -89,16 +92,15 @@ namespace core
         std::optional<std::vector<u8>> _pixelData;
 
         void uploadPixelData() const;
-        void uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const;
 
         static assets::AssetRef<Texture> _fallbackWhiteRef;
     };
 
     namespace texture_util
     {
-        constexpr gl::enum_t getGlInternalFormat(TextureFormat format);
-        constexpr u8 getChannelCountInFormat(TextureFormat format);
-        constexpr gl::enum_t getGlPixelDataType(TextureFormat format);
-        constexpr gl::enum_t getGlPixelFormat(TextureFormat format);
+        gl::enum_t getGlInternalFormat(TextureFormat format);
+        u8 getChannelCountInFormat(TextureFormat format);
+        gl::enum_t getGlPixelDataType(TextureFormat format);
+        gl::enum_t getGlPixelFormat(TextureFormat format);
     }
 }

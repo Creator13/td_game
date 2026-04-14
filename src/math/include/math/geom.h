@@ -23,8 +23,37 @@ namespace math
     struct rect
     {
         vec2 offset;
-        vec2 size;
+        vec2 extents;
     };
+
+    constexpr rect translate(rect r, vec2 t)
+    {
+        r.offset += t;
+        return r;
+    }
+
+    constexpr rect translate(rect r, float x, float y)
+    {
+        return translate(r, vec2(x, y));
+    }
+
+    constexpr rect translate(rect r, float c)
+    {
+        return translate(r, vec2(c, c));
+    }
+
+    constexpr rect scale(rect r, float s)
+    {
+        r.extents *= s;
+        return r;
+    }
+
+    constexpr rect scale(rect r, vec2 s)
+    {
+        r.extents.x *= s.x;
+        r.extents.y *= s.y;
+        return r;
+    }
 
     struct sphere
     {
@@ -43,7 +72,7 @@ namespace math
         vec3 normal;
         float dist;
 
-        static plane fromMatrixRow(vec4 v)
+        MATH_CONSTEXPR_CMATH inline static plane fromMatrixRow(vec4 v)
         {
             const float len = v.xyz().length();
             return plane{

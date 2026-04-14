@@ -4,6 +4,7 @@
 
 #include "datatype.h"
 #include "assets/AssetRef.h"
+#include "assets/Font.h"
 #include "assets/Mesh.h"
 #include "rendering/Material.h"
 
@@ -35,6 +36,8 @@ namespace core::ui
         math::vec2 size;
         float rotation;
         math::vec2 anchor = anchor::middleCenter;
+
+        operator math::rect() const { return math::rect(offset, size); }
     };
 
     struct UiRoot
@@ -50,7 +53,7 @@ namespace core::ui
 
     struct TextRenderData
     {
-        // AssetRef<Font> font
+        assets::AssetRef<Font> font;
         float size;
     };
 

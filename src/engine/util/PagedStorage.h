@@ -25,7 +25,7 @@ namespace util
 
         /// Allocate a new slot, mark it as occupied, and move the next index pointer forward.
         /// Creates and allocates a new page if the last page is full.
-        T* allocate_slot();
+        std::pair<T*, size_t> allocate_slot();
 
     public:
         PagedStorage();
@@ -45,16 +45,16 @@ namespace util
         /// In-place construction of an element of type T. Works only for public constructors.
         /// For private constructors, use the combination of allocate_uninitialized() and placement-new.
         template<typename... Args>
-        T& emplace(Args&&... args);
+        std::pair<T&, size_t> emplace(Args&&... args);
 
         /// Copy-insertion of an existing element.
-        T& insert(const T& value);
+        std::pair<T&, size_t> insert(const T& value);
 
         /// Allocate a block of memory in the container guaranteed to be the exact size of T. Use in combination with placement-new to construct
         /// objects with a private constructor in-place.
         /// Example: void* mem = storage.allocate_uninitialized();
         /// T* myObj = ::new(mem) T(args...)
-        void* allocate_uninitialized();
+        std::pair<void*, size_t> allocate_uninitialized();
 
         /// Checks if the element at given index exists and is currently alive.
         bool has_at(size_t index) const;
@@ -84,8 +84,6 @@ namespace util
         /// of visited slots.
         float fragmentation() const;
     };
-
-
 }
 
 #include "PagedStorage.inl"

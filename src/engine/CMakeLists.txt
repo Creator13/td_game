@@ -31,8 +31,29 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 )
-set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE) # Enable on-demand mode
+set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(tracy)
+
+## msdf-atlas-gen
+FetchContent_Declare(
+        msdf_atlas_gen
+        GIT_REPOSITORY https://github.com/Chlumsky/msdf-atlas-gen.git
+        GIT_TAG        v1.4
+)
+set(MSDF_ATLAS_BUILD_STANDALONE OFF CACHE BOOL "Disable the standalone executable" FORCE)
+set(MSDF_ATLAS_USE_SKIA OFF CACHE BOOL "Disable the Skia library dependency" FORCE)
+set(MSDF_ATLAS_NO_ARTERY_FONT ON CACHE BOOL "Disable Artery Font export" FORCE)
+set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON CACHE BOOL "Use external msdfgen from vcpkg" FORCE)
+set(MSDF_ATLAS_DYNAMIC_RUNTIME ON CACHE BOOL "Force dynamic MSVC runtime (/MD) to match vcpkg" FORCE)
+
+FetchContent_MakeAvailable(msdf_atlas_gen)
+
+target_include_directories(msdf-atlas-gen SYSTEM INTERFACE
+        "${msdf_atlas_gen_SOURCE_DIR}"
+)
+if(MSVC)
+    set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "/external:I ")
+endif ()
 
 ## Declare engine_core library
 add_library(engine_core STATIC ${ENGINE_SOURCES})
@@ -50,9 +71,8 @@ target_link_libraries(engine_core
         PRIVATE magic_enum::magic_enum
         PRIVATE misc_headers
         PRIVATE cpptrace::cpptrace
-        PRIVATE msdfgen::msdfgen-core
-        PRIVATE msdfgen::msdfgen-ext
         PRIVATE Freetype::Freetype
+        PRIVATE msdf-atlas-gen::msdf-atlas-gen
 )
 
 ## Copy engine resources to bin directory

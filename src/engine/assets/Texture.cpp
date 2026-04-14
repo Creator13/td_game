@@ -43,11 +43,11 @@ u32 Texture::rawSizeBytes() const
     return _width * _height * texture_util::getChannelCountInFormat(_format);
 }
 
-AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat format, bool createMips, bool readOnly)
+AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_t height, TextureFormat format, bool createMips, bool readOnly)
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
-    void* texMem = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
+    auto [texMem, index] = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));
@@ -66,7 +66,7 @@ AssetRef<Texture> Texture::create(uint32_t width, uint32_t height, TextureFormat
     outTexture->_genMipMaps = createMips;
 
     // return AssetRef(outTexture, AssetId::idFromPath(fmt::format("@internal/texture/{}", textureStorage.size() - 1)));
-    return AssetDatabase::registerRuntimeAsset("tex", outTexture);
+    return AssetDatabase::registerRuntimeAsset(name, outTexture, index);
 }
 
 AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat format, bool readable)
@@ -97,7 +97,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
 
     ENGINE_ASSERT(decodedPixelData != nullptr, "stbi failed to decode texture '{}': {}", path, stbi_failure_reason());
 
-    void* texMem = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
+    auto [texMem, index] = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = readable;
@@ -116,7 +116,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
 
     stbi_image_free(decodedPixelData);
 
-    return AssetDatabase::registerAsset(path, outTexture);
+    return AssetDatabase::registerAsset(path, outTexture, index);
 }
 
 AssetRef<Texture> Texture::fallbackWhite()
@@ -125,7 +125,7 @@ AssetRef<Texture> Texture::fallbackWhite()
 
     if (!_fallbackWhiteRef)
     {
-        _fallbackWhiteRef = create(1, 1, TextureFormat::RGBA8_SRGB, false, true);
+        _fallbackWhiteRef = create("FallbackWhite", 1, 1, TextureFormat::RGBA8_SRGB, false, true);
         _fallbackWhiteRef->uploadExternalData(whitePixel, GL_RGBA, GL_UNSIGNED_BYTE, false);
     }
     return _fallbackWhiteRef;
@@ -149,7 +149,7 @@ void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl
 
 AssetRef<Texture> Texture::_fallbackWhiteRef= AssetRef<Texture>::null();
 
-constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
+gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
 {
     switch (format)
     {
@@ -220,7 +220,7 @@ constexpr gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
     }
 }
 
-constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
+u8 texture_util::getChannelCountInFormat(TextureFormat format)
 {
     switch (format)
     {
@@ -264,7 +264,7 @@ constexpr u8 texture_util::getChannelCountInFormat(TextureFormat format)
     }
 }
 
-constexpr gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
+gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
 {
     switch (format)
     {
@@ -317,7 +317,7 @@ constexpr gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
     }
 }
 
-constexpr gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
+gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
 {
     switch (format)
     {

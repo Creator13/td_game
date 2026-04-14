@@ -7,6 +7,7 @@
 #include "core/EcsCore.h"
 #include "rendering/EcsRendering.h"
 #include "rendering/Pipeline.h"
+#include "math/geom.h"
 
 using namespace math;
 using namespace core::ui;
@@ -16,24 +17,24 @@ namespace
 {
     void registerComponents(flecs::world& ecs) { }
 
-    constexpr mat4 make2dTRS(vec2 pos, float rot, vec2 size, vec2 anchor = anchor::middleCenter)
+    constexpr mat4 make2dRectTRS(rect rect, float rot, vec2 anchor = anchor::middleCenter)
     {
         rot *= DEG2RAD;
 
         const float cosR = math::cos(rot);
         const float sinR = math::sin(rot);
 
-        const float scaledPivotX = anchor.x * size.x;
-        const float scaledPivotY = anchor.y * size.y;
+        const float scaledPivotX = anchor.x * rect.extents.x;
+        const float scaledPivotY = anchor.y * rect.extents.y;
 
         const float offsetX = (scaledPivotX * cosR) - (scaledPivotY * sinR);
         const float offsetZ = (scaledPivotX * sinR) + (scaledPivotY * cosR);
 
-        const float wdt = size.x;
-        const float hgt = size.y;
+        const float wdt = rect.extents.x;
+        const float hgt = rect.extents.y;
 
-        const float tx = pos.x - offsetX;
-        const float tz = pos.y - offsetZ;
+        const float tx = rect.offset.x - offsetX;
+        const float tz = rect.offset.y - offsetZ;
 
         return mat4(
             wdt * cosR, 0, -hgt * sinR, tx,
@@ -69,6 +70,7 @@ engine_ui::engine_ui(flecs::world& ecs)
         assets::mesh_primitives::QUAD_BOUNDS);
 
     ecs.system<const Rect>("Rect collection system")
+        .without<Text>()
         .run([this](flecs::iter& it)
         {
             ZoneScopedN("UI geometry collection system");
@@ -87,11 +89,59 @@ engine_ui::engine_ui(flecs::world& ecs)
                     command.mesh = _uiQuad->gpuHandle;
                     command.material = _uiMaterial;
                     command.sortKey = Renderer::buildSortKey(_uiMaterial, _uiQuad);
-                    command.modelMatrix = make2dTRS(rect.offset, rect.rotation, rect.size, rect.anchor);
+                    command.modelMatrix = make2dRectTRS(rect, rect.rotation, rect.anchor);
                     command.queue = DrawCommand::RenderQueue::UI;
 
                     renderer->submitDrawCommand(command);
                 }
             }
         });
+
+    ecs.system<const Rect, const Text, const TextRenderData>("Text rendering system").run([this](flecs::iter& it)
+    {
+        ZoneScopedN("UI font rendering system");
+
+        const auto& [renderer] = it.world().get<const ecs::RendererSingleton>();
+
+        const assets::AssetRef<Mesh> glyphMesh = _uiQuad;
+
+        while (it.next())
+        {
+            auto f_rect = it.field<const Rect>(0);
+            auto f_text = it.field<const Text>(1);
+            auto f_renderData = it.field<const TextRenderData>(2);
+
+            for (auto i : it)
+            {
+                const Rect& rect = f_rect[i];
+                const Text& text = f_text[i];
+                const TextRenderData& renderData = f_renderData[i];
+                const float size = renderData.size;
+
+                DrawCommand baseCommand;
+                baseCommand.mesh = glyphMesh->gpuHandle;
+                baseCommand.material = renderData.font->getMaterial();
+                baseCommand.sortKey = Renderer::buildSortKey(baseCommand.material, glyphMesh);
+                baseCommand.queue = DrawCommand::RenderQueue::UI;
+
+                mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
+
+                vec2 pen = vec2(0, renderData.font->getFontMetrics().ascenderY) * size;
+                for (const auto c : text.text)
+                {
+                    DrawCommand command = baseCommand;
+
+                    assets::GlyphMetrics glyphMetrics = renderData.font->getGlyphMetrics(c);
+                    math::rect glyphRect = glyphMetrics.quadRect;
+                    glyphRect.offset *= size;
+                    glyphRect.extents *= size;
+                    glyphRect = translate(glyphRect, pen);
+                    command.modelMatrix = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
+                    pen.x += glyphMetrics.advance * size;
+
+                    renderer->submitDrawCommand(command);
+                }
+            }
+        }
+    });
 }
