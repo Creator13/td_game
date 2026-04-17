@@ -217,6 +217,7 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
         glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material->_uboHandle);
     }
 
+    // Bind textures
     if (material->_textures.size() > 0)
     {
         for (const auto& [propertyId, textureRef] : material->_textures)
@@ -234,6 +235,17 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
             const SamplerInfo& samplerInfo = prop->getSamplerInfo();
             glBindTextureUnit(samplerInfo.textureUnit, textureToBind->getGlBindPoint());
             glBindSampler(samplerInfo.textureUnit, _defaultSampler);
+        }
+    }
+
+    // Bind buffers
+    if (material->_buffers.size() > 0)
+    {
+        for (const auto& [propertyId,buffer] : material->_buffers)
+        {
+            const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
+            ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
+
         }
     }
 }

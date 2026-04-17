@@ -125,6 +125,7 @@ AssetRef<Texture> Texture::fallbackWhite()
 
     if (!_fallbackWhiteRef)
     {
+        spdlog::warn("Fallback texture was required, try to avoid in production.");
         _fallbackWhiteRef = create("FallbackWhite", 1, 1, TextureFormat::RGBA8_SRGB, false, true);
         _fallbackWhiteRef->uploadExternalData(whitePixel, GL_RGBA, GL_UNSIGNED_BYTE, false);
     }

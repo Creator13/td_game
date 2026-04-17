@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "datatype.h"
 #include "math/mat4.h"
 
 namespace core::gfx

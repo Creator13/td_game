@@ -19,7 +19,7 @@ namespace
 {
     void registerComponents(flecs::world& ecs) { }
 
-    constexpr mat4 make2dRectTRS(rect rect, float rot, vec2 anchor = anchor::middleCenter)
+    mat4 make2dRectTRS(rect rect, float rot, vec2 anchor = anchor::middleCenter)
     {
         rot *= DEG2RAD;
 
@@ -73,6 +73,7 @@ engine_ui::engine_ui(flecs::world& ecs)
 
     ecs.system<const Rect>("Rect collection system")
         .without<Text>()
+        .kind(flecs::OnStore)
         .run([this](flecs::iter& it)
         {
             ZoneScopedN("UI geometry collection system");
@@ -99,60 +100,62 @@ engine_ui::engine_ui(flecs::world& ecs)
             }
         });
 
-    ecs.system<const Rect, const Text, const TextRenderData>("Text rendering system").run([this](flecs::iter& it)
-    {
-        ZoneScopedN("UI font rendering system");
-
-        const auto& [renderer] = it.world().get<const ecs::RendererSingleton>();
-
-        const assets::AssetRef<Mesh> glyphMesh = _uiQuad;
-
-        while (it.next())
+    ecs.system<const Rect, const Text, const TextRenderData>("Text rendering system")
+        .kind(flecs::OnStore)
+        .run([this](flecs::iter& it)
         {
-            auto f_rect = it.field<const Rect>(0);
-            auto f_text = it.field<const Text>(1);
-            auto f_renderData = it.field<const TextRenderData>(2);
+            ZoneScopedN("UI font rendering system");
 
-            for (auto i : it)
+            const auto& [renderer] = it.world().get<const ecs::RendererSingleton>();
+
+            const assets::AssetRef<Mesh> glyphMesh = _uiQuad;
+
+            while (it.next())
             {
-                const Rect& rect = f_rect[i];
-                const Text& text = f_text[i];
-                const TextRenderData& renderData = f_renderData[i];
-                const float fontSize = renderData.size;
+                auto f_rect = it.field<const Rect>(0);
+                auto f_text = it.field<const Text>(1);
+                auto f_renderData = it.field<const TextRenderData>(2);
 
-                debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
-
-                DrawCommand baseCommand;
-                baseCommand.mesh = glyphMesh->gpuHandle;
-                baseCommand.material = renderData.font->getMaterial();
-                baseCommand.sortKey = Renderer::buildSortKey(baseCommand.material, glyphMesh);
-                baseCommand.queue = DrawCommand::RenderQueue::UI;
-
-                mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
-
-                const assets::FontMetrics& fontMetrics = renderData.font->getFontMetrics();
-                float ascender = fontMetrics.ascenderY * fontSize;
-                float descender = fontMetrics.descenderY * fontSize;
-                float baselineHeight = ascender;
-                vec2 pen = vec2(0, baselineHeight);
-                debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
-                debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
-                debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
-                for (const auto c : text.text)
+                for (auto i : it)
                 {
-                    DrawCommand command = baseCommand;
+                    const Rect& rect = f_rect[i];
+                    const Text& text = f_text[i];
+                    const TextRenderData& renderData = f_renderData[i];
+                    const float fontSize = renderData.size;
 
-                    const assets::GlyphMetrics& glyphMetrics = renderData.font->getGlyphMetrics(c);
-                    math::rect glyphRect = glyphMetrics.quadRect;
-                    glyphRect.offset *= fontSize;
-                    glyphRect.extents *= fontSize;
-                    glyphRect = translate(glyphRect, pen);
-                    command.modelMatrix = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
-                    pen.x += glyphMetrics.advance * fontSize;
+                    debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
 
-                    renderer->submitDrawCommand(command);
+                    DrawCommand baseCommand;
+                    baseCommand.mesh = glyphMesh->gpuHandle;
+                    baseCommand.material = renderData.font->getMaterial();
+                    baseCommand.sortKey = Renderer::buildSortKey(baseCommand.material, glyphMesh);
+                    baseCommand.queue = DrawCommand::RenderQueue::UI;
+
+                    mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
+
+                    const assets::FontMetrics& fontMetrics = renderData.font->getFontMetrics();
+                    float ascender = fontMetrics.ascenderY * fontSize;
+                    float descender = fontMetrics.descenderY * fontSize;
+                    float baselineHeight = ascender;
+                    vec2 pen = vec2(0, baselineHeight);
+                    debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
+                    debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
+                    debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
+                    for (const auto c : text.text)
+                    {
+                        DrawCommand command = baseCommand;
+
+                        const assets::GlyphMetrics& glyphMetrics = renderData.font->getGlyphMetrics(c);
+                        math::rect glyphRect = glyphMetrics.quadRect;
+                        glyphRect.offset *= fontSize;
+                        glyphRect.extents *= fontSize;
+                        glyphRect = translate(glyphRect, pen);
+                        command.modelMatrix = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
+                        pen.x += glyphMetrics.advance * fontSize;
+
+                        renderer->submitDrawCommand(command);
+                    }
                 }
             }
-        }
-    });
+        });
 }

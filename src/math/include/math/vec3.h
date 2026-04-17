@@ -199,26 +199,26 @@ namespace math
 
     /// Component-wise min function; returns a vector that contains the minimum value for each corresponding value of
     /// the two input vectors.
-    MATH_CONSTEXPR_CMATH inline vec3 comptMin(vec3 a, vec3 b) noexcept
+    constexpr vec3 comptMin(vec3 a, vec3 b) noexcept
     {
         return vec3{min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
     }
 
     /// Component-wise max function; returns a vector that contains the maximum value for each corresponding value of
     /// the two input vectors.
-    MATH_CONSTEXPR_CMATH inline vec3 comptMax(vec3 a, vec3 b) noexcept
+    constexpr vec3 comptMax(vec3 a, vec3 b) noexcept
     {
         return vec3{max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
     }
 
     /// Finds the maximum value amongst the components of the vector.
-    MATH_CONSTEXPR_CMATH inline float max(vec3 in) noexcept
+    constexpr float max(vec3 in) noexcept
     {
         return max(in.x, max(in.y, in.z));
     }
 
     /// Finds the minimum value amongst the components of the vector.
-    MATH_CONSTEXPR_CMATH inline float min(vec3 in) noexcept
+    constexpr float min(vec3 in) noexcept
     {
         return min(in.x, min(in.y, in.z));
     }

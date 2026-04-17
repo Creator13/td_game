@@ -7,6 +7,7 @@
 #include <glad/gl.h>
 #include <spdlog/spdlog.h>
 
+#include "../../../build/debug/vcpkg_installed/x64-windows-static-md/include/magic_enum/magic_enum.hpp"
 #include "core/Assert.h"
 #include "formatting/fmt_gl.h"
 
@@ -45,14 +46,20 @@ namespace
 
 const UniformInfo& ShaderPropertyInfo::getUniformInfo() const
 {
-    ENGINE_ASSERT(propertyType == PropertyType::Uniform, "Cannot get uniform info on a sampler property.");
+    ENGINE_ASSERT(propertyType == PropertyType::Uniform, "Cannot get uniform info on property (property type was {}).", magic_enum::enum_name(propertyType));
     return std::get<UniformInfo>(data);
 }
 
 const SamplerInfo& ShaderPropertyInfo::getSamplerInfo() const
 {
-    ENGINE_ASSERT(propertyType == PropertyType::Sampler, "Cannot get sampler info on a uniform property.");
+    ENGINE_ASSERT(propertyType == PropertyType::Sampler, "Cannot get sampler info on property (property type was {}).", magic_enum::enum_name(propertyType));
     return std::get<SamplerInfo>(data);
+}
+
+const BufferInfo& ShaderPropertyInfo::getBufferInfo() const
+{
+    ENGINE_ASSERT(propertyType == PropertyType::Buffer, "Cannot get buffer info on property (property type was {}).", magic_enum::enum_name(propertyType));
+    return std::get<BufferInfo>(data);
 }
 
 ShaderLayout::ShaderLayout(gl::program_t program)
@@ -195,6 +202,34 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
     }
     resultLayout._numSamplers = textureUnit;
 
+    // ## SSBO reflection ##
+    gl::Int numSSBOs = 0;
+    glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numSSBOs);
+
+    constexpr gl::enum_t ssboProps[] = {GL_BUFFER_BINDING, GL_NAME_LENGTH};
+
+    for (int iSSBO = 0; iSSBO < numSSBOs; iSSBO++)
+    {
+        gl::Int params[2];
+        glGetProgramResourceiv(program, GL_SHADER_STORAGE_BLOCK, iSSBO, 2, ssboProps, 2, nullptr, params);
+
+        ShaderPropertyInfo shaderPropInfo;
+        shaderPropInfo.propertyType = ShaderPropertyInfo::PropertyType::Buffer;
+        shaderPropInfo.glType = GL_SHADER_STORAGE_BLOCK;
+
+        BufferInfo bufferInfo;
+        bufferInfo.binding = params[0];
+        shaderPropInfo.data = bufferInfo;
+
+        const gl::Int nameLength = params[1];
+        shaderPropInfo.name.resize(nameLength);
+        glGetProgramResourceName(program, GL_SHADER_STORAGE_BLOCK, iSSBO, nameLength, nullptr, shaderPropInfo.name.data());
+        shaderPropInfo.name.resize(nameLength - 1);
+
+        ShaderPropertyId spid = makePropertyId(shaderPropInfo.name);
+        resultLayout._shaderProperties[spid] = shaderPropInfo;
+    }
+
     return resultLayout;
 }
 
@@ -240,6 +275,9 @@ std::string ShaderLayout::toString() const
 
     fmt::format_to(std::back_inserter(buffer), "\nShaderPipelineLayout (program id {}):\n", _program);
 
+    // TODO it's not very critical but I don't love how unoptimized this function is (especially the many loops over the _shaderProperties)
+
+    // UBOs/uniforms
     for (int i = 0; i < _numUBOs; i++)
     {
         const UniformBlockInfo& block = _uniformBlocks[i];
@@ -276,6 +314,7 @@ std::string ShaderLayout::toString() const
         }
     }
 
+    // Samplers
     fmt::format_to(std::back_inserter(buffer), "## Samplers:\n");
 
     for (const auto& [id, property] : _shaderProperties)
@@ -286,6 +325,19 @@ std::string ShaderLayout::toString() const
         fmt::format_to(std::back_inserter(buffer),
             "   |- {} (spid={}): {}, location={}, texUnit={}",
             property.name, id, glTypeToString(property.glType), samplerInfo.location, samplerInfo.textureUnit);
+    }
+
+    // Buffers
+    fmt::format_to(std::back_inserter(buffer), "\n## SSBOs:\n");
+
+    for (const auto& [id, property] : _shaderProperties)
+    {
+        if (property.propertyType != ShaderPropertyInfo::PropertyType::Buffer) continue;
+
+        const auto& bufInfo = std::get<BufferInfo>(property.data);
+        fmt::format_to(std::back_inserter(buffer),
+            "   |- {} (spid={}): binding={}\n",
+            property.name, id, bufInfo.binding);
     }
 
     return fmt::to_string(buffer);

@@ -165,7 +165,7 @@ void engine::setupGame(const flecs::world& world)
     auto font_jbmono = Font::loadFromFile("font/JetBrainsMono-Regular.ttf", fontPipeline);
 
     world.entity("Text")
-        .set<ui::Rect>({{100, 100}, {500, 500}, 0, ui::anchor::topLeft})
+        .set<ui::Rect>({{100, 100}, {1000, 1000}, 0, ui::anchor::topLeft})
         .emplace<ui::Text>("Blablg")
-        .set<ui::TextRenderData>({.font = font_jbmono, .size = 72});
+        .set<ui::TextRenderData>({.font = font_lekton, .size = 72});
 }

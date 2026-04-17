@@ -35,7 +35,7 @@ namespace core
         requires std::ranges::sized_range<R>
     void GraphicsBuffer::appendRange(R&& data)
     {
-        ZoneScopedN("GraphicsBuffer::upload");
+        ZoneScoped
 
         using T = std::ranges::range_value_t<R>;
         usize elemSize = sizeof(T);

@@ -96,19 +96,20 @@ rendering::rendering(flecs::world& ecs)
             e.set<BoxBoundsData>({bounds});
         });
 
-    ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Perspective camera update system")
+    auto perspSystem = ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActivePerspectiveCamera);
 
-    ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Ortho camera update system")
+    auto orthoSystem = ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
 
-    auto cameraSystem = ecs.system<const RendererSingleton, const ViewportData>()
-        .kind(flecs::OnStore)
-        .each(syncRendererToActiveCamera);
+    ecs.system<const RendererSingleton, const ViewportData>()
+        .each(syncRendererToActiveCamera)
+        .depends_on(perspSystem)
+        .depends_on(orthoSystem);
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .multi_threaded()
@@ -160,11 +161,11 @@ rendering::rendering(flecs::world& ecs)
                     }
                 }
             }
-        })
-        .depends_on(cameraSystem);
+        });
 
     ecs.system<const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
+        .kind(flecs::OnStore)
         .run([](flecs::iter& it)
         {
             ZoneScopedN("Scene geometry collection system");
@@ -200,7 +201,6 @@ rendering::rendering(flecs::world& ecs)
                 }
             }
         })
-        .depends_on(cameraSystem)
         .depends_on(cullingSystem);
 }
 

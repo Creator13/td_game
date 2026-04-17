@@ -34,6 +34,11 @@ namespace core::gfx
         gl::enum_t target;
     };
 
+    struct BufferInfo
+    {
+        gl::Int binding;
+    };
+
     struct UniformInfo
     {
         gl::Int blockIndex;
@@ -43,15 +48,16 @@ namespace core::gfx
 
     struct ShaderPropertyInfo
     {
-        enum class PropertyType { Sampler, Uniform };
+        enum class PropertyType { Sampler, Uniform, Buffer };
 
         std::string name;
         gl::enum_t glType;
         PropertyType propertyType;
-        std::variant<UniformInfo, SamplerInfo> data;
+        std::variant<UniformInfo, SamplerInfo, BufferInfo> data;
 
         const UniformInfo& getUniformInfo() const;
         const SamplerInfo& getSamplerInfo() const;
+        const BufferInfo& getBufferInfo() const;
     };
 
     struct ShaderLayout

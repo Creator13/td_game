@@ -16,6 +16,8 @@ namespace math
 
 namespace core
 {
+    class GraphicsBuffer;
+
     namespace gfx
     {
         struct ShaderLayout;
@@ -32,6 +34,7 @@ namespace core
         const gfx::ShaderLayout& _layout;
 
         std::unordered_map<gfx::ShaderPropertyId, assets::AssetRef<Texture>> _textures;
+        std::unordered_map<gfx::ShaderPropertyId, const GraphicsBuffer*> _buffers;
         std::vector<u8> _materialBlockData;
         gl::buffer_t _uboHandle;
 
@@ -64,6 +67,7 @@ namespace core
         void setMat4(gfx::ShaderPropertyId id, const math::mat4& value);
 
         void setTexture2D(gfx::ShaderPropertyId id, assets::AssetRef<Texture> tex);
+        void setBuffer(gfx::ShaderPropertyId id, const GraphicsBuffer* buffer); // TODO do not like passing a raw pointer??? Who keeps the buffer alive? It's better than a ref because it shows that lifetime is not managed by this function but... (shared_ptr<> is an option, I guess?)
     };
 
 #include "Material.inl"

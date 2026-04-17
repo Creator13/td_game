@@ -119,11 +119,23 @@ void Material::setMat4(ShaderPropertyId id, const mat4& value)
 void Material::setTexture2D(ShaderPropertyId id, assets::AssetRef<Texture> tex)
 {
     const ShaderPropertyInfo* const property = _layout.getPropertyInfo(id);
-    if (!property || property->propertyType != ShaderPropertyInfo::PropertyType::Sampler)
+    if (property == nullptr || property->propertyType != ShaderPropertyInfo::PropertyType::Sampler)
     {
         // Property does not exist; bounce.
         return;
     }
 
     _textures.insert_or_assign(id, tex);
+}
+
+void Material::setBuffer(ShaderPropertyId id, const GraphicsBuffer* buffer)
+{
+    const ShaderPropertyInfo* const property = _layout.getPropertyInfo(id);
+    if (property == nullptr || property->propertyType != ShaderPropertyInfo::PropertyType::Buffer)
+    {
+        // Property does not exist; bounce.
+        return;
+    }
+
+    _buffers.insert_or_assign(id, buffer);
 }

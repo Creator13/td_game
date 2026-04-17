@@ -19,13 +19,8 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
     constexpr std::string_view errorShaderVert = R"(
             #version 430 core
 
-            #include "_FrameDataBlock"
-            #include "_PerDrawBlock"
-
             layout (location = 0) in vec3 pos;
             layout (location = 1) in vec3 aNorm;
-
-            layout (location = 100) uniform mat4 model;
 
             void main() {
                 gl_Position = scene.viewProj * object.worldTransform * vec4(pos, 1.0);
