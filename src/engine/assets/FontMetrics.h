@@ -10,14 +10,16 @@ namespace core::assets
         float ascenderY;
         float descenderY;
         float lineHeight;
+        float emRange;
     };
 
     struct GlyphMetrics
     {
-        bool occupied = false;
-        u32 codepoint;
+        enum class RenderDirective : u8 { Substitute, Render, Control };
+
         math::rect uvRect;
         math::rect quadRect;
         float advance;
+        RenderDirective renderDirective = RenderDirective::Substitute;
     };
 }

@@ -156,16 +156,25 @@ void engine::setupGame(const flecs::world& world)
     });
 
     PipelineDescriptor desc;
-    desc.blend = false;
+    desc.blend = true;
     desc.backfaceCulling = BackfaceCulling::None;
     desc.depthTest = false;
-    const auto fontPipeline = Pipeline::create("MSDF font", desc, "shaders/basic.vert", "shaders/font.frag");
+    const auto fontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.vert", "shaders/font.frag");
 
-    auto font_lekton = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
-    auto font_jbmono = Font::loadFromFile("font/JetBrainsMono-Regular.ttf", fontPipeline);
+    // auto font_lekton = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
+    auto font_notoserif = Font::loadFromFile("font/NotoSerif-Regular.ttf", fontPipeline);
+
+    struct FpsCounter { };
 
     world.entity("Text")
         .set<ui::Rect>({{100, 100}, {1000, 1000}, 0, ui::anchor::topLeft})
-        .emplace<ui::Text>("Blablg")
-        .set<ui::TextRenderData>({.font = font_lekton, .size = 72});
+        .emplace<ui::Text>("Text line 1 g\nLine 2 is here\nline 3 goes here")
+        .set<ui::TextRenderData>({.font = font_notoserif, .size = 24, .color = SrgbColor::cyan})
+        .add<FpsCounter>();
+
+    world.system<ui::Text>()
+        .with<FpsCounter>().each([](ui::Text& text)
+        {
+            text.text = fmt::format("Främetimê:\n {:.3f}ms ({:.1f} fps)", time::averageDeltaMs(), time::fps());
+        });
 }

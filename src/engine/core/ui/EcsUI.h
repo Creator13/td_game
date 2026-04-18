@@ -55,6 +55,7 @@ namespace core::ui
     {
         assets::AssetRef<Font> font;
         float size;
+        SrgbColor color;
     };
 
     struct engine_ui

@@ -30,10 +30,10 @@ namespace core::gfx
 
     struct alignas(16) PassDataBlock
     {
-        math::mat4 view;
-        math::mat4 projection;
-        math::mat4 viewProj;
-        float time;
+        math::mat4 view = math::mat4::identity;
+        math::mat4 projection = math::mat4::identity;
+        math::mat4 viewProj = math::mat4::identity;
+        float time = 0;
 
         constexpr static gl::Int SHADER_BINDING = 0;
 
@@ -53,15 +53,26 @@ layout (binding = 0, std140) uniform PassDataBlock
 
     struct alignas(16) InstanceData
     {
-        math::mat4 transform;
+        struct alignas(16) CustomData
+        {
+            u32 c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+        };
+
+        math::mat4 transform = math::mat4::identity;
+        CustomData customData;
 
         constexpr static gl::Int SHADER_BINDING = 1;
 
         constexpr static std::string_view getShaderDeclaration()
         {
             return R"(
+struct CustomData {
+    uint c0, c1, c2, c3;
+};
+
 struct InstanceData {
     mat4 transform;
+    CustomData customData;
 };
 
 layout (std430, binding = 1) readonly buffer instanceSSBO {
@@ -69,6 +80,7 @@ layout (std430, binding = 1) readonly buffer instanceSSBO {
 };
 
 #define INSTANCE_TRANSFORM (instances[gl_BaseInstance + gl_InstanceID].transform)
+#define INSTANCE_DATA (instances[gl_BaseInstance + gl_InstanceID].customData)
             )";
         }
     };

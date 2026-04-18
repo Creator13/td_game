@@ -13,5 +13,6 @@ namespace core::time
 
     float onePercent();
     float averageDelta();
+    float averageDeltaMs();
     float fps();
 }

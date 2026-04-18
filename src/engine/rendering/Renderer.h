@@ -21,8 +21,9 @@ namespace core::gfx
 
         u64 sortKey;
         gpu::MeshGpuHandle mesh;
-        assets::AssetRef<Material> material;
-        math::mat4 modelMatrix;
+        assets::AssetRef<Material> material = assets::AssetRef<Material>::null();
+        math::mat4 modelMatrix = math::mat4::identity;
+        InstanceData::CustomData customInstanceData;
         RenderQueue queue = RenderQueue::INVALID;
 
         u16 getPipelineId() const { return (sortKey >> 32) & 0xFFFF; }
@@ -34,6 +35,13 @@ namespace core::gfx
 
     class Renderer
     {
+        struct FrameStats
+        {
+            i32 numDrawCalls = 0;
+            i32 numPipelineBinds = 0;
+            i32 numCommands = 0;
+        };
+
         using CommandQueue = std::vector<DrawCommand>;
 
         ViewportData _viewportData = ViewportData();
@@ -46,6 +54,8 @@ namespace core::gfx
 
         gl::framebuffer_t _mainFramebuffer;
         gl::Uint _defaultSampler;
+
+        FrameStats _frameStats;
 
     public:
         Renderer();

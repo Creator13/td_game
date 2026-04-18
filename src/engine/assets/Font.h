@@ -7,6 +7,7 @@
 #include "assets/AssetTraits.h"
 #include "assets/FontMetrics.h"
 #include "assets/Texture.h"
+#include "rendering/GraphicsBuffer.h"
 
 namespace msdf_atlas {
     class Charset;
@@ -36,11 +37,14 @@ namespace core
         assets::AssetRef<Material> _fontMaterial;
         assets::FontMetrics _fontMetrics;
         std::array<assets::GlyphMetrics, 256> _glyphMetrics { };
+        GraphicsBuffer _glyphDataBuffer;
 
     public:
         ~Font();
 
         assets::AssetRef<Material> getMaterial() const noexcept { return _fontMaterial; }
+        GraphicsBuffer& getGlyphDataBuffer() noexcept { return _glyphDataBuffer; }
+
         const assets::GlyphMetrics& getGlyphMetrics(u32 codepoint) const;
         const assets::FontMetrics& getFontMetrics() const noexcept { return _fontMetrics; }
 

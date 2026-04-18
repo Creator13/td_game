@@ -12,6 +12,7 @@ namespace math
         constexpr vec4() noexcept : x(0.0f), y(0.0f), z(0.0f), w(0.0f) { }
         constexpr vec4(float x, float y, float z, float w) noexcept : x(x), y(y), z(z), w(w) { }
         constexpr vec4(vec3 xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) { }
+        constexpr vec4(vec2 xy, vec2 zw) : x(xy.x), y(xy.y), z(zw.x), w(zw.y) { }
 
         constexpr vec4& operator+=(const vec4& rhs) noexcept;
         constexpr vec4& operator-=(const vec4& rhs) noexcept;

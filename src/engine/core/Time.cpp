@@ -128,6 +128,11 @@ namespace core::time
         return msToSec(globalTime.getAverageDelta());
     }
 
+    float averageDeltaMs()
+    {
+        return globalTime.getAverageDelta();
+    }
+
     float fps()
     {
         return 1.f / averageDelta();

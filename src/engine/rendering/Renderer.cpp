@@ -110,6 +110,8 @@ void Renderer::renderFrame()
     glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    _frameStats = FrameStats(); // Reset stats to 0
+
     const float currentTime = time::sinceLoad();
 
     // Upload instance data for all passes in the same buffer
@@ -124,6 +126,9 @@ void Renderer::renderFrame()
 
     _instanceDataBuffer.upload();
     _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
+
+    _frameStats.numCommands += _opaqueCommandQueue.size();
+    _frameStats.numCommands += _uiCommandQueue.size();
 
     usize instanceIndex = 0;
 
@@ -202,6 +207,8 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     {
         glDisable(GL_BLEND);
     }
+
+    _frameStats.numPipelineBinds++;
 }
 
 void Renderer::bindMaterial(assets::AssetRef<Material> material)
@@ -241,11 +248,22 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
     // Bind buffers
     if (material->_buffers.size() > 0)
     {
-        for (const auto& [propertyId,buffer] : material->_buffers)
+        for (const auto& [propertyId, buffer] : material->_buffers)
         {
             const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
             ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
 
+            const BufferInfo& bufferInfo = prop->getBufferInfo();
+            if (buffer == nullptr)
+            {
+                // Unbind buffer at binding if no buffer is assigned to the property.
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bufferInfo.binding, 0);
+                continue;
+            }
+            // NOTE: The user is responsible for managing the lifetime of data inside the buffer. Do not upload data here.
+            // This could eventually be implemented as a failsafe, but a flag needs to exist on the buffer object to
+            // check whether the data is synchronized.
+            buffer->bind(bufferInfo.binding);
         }
     }
 }
@@ -269,6 +287,7 @@ void Renderer::appendInstanceData(CommandQueue& queue)
     {
         InstanceData data;
         data.transform = input.modelMatrix;
+        data.customData = input.customInstanceData;
         return data;
     });
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
@@ -320,6 +339,7 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
         }
 
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES, baseCommand.mesh.indexCount, GL_UNSIGNED_INT, nullptr, batchCount, batchStart + instanceIndex);
+        _frameStats.numDrawCalls++;
 
         batchStart = batchEnd;
     }

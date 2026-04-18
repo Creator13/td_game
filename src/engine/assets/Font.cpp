@@ -9,7 +9,8 @@
 using namespace core;
 using namespace core::assets;
 
-Font::Font() : _fontMetrics() { }
+Font::Font() :
+    _fontMetrics(), _glyphDataBuffer(128_kB) { }
 
 Font::~Font()
 {
@@ -20,11 +21,7 @@ const GlyphMetrics& Font::getGlyphMetrics(u32 codepoint) const
 {
     if (codepoint <= 256)
     {
-        const auto& metrics = _glyphMetrics[codepoint];
-        if (metrics.occupied == true)
-        {
-            return metrics;
-        }
+        return _glyphMetrics[codepoint];
     }
 
     return _glyphMetrics['?'];
@@ -41,6 +38,8 @@ AssetRef<Font> Font::loadFromFile(std::string_view path, AssetRef<gfx::Pipeline>
 
     font->_fontMaterial = fontPipeline->newMaterialInstance(fmt::format("FontMaterial-{}", path));
     font->_fontMaterial->setTexture2D("_msdfAtlas"_spid, font->_fontTexture);
+    font->_fontMaterial->setFloat("screenPxRange"_spid, 2);
+    font->_fontMaterial->setBuffer("GlyphBuffer"_spid, &font->_glyphDataBuffer);
 
     return AssetDatabase::registerAsset(path, font, index);
 }

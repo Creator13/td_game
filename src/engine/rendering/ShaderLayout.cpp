@@ -107,7 +107,7 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
         blockInfo.name.resize(blockNameLength - 1);
 
         // Sort block
-        if (blockInfo.name == "MaterialBlock" || blockInfo.name == "Material")
+        if (blockInfo.name == "MaterialBlock" || blockInfo.name == "Material" || blockInfo.name == "MaterialData")
         {
             ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second material block in program! (program id: {})", program);
             resultLayout._materialBlockIndex = iBlock;

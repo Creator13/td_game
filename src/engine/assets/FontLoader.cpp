@@ -106,10 +106,12 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         glyph.edgeColoring(&msdfgen::edgeColoringInkTrap, maxCornerAngle, 0);
     }
 
+    constexpr double pxRange = 2;
+
     msdf_atlas::TightAtlasPacker packer;
     packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::POWER_OF_TWO_RECTANGLE);
     packer.setMinimumScale(24);
-    packer.setPixelRange(2);
+    packer.setPixelRange(pxRange);
     packer.setMiterLimit(1);
     if (packer.pack(glyphs.data(), glyphs.size()) != 0)
     {
@@ -137,6 +139,7 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         .ascenderY = static_cast<float>(fontMetrics.ascenderY),
         .descenderY = static_cast<float>(fontMetrics.descenderY),
         .lineHeight = static_cast<float>(fontMetrics.lineHeight),
+        .emRange = static_cast<float>(pxRange / packer.getScale()),
     };
 
     msdfgen::BitmapConstRef<msdf_atlas::byte, depth> bmp = generator.atlasStorage();
@@ -150,8 +153,7 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         }
 
         GlyphMetrics& current = outFont._glyphMetrics[codepoint];
-        current.occupied = true;
-        current.codepoint = codepoint;
+        current.renderDirective = GlyphMetrics::RenderDirective::Render;
         current.advance = static_cast<float>(glyph.getAdvance());
 
         double planeL, planeB, planeR, planeT;
@@ -163,8 +165,28 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         current.quadRect.offset = math::vec2(planeL, -planeB);
         current.quadRect.extents = math::vec2(planeR - planeL, -(planeT - planeB));
 
-        current.uvRect.offset = math::vec2(atlasL / bmp.width, atlasT / bmp.height);
-        current.uvRect.extents = math::vec2((atlasR - atlasL) / bmp.height, (atlasB - atlasT) / bmp.height);
+        current.uvRect.offset = math::vec2(atlasL / bmp.width, atlasB / bmp.height);
+        current.uvRect.extents = math::vec2((atlasR - atlasL) / bmp.width, (atlasT - atlasB) / bmp.height);
+    }
+
+    // 2nd pass: set all valid control characters to skip rendering
+    for (usize cp = 0; cp < 256; cp++)
+    {
+        auto& glyphMetric = outFont._glyphMetrics[cp];
+
+        if (glyphMetric.renderDirective == GlyphMetrics::RenderDirective::Render) continue; // Already dealt with
+
+        if (cp < 0x0021
+            || cp == 0x007f
+            || (cp >= 0x0080 && cp <= 0x009f)
+            || cp == 0x00ad)
+        {
+            glyphMetric.renderDirective = GlyphMetrics::RenderDirective::Control;
+        }
+        else
+        {
+            glyphMetric.renderDirective = GlyphMetrics::RenderDirective::Substitute;
+        }
     }
 
     outFont._fontTexture = Texture::create(fmt::format("FontAtlas-{}", fullPath.filename().string()), bmp.width, bmp.height, TextureFormat::RGBA8_UNORM, false, true);

@@ -19,6 +19,9 @@ namespace core
         explicit GraphicsBuffer(u32 size);
         ~GraphicsBuffer();
 
+        template<typename T>
+        void append(T& data);
+
         template<std::ranges::input_range R>
             requires std::ranges::sized_range<R>
         void appendRange(R&& data);
@@ -31,6 +34,23 @@ namespace core
         void resize(u32 newSize);
     };
 
+    template<typename T>
+    void GraphicsBuffer::append(T& data)
+    {
+        ZoneScoped
+
+        const usize elemSize = sizeof(T);
+        const u32 requiredSize = elemSize + _currentDataSize;
+
+        if (requiredSize > _size)
+        {
+            resize(requiredSize * 1.5f);
+        }
+
+        std::memcpy(_localBuffer.data() + _currentDataSize, &data, elemSize);
+        _currentDataSize = requiredSize;
+    }
+
     template<std::ranges::input_range R>
         requires std::ranges::sized_range<R>
     void GraphicsBuffer::appendRange(R&& data)
@@ -38,7 +58,7 @@ namespace core
         ZoneScoped
 
         using T = std::ranges::range_value_t<R>;
-        usize elemSize = sizeof(T);
+        const usize elemSize = sizeof(T);
         const u32 requiredSize = elemSize * std::ranges::size(data) + _currentDataSize;
 
         if (requiredSize > _size)
@@ -49,7 +69,7 @@ namespace core
         i32 i = 0;
         for (const T& elem : data)
         {
-            std::memcpy(_currentDataSize + _localBuffer.data() + i * elemSize, &elem, elemSize);
+            std::memcpy(_localBuffer.data() + _currentDataSize + i * elemSize, &elem, elemSize);
             i++;
         }
 
