@@ -48,14 +48,17 @@ namespace core::ui
     struct Text
     {
         explicit Text(std::string_view text);
-        std::string text;
+
+        std::u32string text;
+
+        void setText(std::string_view newText);
     };
 
     struct TextRenderData
     {
         assets::AssetRef<Font> font;
         float size;
-        SrgbColor color;
+        Color color;
     };
 
     struct engine_ui

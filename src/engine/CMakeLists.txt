@@ -22,6 +22,7 @@ find_package(magic_enum CONFIG REQUIRED)
 find_package(cpptrace CONFIG REQUIRED)
 find_package(msdfgen CONFIG REQUIRED)
 find_package(Freetype REQUIRED)
+find_package(simdutf CONFIG REQUIRED)
 
 ## Tracy
 FetchContent_Declare(
@@ -73,6 +74,7 @@ target_link_libraries(engine_core
         PRIVATE cpptrace::cpptrace
         PRIVATE Freetype::Freetype
         PRIVATE msdf-atlas-gen::msdf-atlas-gen
+        PRIVATE simdutf::simdutf
 )
 
 ## Copy engine resources to bin directory

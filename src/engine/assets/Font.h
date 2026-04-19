@@ -45,7 +45,7 @@ namespace core
         assets::AssetRef<Material> getMaterial() const noexcept { return _fontMaterial; }
         GraphicsBuffer& getGlyphDataBuffer() noexcept { return _glyphDataBuffer; }
 
-        const assets::GlyphMetrics& getGlyphMetrics(u32 codepoint) const;
+        const assets::GlyphMetrics& getGlyphMetrics(char32_t codepoint) const;
         const assets::FontMetrics& getFontMetrics() const noexcept { return _fontMetrics; }
 
         [[nodiscard]] static assets::AssetRef<Font> loadFromFile(std::string_view path, assets::AssetRef<gfx::Pipeline> fontPipeline);

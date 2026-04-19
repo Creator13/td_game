@@ -1,6 +1,8 @@
 #include "EcsUI.h"
 
 #include <flecs.h>
+#include <simdutf.h>
+#include <magic_enum/magic_enum.hpp>
 #include <tracy/Tracy.hpp>
 
 #include "assets/MeshPrimitives.h"
@@ -63,7 +65,33 @@ namespace
 }
 
 Text::Text(std::string_view text)
-    : text(text) { }
+{
+    setText(text);
+}
+
+void Text::setText(std::string_view newText)
+{
+    ZoneScoped;
+
+    const auto data = std::span{newText};
+    const simdutf::encoding_type encoding = simdutf::autodetect_encoding(data);
+
+    if (encoding == simdutf::UTF8)
+    {
+        text.resize(simdutf::utf32_length_from_utf8(data));
+        simdutf::result res = simdutf::convert_utf8_to_utf32_with_errors(data, text);
+        ENGINE_ASSERT(res.error == simdutf::SUCCESS, "Error converting input text to utf32 codepoints. Index {}, error: {}", res.count, magic_enum::enum_name(res.error));
+    }
+    else if (encoding == simdutf::UTF32_LE)
+    {
+        // Native encoding is a memcpy.
+        text.assign(reinterpret_cast<const char32_t*>(newText.data()), newText.size() / 4);
+    }
+    else
+    {
+        ENGINE_ASSERT(false, "Unsupported encoding: {}", magic_enum::enum_name(encoding));
+    }
+}
 
 engine_ui::engine_ui(flecs::world& ecs)
 {
@@ -165,7 +193,7 @@ engine_ui::engine_ui(flecs::world& ecs)
 
                     const float fontSize = renderData.size;
 
-                    debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
+                    // debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
 
                     DrawCommand baseCommand;
                     baseCommand.mesh = glyphMesh->gpuHandle;
@@ -180,9 +208,9 @@ engine_ui::engine_ui(flecs::world& ecs)
                     float descender = fontMetrics.descenderY * fontSize;
                     float baselineHeight = ascender;
                     vec2 pen = vec2(0, baselineHeight);
-                    debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
-                    debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
-                    debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
+                    // debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
+                    // debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
+                    // debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
 
                     usize col = 0; // Current character in the line, independent of actual character widths.
                     usize line = 0;
@@ -232,7 +260,7 @@ engine_ui::engine_ui(flecs::world& ecs)
                         GlyphInstanceData instanceData;
                         instanceData.uvOffset = glyphMetrics->uvRect.offset;
                         instanceData.uvExtents = glyphMetrics->uvRect.extents;
-                        instanceData.color = Color::fromSrgb(renderData.color);
+                        instanceData.color = renderData.color;
 
                         ENGINE_ASSERT(glyphDataBuffer != nullptr);
                         glyphDataBuffer->append(instanceData);

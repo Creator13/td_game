@@ -17,7 +17,7 @@ Font::~Font()
     // AssetDatabase::deleteAsset(_fontTexture);
 }
 
-const GlyphMetrics& Font::getGlyphMetrics(u32 codepoint) const
+const GlyphMetrics& Font::getGlyphMetrics(char32_t codepoint) const
 {
     if (codepoint <= 256)
     {
