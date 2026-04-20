@@ -15,7 +15,7 @@ using namespace assets;
 
 namespace
 {
-    gl::texture_t createGlTexture(int width, int height, gl::enum_t internalFormat)
+    gl::texture_t createGlTexture(int width, int height, gl::enum_t internalFormat, bool createMips)
     {
         gl::texture_t texName;
         glCreateTextures(GL_TEXTURE_2D, 1, &texName.id);
@@ -25,7 +25,7 @@ namespace
         glTextureParameteri(texName, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTextureParameteri(texName, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-        const int mipLevels = static_cast<int>(math::floor(math::log2(math::max(width, height)))) + 1;
+        const int mipLevels = createMips ? static_cast<int>(math::floor(math::log2(math::max(width, height)))) + 1 : 1;
 
         glTextureStorage2D(texName, mipLevels, internalFormat, width, height);
 
@@ -50,7 +50,7 @@ AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_
     auto [texMem, index] = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
-    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));
+    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
 
     outTexture->_isReadable = !readOnly;
 
@@ -69,7 +69,7 @@ AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_
     return AssetDatabase::registerRuntimeAsset(name, outTexture, index);
 }
 
-AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat format, bool readable)
+AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat format, bool readable, bool createMips)
 {
     // I'm not entirely sure why I *don't* need to flip images vertically, but I'm pretty sure it's the coordinate
     //  system conversion I do from opengl standard Y+ up to my Z+ up.
@@ -101,12 +101,13 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = readable;
-    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format));
+    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
+    outTexture->_genMipMaps = createMips;
 
     if (!readable)
     {
         outTexture->_pixelData = std::nullopt;
-        outTexture->uploadExternalData(decodedPixelData, texture_util::getGlPixelFormat(format), texture_util::getGlPixelDataType(format), true);
+        outTexture->uploadExternalData(decodedPixelData, texture_util::getGlPixelFormat(format), texture_util::getGlPixelDataType(format), createMips);
     }
     else
     {
@@ -148,7 +149,7 @@ void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl
     }
 }
 
-AssetRef<Texture> Texture::_fallbackWhiteRef= AssetRef<Texture>::null();
+AssetRef<Texture> Texture::_fallbackWhiteRef = AssetRef<Texture>::null();
 
 gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
 {

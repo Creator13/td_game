@@ -9,18 +9,34 @@ namespace core::gfx
 {
     class Renderer;
 
-    enum class BackfaceCulling : u8 { Back, Front, None };
+    enum class DepthFunction : u8
+    {
+        Always, Never, Less, Equal, LesserEqual, Greater, GreaterEqual, NotEqual
+    };
+
+    enum class BlendOption : u8
+    {
+        Zero, One,
+        SourceColor, OneMinusSourceColor,
+        SourceAlpha, OneMinusSourceAlpha,
+        DestAlpha, OneMinusDestAlpha
+    };
+
+    enum class BackfaceCulling : u8
+    {
+        Back, Front, None
+    };
 
     struct PipelineDescriptor
     {
         PipelineDescriptor();
 
         bool depthTest;
-        gl::enum_t depthFunc;
+        DepthFunction depthFunc;
 
         bool blend;
-        gl::enum_t blendSource;
-        gl::enum_t blendDestination;
+        BlendOption blendSource;
+        BlendOption blendDestination;
 
         BackfaceCulling backfaceCulling;
     };
@@ -45,4 +61,10 @@ namespace core::gfx
 
         static assets::AssetRef<Pipeline> create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertProgram, std::string_view fragProgram);
     };
+
+    namespace gl_platform
+    {
+        gl::enum_t getGlBlendFuncOption(BlendOption in);
+        gl::enum_t getGlDepthFunc(DepthFunction in);
+    }
 }

@@ -14,6 +14,10 @@ Font::Font() :
 
 Font::~Font()
 {
+    // TODO fix this: deleting a font asset should also delete the associated texture, but only when the asset database
+    //  is *not* already being cleaned up. Depending on the initialization order, fonts might be cleaned up *after* the
+    //  textures (or even the database instance) making this unsafe to perform.
+
     // AssetDatabase::deleteAsset(_fontTexture);
 }
 
@@ -37,9 +41,9 @@ AssetRef<Font> Font::loadFromFile(std::string_view path, AssetRef<gfx::Pipeline>
     fontLoader.loadFontAtlas(path, *font);
 
     font->_fontMaterial = fontPipeline->newMaterialInstance(fmt::format("FontMaterial-{}", path));
-    font->_fontMaterial->setTexture2D("_msdfAtlas"_spid, font->_fontTexture);
-    font->_fontMaterial->setFloat("screenPxRange"_spid, 2);
-    font->_fontMaterial->setBuffer("GlyphBuffer"_spid, &font->_glyphDataBuffer);
+    font->_fontMaterial->setTexture2D("msdfAtlas"_spid, font->_fontTexture);
+    font->_fontMaterial->setFloat("emRange"_spid, font->getFontMetrics().emRange);
+    font->_fontMaterial->setBuffer("GlyphBuffer"_spid, &(font->_glyphDataBuffer));
 
     return AssetDatabase::registerAsset(path, font, index);
 }

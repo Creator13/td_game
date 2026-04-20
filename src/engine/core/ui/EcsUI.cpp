@@ -24,6 +24,7 @@ namespace
         vec2 uvOffset;
         vec2 uvExtents;
         core::Color color;
+        float fontRenderSize;
     };
 
     void registerComponents(flecs::world& ecs) { }
@@ -99,7 +100,7 @@ engine_ui::engine_ui(flecs::world& ecs)
 
     registerComponents(ecs);
 
-    auto tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
+    auto tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
 
     PipelineDescriptor desc;
     desc.blend = false;
@@ -261,6 +262,7 @@ engine_ui::engine_ui(flecs::world& ecs)
                         instanceData.uvOffset = glyphMetrics->uvRect.offset;
                         instanceData.uvExtents = glyphMetrics->uvRect.extents;
                         instanceData.color = renderData.color;
+                        instanceData.fontRenderSize = renderData.size;
 
                         ENGINE_ASSERT(glyphDataBuffer != nullptr);
                         glyphDataBuffer->append(instanceData);

@@ -70,7 +70,7 @@ namespace core
         // TODO things like editing (setPixel, apply)
 
         [[nodiscard]] static assets::AssetRef<Texture> create(std::string_view name, u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly);
-        [[nodiscard]] static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable = true);
+        [[nodiscard]] static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable, bool createMips);
         [[nodiscard]] static assets::AssetRef<Texture> fallbackWhite();
 
         // TODO make this function much more safe

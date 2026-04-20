@@ -43,8 +43,8 @@ void engine::setupGame(const flecs::world& world)
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
     const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
 
-    AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false);
-    AssetRef<Texture> avacadoo = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false);
+    AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
+    AssetRef<Texture> avacadoo = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
 
     PipelineDescriptor pDesc;
     pDesc.blend = false;
@@ -157,11 +157,14 @@ void engine::setupGame(const flecs::world& world)
 
     PipelineDescriptor desc;
     desc.blend = true;
+    desc.blendSource = BlendOption::One;
+    desc.blendDestination = BlendOption::OneMinusSourceAlpha;
     desc.backfaceCulling = BackfaceCulling::None;
     desc.depthTest = false;
     const auto fontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.vert", "shaders/font.frag");
 
     auto font_lekton = Font::loadFromFile("font/Lekton-Regular.ttf", fontPipeline);
+    auto font_jbmono = Font::loadFromFile("font/JetBrainsMono-Regular.ttf", fontPipeline);
     auto font_notoserif = Font::loadFromFile("font/NotoSerif-Regular.ttf", fontPipeline);
 
     struct FpsCounter { };
@@ -169,7 +172,7 @@ void engine::setupGame(const flecs::world& world)
     world.entity("Text")
         .set<ui::Rect>({{100, 100}, {1000, 1000}, 0, ui::anchor::topLeft})
         .emplace<ui::Text>("Text line 1 g\nLine 2 is here\nline 3 goes here")
-        .set<ui::TextRenderData>({.font = font_lekton, .size = 24, .color = Color::fromSrgb(SrgbColor::cyan)})
+        .set<ui::TextRenderData>({.font = font_notoserif, .size = 12, .color = Color::fromSrgb(SrgbColor::cyan)})
         .add<FpsCounter>();
 
     // world.system<ui::Text>()
@@ -177,4 +180,21 @@ void engine::setupGame(const flecs::world& world)
     //     {
     //         text.setText(fmt::format("Främetimê:\n {:.3f}ms ({:.1f} fps)", time::averageDeltaMs(), time::fps()));
     //     });
+
+    world.system<ui::Text, ui::TextRenderData, const GlobalInput>()
+        .each([](ui::Text& text, ui::TextRenderData& textRenderData, const GlobalInput& input)
+        {
+            const int mod = input.state->isKeyDown(Key::LeftShift) ? 15 : 3;
+
+            if (input.state->isKeyDown(Key::LeftBracket))
+            {
+                if (textRenderData.size > 0)
+                    textRenderData.size -= time::delta() * mod;
+            }
+            if (input.state->isKeyDown(Key::RightBracket))
+            {
+                textRenderData.size += time::delta() * mod;
+            }
+            text.setText(fmt::format("size: {:.2f}", textRenderData.size));
+        });
 }

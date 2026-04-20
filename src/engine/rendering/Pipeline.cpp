@@ -13,8 +13,8 @@ using namespace core::assets;
 
 
 PipelineDescriptor::PipelineDescriptor()
-    : depthTest(true), depthFunc(GL_LESS),
-      blend(false), blendSource(GL_SRC_ALPHA), blendDestination(GL_ONE_MINUS_SRC_ALPHA),
+    : depthTest(true), depthFunc(DepthFunction::Less),
+      blend(false), blendSource(BlendOption::SourceAlpha), blendDestination(BlendOption::OneMinusSourceAlpha),
       backfaceCulling(BackfaceCulling::Back) { }
 
 Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey)
@@ -52,4 +52,56 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
     Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, pipelineStorage.size() - 1);
 
     return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline, index);
+}
+
+gl::enum_t gl_platform::getGlBlendFuncOption(BlendOption in)
+{
+    switch (in)
+    {
+        case BlendOption::Zero:
+            return GL_ZERO;
+        case BlendOption::One:
+            return GL_ONE;
+        case BlendOption::SourceColor:
+            return GL_SRC_COLOR;
+        case BlendOption::OneMinusSourceColor:
+            return GL_ONE_MINUS_SRC_COLOR;
+        case BlendOption::SourceAlpha:
+            return GL_SRC_ALPHA;
+        case BlendOption::OneMinusSourceAlpha:
+            return GL_ONE_MINUS_SRC_ALPHA;
+        case BlendOption::DestAlpha:
+            return GL_DST_ALPHA;
+        case BlendOption::OneMinusDestAlpha:
+            return GL_ONE_MINUS_DST_ALPHA;
+        default:
+            ENGINE_ASSERT(false, "Invalid blending option: {}", magic_enum::enum_name(in));
+            ENGINE_UNREACHABLE();
+    }
+}
+
+gl::enum_t gl_platform::getGlDepthFunc(DepthFunction in)
+{
+    switch (in)
+    {
+        case DepthFunction::Always:
+            return GL_ALWAYS;
+        case DepthFunction::Never:
+            return GL_NEVER;
+        case DepthFunction::Less:
+            return GL_LESS;
+        case DepthFunction::Equal:
+            return GL_EQUAL;
+        case DepthFunction::LesserEqual:
+            return GL_LEQUAL;
+        case DepthFunction::Greater:
+            return GL_GREATER;
+        case DepthFunction::GreaterEqual:
+            return GL_GEQUAL;
+        case DepthFunction::NotEqual:
+            return GL_NOTEQUAL;
+        default:
+            ENGINE_ASSERT(false, "Invalid depth function: {}", magic_enum::enum_name(in));
+            ENGINE_UNREACHABLE();
+    }
 }

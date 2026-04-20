@@ -14,6 +14,7 @@ out VertToFrag {
 struct GlyphInstanceData {
     vec2 uvOffset, uvSize;
     vec4 color;
+    float fontSize;
 };
 
 layout (std430, binding = 3) readonly buffer GlyphBuffer {

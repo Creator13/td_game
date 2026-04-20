@@ -8,18 +8,20 @@ in VertToFrag {
 } fragIn;
 
 layout (std140, binding = 2) uniform MaterialData {
-    float screenPxRange;
+    float emRange;
 };
+
 struct GlyphInstanceData {
     vec2 uvOffset, uvSize;
     vec4 color;
+    float fontSize;
 };
 
 layout (std430, binding = 3) readonly buffer GlyphBuffer {
     GlyphInstanceData[] glyphs;
 };
 
-uniform sampler2D _msdfAtlas;
+uniform sampler2D msdfAtlas;
 
 out vec4 fragColor;
 
@@ -28,14 +30,23 @@ float median (float r, float g, float b) {
 }
 
 void main() {
-    vec3 msdf = texture(_msdfAtlas, fragIn.vTexCoord).rgb;
-    float sd = median(msdf.r, msdf.g, msdf.b);
-    float screenPxDistance = screenPxRange * (sd - 0.5);
+    GlyphInstanceData glyphData = glyphs[fragIn.glyphIndex];
+    float screenPxRange = emRange * glyphData.fontSize;
 
-    uint idx = fragIn.glyphIndex;
-    vec4 color = glyphs[idx].color;
+    vec4 mtsdf = texture(msdfAtlas, fragIn.vTexCoord);
+    float msdf_sd = median(mtsdf.r, mtsdf.g, mtsdf.b);
+    float true_sd = mtsdf.a;
 
-    float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-    color.a = mix(0, color.a, opacity);
+    float msdfWeight = clamp(screenPxRange - 0.5f, 0, 1.0f);
+    float sd = mix(true_sd, msdf_sd, msdfWeight);
+
+    float effectivePxRange = max(screenPxRange, 1.0f);
+    float screenPxDistance = effectivePxRange * (sd - 0.5f);
+
+    float opacity = clamp(screenPxDistance + 0.5f, 0.0, 1.0f);
+
+    vec4 color = glyphData.color;
+    color.a *= opacity;
+    color.rgb *= color.a; 
     fragColor = color;
 }

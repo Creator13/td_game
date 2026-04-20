@@ -32,23 +32,23 @@ mat4 ViewportData::getScreenSpaceProjectionMatrix() const
 vec3 ViewportData::screenToWorld(vec2 pixelPos, float depth) const
 {
     // 1. pixel → NDC (OpenGL: y flipped, z remapped to [-1, 1])
-    const float ndcX =  (pixelPos.x / pixelWidth)  * 2.f - 1.f;
+    const float ndcX = (pixelPos.x / pixelWidth) * 2.f - 1.f;
     const float ndcY = -(pixelPos.y / pixelHeight) * 2.f + 1.f; // flip Y
-    const float ndcZ =   depth * 2.f - 1.f;
+    const float ndcZ = depth * 2.f - 1.f;
 
     // 2. unproject through inverse VP
-    const mat4  vpInv = inverse(getCombinedViewProjectionMatrix());
-    const vec4  clip  = { ndcX, ndcY, ndcZ, 1.f };
-    const vec4  world = vpInv * clip;
+    const mat4 vpInv = inverse(getCombinedViewProjectionMatrix());
+    const vec4 clip = {ndcX, ndcY, ndcZ, 1.f};
+    const vec4 world = vpInv * clip;
 
     // 3. CRITICAL: perspective divide
-    return vec3{ world.x, world.y, world.z } / world.w;
+    return vec3{world.x, world.y, world.z} / world.w;
 }
 
 vec2 ViewportData::worldToScreen(vec3 worldPos) const
 {
     // 1. world → clip space
-    const vec4 clip = getCombinedViewProjectionMatrix() * vec4{ worldPos, 1.f };
+    const vec4 clip = getCombinedViewProjectionMatrix() * vec4{worldPos, 1.f};
 
     // 2. perspective divide → NDC
     const float ndcX = clip.x / clip.w;
@@ -56,7 +56,7 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 
     // 3. NDC → pixel (y flipped back)
     return {
-        (ndcX + 1.f) * 0.5f *  pixelWidth,
+        (ndcX + 1.f) * 0.5f * pixelWidth,
         (1.f - ndcY) * 0.5f * pixelHeight
     };
 }
@@ -171,8 +171,7 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     if (pipeline._descriptor.depthTest)
     {
         glEnable(GL_DEPTH_TEST);
-        ENGINE_ASSERT(pipeline._descriptor.depthFunc > 0, "No depth function set on pipeline with depth testing enabled.");
-        glDepthFunc(pipeline._descriptor.depthFunc);
+        glDepthFunc(gl_platform::getGlDepthFunc(pipeline._descriptor.depthFunc));
     }
     else
     {
@@ -199,9 +198,10 @@ void Renderer::bindPipeline(const Pipeline& pipeline)
     if (pipeline._descriptor.blend)
     {
         glEnable(GL_BLEND);
-        ENGINE_ASSERT(pipeline._descriptor.blendSource > 0, "No blend source set on pipeline with blending enabled.");
-        ENGINE_ASSERT(pipeline._descriptor.blendDestination > 0, "No blend destination set on pipeline with blending enabled.");
-        glBlendFunc(pipeline._descriptor.blendSource, pipeline._descriptor.blendDestination);
+        glBlendFunc(
+            gl_platform::getGlBlendFuncOption(pipeline._descriptor.blendSource),
+            gl_platform::getGlBlendFuncOption(pipeline._descriptor.blendDestination)
+        );
     }
     else
     {

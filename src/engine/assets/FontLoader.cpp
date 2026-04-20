@@ -106,11 +106,11 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
         glyph.edgeColoring(&msdfgen::edgeColoringInkTrap, maxCornerAngle, 0);
     }
 
-    constexpr double pxRange = 2;
+    constexpr double pxRange = 8;
 
     msdf_atlas::TightAtlasPacker packer;
     packer.setDimensionsConstraint(msdf_atlas::DimensionsConstraint::POWER_OF_TWO_RECTANGLE);
-    packer.setMinimumScale(24);
+    packer.setMinimumScale(36);
     packer.setPixelRange(pxRange);
     packer.setMiterLimit(1);
     if (packer.pack(glyphs.data(), glyphs.size()) != 0)
