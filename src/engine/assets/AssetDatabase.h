@@ -31,8 +31,11 @@ namespace core::assets
 
         static std::unique_ptr<AssetDatabase> instance;
 
+        // Loader systems with retained state
+        // TODO move these systems towards built-time and load bytes directly into storage
         ShaderLoader _shaderLoader;
         FontLoader _fontLoader;
+
         util::PagedStorage<gfx::Pipeline, 64> _pipelineStorage;
         util::PagedStorage<Material, 64> _materialStorage;
         util::PagedStorage<Texture, 128> _textureStorage;

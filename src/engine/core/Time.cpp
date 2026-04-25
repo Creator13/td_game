@@ -108,6 +108,11 @@ namespace core::time
         return msToSec(globalTime.getLatestDelta());
     }
 
+    float deltaMs()
+    {
+        return globalTime.getLatestDelta();
+    }
+
     uint64_t ticks()
     {
         return globalTime.frameCount;
@@ -118,9 +123,9 @@ namespace core::time
         return msToSec(globalTime.globalTimer.get_elapsed_ms());
     }
 
-    float onePercent()
+    float onePercentMs()
     {
-        return msToSec(globalTime.getMaxDelta());
+        return globalTime.getMaxDelta();
     }
 
     float averageDelta()

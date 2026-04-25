@@ -5,10 +5,9 @@
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
-#include "Constants.h"
 #include "assets/AssetDatabase.h"
+#include "assets/Mesh.h"
 #include "assets/ShaderLoader.h"
-#include "../assets/Mesh.h"
 
 using namespace core;
 using namespace math;
@@ -147,10 +146,10 @@ void DebugRenderer::submitRect(const DebugVertex& a, const DebugVertex& b, const
 
 void DebugRenderer::render()
 {
+    if (_vertCount == 0) return;
+
     ZoneScopedN("DebugRenderer::render()");
     TracyGpuZone("DebugRenderer::render()");
-
-    if (_vertCount == 0) return;
 
     glUseProgram(_debugShader);
     glBindVertexArray(_vao);

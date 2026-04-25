@@ -234,10 +234,10 @@ void Application::initFlecs()
     _ecs.import<flecs::stats>();
     _ecs.set<flecs::Rest>({ });
     spdlog::debug("Open flecs explorer at https://flecs.dev/explorer");
+#endif
 
     _ecs.import<::debug::ecs::engine_debug>();
     _ecs.set<::debug::ecs::DebugRendererSingleton>({_debugRenderer.get()});
-#endif
 
     _ecs.component<ecs::WindowSingleton>().add(flecs::Singleton);
     _ecs.component<ecs::RendererSingleton>().add(flecs::Singleton);

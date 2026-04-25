@@ -17,14 +17,13 @@ namespace core::gfx
 
     struct DrawCommand
     {
-        enum class RenderQueue { OPAQUE, UI, SHADOW, INVALID };
+        enum class RenderQueue : u8 { OPAQUE, UI, SHADOW, INVALID };
 
         u64 sortKey;
         gpu::MeshGpuHandle mesh;
         assets::AssetRef<Material> material = assets::AssetRef<Material>::null();
-        math::mat4 modelMatrix = math::mat4::identity;
-        InstanceData::CustomData customInstanceData;
         RenderQueue queue = RenderQueue::INVALID;
+        InstanceData instanceData;
 
         u16 getPipelineId() const { return (sortKey >> 32) & 0xFFFF; }
         u16 getMaterialId() const { return (sortKey >> 16) & 0xFFFF; }
@@ -59,6 +58,8 @@ namespace core::gfx
 
     public:
         Renderer();
+
+        [[nodiscard]] const FrameStats& getFrameStats() const noexcept {return _frameStats;}
 
         void setViewportData(const ViewportData& params);
         void submitDrawCommand(const DrawCommand& command);

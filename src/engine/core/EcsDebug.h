@@ -1,6 +1,9 @@
 #pragma once
 #include <flecs.h>
 
+#include "assets/AssetRef.h"
+#include "assets/Font.h"
+
 namespace core::debug
 {
     struct DebugRenderer;
@@ -16,5 +19,8 @@ namespace debug::ecs
     struct engine_debug
     {
         engine_debug(flecs::world& ecs);
+
+    private:
+        core::assets::AssetRef<core::Font> _debugInfoFont;
     };
 }

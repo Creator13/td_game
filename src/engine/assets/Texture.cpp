@@ -133,12 +133,6 @@ AssetRef<Texture> Texture::fallbackWhite()
     return _fallbackWhiteRef;
 }
 
-void Texture::uploadPixelData() const
-{
-    ENGINE_ASSERT(_isReadable, "Cannot upload pixel data when data is not available in CPU memory (texture is not marked readable).");
-    uploadExternalData(_pixelData->data(), texture_util::getGlPixelFormat(_format), texture_util::getGlPixelDataType(_format), _genMipMaps);
-}
-
 void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const
 {
     glTextureSubImage2D(_glBindPoint, 0, 0, 0, _width, _height, pixelFormat, pixelType, pixelData);
@@ -147,6 +141,12 @@ void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl
     {
         glGenerateTextureMipmap(_glBindPoint);
     }
+}
+
+void Texture::uploadPixelData() const
+{
+    ENGINE_ASSERT(_isReadable, "Cannot upload pixel data when data is not available in CPU memory (texture is not marked readable).");
+    uploadExternalData(_pixelData->data(), texture_util::getGlPixelFormat(_format), texture_util::getGlPixelDataType(_format), _genMipMaps);
 }
 
 AssetRef<Texture> Texture::_fallbackWhiteRef = AssetRef<Texture>::null();

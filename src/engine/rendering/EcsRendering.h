@@ -63,12 +63,6 @@ namespace core::ecs
 
     struct RendererSingleton
     {
-        struct RenderStats
-        {
-            u32 objectsInScene;
-            u32 objectsRendered;
-        };
-
         gfx::Renderer* ptr;
     };
 
@@ -77,8 +71,8 @@ namespace core::ecs
         explicit rendering(flecs::world& ecs);
 
     private:
-        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& renderData);
-        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
-        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& renderData);
+        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& viewportData);
+        static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
+        static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
     };
 }

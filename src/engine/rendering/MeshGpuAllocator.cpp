@@ -52,5 +52,5 @@ void core::gpu::MeshGpuAllocator::destroyMesh(MeshGpuHandle& handle)
     glDeleteBuffers(1, &handle.vbo.id);
     glDeleteBuffers(1, &handle.ebo.id);
 
-    handle = MeshGpuHandle(); // Null the old handle
+    handle = MeshGpuHandle{}; // Null the old handle
 }

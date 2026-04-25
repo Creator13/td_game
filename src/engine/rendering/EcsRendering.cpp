@@ -193,10 +193,10 @@ rendering::rendering(flecs::world& ecs)
                     command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
                     command.mesh = renderData.mesh->gpuHandle;
                     command.material = renderData.material;
-                    command.modelMatrix = f_transform[i].getWorldMatrix();
+                    command.instanceData.transform = f_transform[i].getWorldMatrix();
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
-
                     renderer.ptr->submitDrawCommand(command);
+
                     rendered++;
                 }
             }
@@ -204,28 +204,28 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(cullingSystem);
 }
 
-void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& renderData)
+void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& viewportData)
 {
     Renderer& renderer = *r_ptr.ptr;
-    renderer.setViewportData(renderData);
+    renderer.setViewportData(viewportData);
 }
 
-void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
+void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)
 {
     float aspect = window.state->getFrameBufferAspect();
 
-    renderData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
-    renderData.viewMatrix = inverse(transform.getWorldMatrix());
+    viewportData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
+    viewportData.viewMatrix = inverse(transform.getWorldMatrix());
 
-    renderData.pixelWidth = window.state->fbWidth;
-    renderData.pixelHeight = window.state->fbHeight;
+    viewportData.pixelWidth = window.state->fbWidth;
+    viewportData.pixelHeight = window.state->fbHeight;
 }
 
-void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& renderData)
+void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)
 {
     float aspect = window.state->getFrameBufferAspect();
 
-    renderData.projectionMatrix = mat4::makeOrtho(
+    viewportData.projectionMatrix = mat4::makeOrtho(
         -cameraData.orthoSize * aspect,
         cameraData.orthoSize * aspect,
         -cameraData.orthoSize,
@@ -233,8 +233,8 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
         cameraData.near,
         cameraData.far
     );
-    renderData.viewMatrix = inverse(transform.getWorldMatrix());
+    viewportData.viewMatrix = inverse(transform.getWorldMatrix());
 
-    renderData.pixelWidth = window.state->fbWidth;
-    renderData.pixelHeight = window.state->fbHeight;
+    viewportData.pixelWidth = window.state->fbWidth;
+    viewportData.pixelHeight = window.state->fbHeight;
 }

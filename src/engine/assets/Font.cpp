@@ -9,8 +9,28 @@
 using namespace core;
 using namespace core::assets;
 
+AssetRef<gfx::Pipeline> Font::_defaultFontPipeline = AssetRef<gfx::Pipeline>::null();
+
 Font::Font() :
-    _fontMetrics(), _glyphDataBuffer(128_kB) { }
+    _fontMetrics(), _glyphDataRenderBuffer(128_kB) { }
+
+AssetRef<gfx::Pipeline> Font::getOrCreateDefaultPipeline()
+{
+    using namespace gfx;
+
+    if (_defaultFontPipeline.isNull())
+    {
+        PipelineDescriptor desc;
+        desc.blend = true;
+        desc.blendSource = BlendOption::One;
+        desc.blendDestination = BlendOption::OneMinusSourceAlpha;
+        desc.backfaceCulling = BackfaceCulling::None;
+        desc.depthTest = false;
+        _defaultFontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.vert", "shaders/font.frag");
+    }
+
+    return _defaultFontPipeline;
+}
 
 Font::~Font()
 {
@@ -33,6 +53,11 @@ const GlyphMetrics& Font::getGlyphMetrics(char32_t codepoint) const
 
 AssetRef<Font> Font::loadFromFile(std::string_view path, AssetRef<gfx::Pipeline> fontPipeline)
 {
+    if (const auto existing = AssetDatabase::tryGetAsset<Font>(AssetId::idFromPath(path)))
+    {
+        return existing;
+    }
+
     auto& storage = AssetDatabase::instance->getStorage<Font>();
     auto [mem, index] = storage.allocate_uninitialized();
     Font* font = ::new(mem) Font();
@@ -40,10 +65,15 @@ AssetRef<Font> Font::loadFromFile(std::string_view path, AssetRef<gfx::Pipeline>
     FontLoader& fontLoader = AssetDatabase::instance->_fontLoader;
     fontLoader.loadFontAtlas(path, *font);
 
+    if (fontPipeline.isNull())
+    {
+        fontPipeline = getOrCreateDefaultPipeline();
+    }
+
     font->_fontMaterial = fontPipeline->newMaterialInstance(fmt::format("FontMaterial-{}", path));
     font->_fontMaterial->setTexture2D("msdfAtlas"_spid, font->_fontTexture);
     font->_fontMaterial->setFloat("emRange"_spid, font->getFontMetrics().emRange);
-    font->_fontMaterial->setBuffer("GlyphBuffer"_spid, &(font->_glyphDataBuffer));
+    font->_fontMaterial->setBuffer("GlyphBuffer"_spid, &(font->_glyphDataRenderBuffer));
 
     return AssetDatabase::registerAsset(path, font, index);
 }

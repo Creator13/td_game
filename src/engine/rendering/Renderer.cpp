@@ -26,7 +26,7 @@ mat4 ViewportData::getScreenSpaceProjectionMatrix() const
     return mat4::makeOrtho(0, pixelWidth, pixelHeight, 0, -1, 1) * constants::COORDINATE_BASIS;
 }
 
-// In ViewportData, or as free functions taking a ViewportData
+// BELOW FUNCTIONS ARE LLM GENERATED, THEY DON'T WORK AMAZINGLY.
 
 // depth: 0.0 = on near plane, 1.0 = on far plane
 vec3 ViewportData::screenToWorld(vec2 pixelPos, float depth) const
@@ -110,7 +110,8 @@ void Renderer::renderFrame()
     glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    _frameStats = FrameStats(); // Reset stats to 0
+    static_assert(std::is_trivially_destructible_v<FrameStats>);
+    _frameStats = FrameStats{};
 
     const float currentTime = time::sinceLoad();
 
@@ -285,10 +286,7 @@ void Renderer::appendInstanceData(CommandQueue& queue)
     ZoneScopedN("Instance data fetch & upload")
     auto instanceDataFromDrawCommandView = queue | std::ranges::views::transform([](const auto& input)
     {
-        InstanceData data;
-        data.transform = input.modelMatrix;
-        data.customData = input.customInstanceData;
-        return data;
+        return input.instanceData;
     });
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
 }

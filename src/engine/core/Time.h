@@ -8,10 +8,11 @@ namespace core::time
     void init();
 
     float delta();
+    float deltaMs();
     u64 ticks();
     float sinceLoad();
 
-    float onePercent();
+    float onePercentMs();
     float averageDelta();
     float averageDeltaMs();
     float fps();

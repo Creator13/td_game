@@ -14,29 +14,6 @@ using namespace core::assets;
 
 namespace
 {
-    msdfgen::Shape createFallbackDiamond()
-    {
-        msdfgen::Shape shape;
-        msdfgen::Contour& contour = shape.addContour();
-
-        // Define a diamond centered on the baseline
-        // Points: Bottom, Right, Top, Left
-        msdfgen::Point2 pB(0.5, -0.1);
-        msdfgen::Point2 pR(0.9, 0.4);
-        msdfgen::Point2 pT(0.5, 0.9);
-        msdfgen::Point2 pL(0.1, 0.4);
-
-        // Add edges (Linear segments)
-        contour.addEdge(new msdfgen::LinearSegment(pB, pR));
-        contour.addEdge(new msdfgen::LinearSegment(pR, pT));
-        contour.addEdge(new msdfgen::LinearSegment(pT, pL));
-        contour.addEdge(new msdfgen::LinearSegment(pL, pB));
-
-        // MSDF shapes must have oriented contours for the distance field to work
-        shape.inverseYAxis = false;
-        return shape;
-    }
-
     const msdf_atlas::Charset& getDefaultCharset()
     {
         static const msdf_atlas::Charset charset = []()
@@ -65,10 +42,11 @@ bool FontLoader::validateFontFile(std::string_view path) const
     if (err)
     {
         spdlog::error("Failed to load font file at \"{}\": {}", path, FT_Error_String(err));
+        return false;
     }
     FT_Done_Face(face);
 
-    return err == 0;
+    return true;
 }
 
 u32 FontLoader::getWorkerThreadCount()

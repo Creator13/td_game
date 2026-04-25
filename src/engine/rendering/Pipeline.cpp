@@ -33,7 +33,7 @@ AssetRef<Material> Pipeline::newMaterialInstance(std::string_view name) const
 {
     auto& materialStorage = AssetDatabase::instance->_materialStorage;
     auto [mem, index] = materialStorage.allocate_uninitialized();
-    Material* mat = ::new(mem) Material(*this, materialStorage.size() - 1);
+    Material* mat = ::new(mem) Material(*this, index);
 
     return AssetDatabase::registerRuntimeAsset<Material>(name, mat, index);
 }
@@ -49,7 +49,7 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
 
     auto& pipelineStorage = AssetDatabase::instance->_pipelineStorage;
     auto [mem, index] = pipelineStorage.allocate_uninitialized();
-    Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, pipelineStorage.size() - 1);
+    Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, index);
 
     return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline, index);
 }

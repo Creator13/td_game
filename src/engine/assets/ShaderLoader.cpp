@@ -37,14 +37,25 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
             }
         )";
 
-    gl::shader_t vId = compileFromSource(preprocessShader(errorShaderVert), GL_VERTEX_SHADER).value();
-    gl::shader_t fId = compileFromSource(preprocessShader(errorShaderFrag), GL_FRAGMENT_SHADER).value();
-    const gl::program_t pId = linkShaderProgram({vId, fId}).value();
+    auto vId = compileFromSource(preprocessShader(errorShaderVert), GL_VERTEX_SHADER);
+    auto fId = compileFromSource(preprocessShader(errorShaderFrag), GL_FRAGMENT_SHADER);
+    if (!vId || !fId)
+    {
+        spdlog::error("Failed to compile debug shader!");
+        return 0;
+    }
 
-    glDeleteShader(vId);
-    glDeleteShader(fId);
+    const auto pId = linkShaderProgram({vId.value(), fId.value()});
+    if (!pId)
+    {
+        spdlog::error("Failed to link debug shader!");
+        return 0;
+    }
 
-    return pId;
+    glDeleteShader(vId.value());
+    glDeleteShader(fId.value());
+
+    return pId.value();
 }
 
 std::string injectSystemHeader(std::string_view src)
@@ -185,7 +196,7 @@ gl::program_t ShaderLoader::getErrorShader()
 
 void ShaderLoader::cleanCache()
 {
-    for (auto& [_, shaderId] : _shaderStageCache)
+    for (auto& shaderId : _shaderStageCache | std::views::values)
     {
         glDeleteShader(shaderId);
     }

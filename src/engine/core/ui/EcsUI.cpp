@@ -136,7 +136,7 @@ engine_ui::engine_ui(flecs::world& ecs)
                     command.mesh = _uiQuad->gpuHandle;
                     command.material = _uiMaterial;
                     command.sortKey = Renderer::buildSortKey(_uiMaterial, _uiQuad);
-                    command.modelMatrix = make2dRectTRS(rect, rect.rotation, rect.anchor);
+                    command.instanceData.transform = make2dRectTRS(rect, rect.rotation, rect.anchor);
                     command.queue = DrawCommand::RenderQueue::UI;
 
                     renderer->submitDrawCommand(command);
@@ -194,8 +194,6 @@ engine_ui::engine_ui(flecs::world& ecs)
 
                     const float fontSize = renderData.size;
 
-                    // debug::draw2DRect(rect, Color::fromSrgb(SrgbColor::magenta));
-
                     DrawCommand baseCommand;
                     baseCommand.mesh = glyphMesh->gpuHandle;
                     baseCommand.material = renderData.font->getMaterial();
@@ -205,14 +203,9 @@ engine_ui::engine_ui(flecs::world& ecs)
                     mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
 
                     const FontMetrics& fontMetrics = renderData.font->getFontMetrics();
-                    float ascender = fontMetrics.ascenderY * fontSize;
-                    float descender = fontMetrics.descenderY * fontSize;
-                    float baselineHeight = ascender;
-                    vec2 pen = vec2(0, baselineHeight);
-                    // debug::draw2DLine(rect.offset + pen, rect.offset + pen + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::cyan));
-                    // debug::draw2DLine(rect.offset + vec2(0, baselineHeight - ascender), rect.offset + vec2(0, baselineHeight - ascender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::red));
-                    // debug::draw2DLine(rect.offset + vec2(0, baselineHeight - descender), rect.offset + vec2(0, baselineHeight - descender) + vec2(rect.size.x, 0), Color::fromSrgb(SrgbColor::green));
+                    float baselineHeight = fontMetrics.ascenderY * fontSize;
 
+                    vec2 pen = vec2(0, baselineHeight);
                     usize col = 0; // Current character in the line, independent of actual character widths.
                     usize line = 0;
                     for (const auto c : text.text)
@@ -239,23 +232,26 @@ engine_ui::engine_ui(flecs::world& ecs)
                                 const u32 advanceCount = ((col + tabWidth - 1) & -tabWidth) - col;
                                 pen.x += glyphMetrics->advance * fontSize * advanceCount;
                             }
-                            // Don't render this character
+                            // And don't render this character
                             continue;
                         }
                         if (glyphMetrics->renderDirective == GlyphMetrics::RenderDirective::Substitute)
                         {
-                            // This glyph would normally be rendered but does not have an associated glyph in the font.
+                            // This glyph should be rendered but does not have an associated glyph in the font.
                             // Replace the glyph with a question mark (TODO implement a proper tofu character)
                             glyphMetrics = &renderData.font->getGlyphMetrics('?');
                         }
 
                         DrawCommand command = baseCommand;
 
+                        // TODO either:
+                        //  - cache glyph quads in entity, calculating only on set (most text does not change)
+                        //  - Offload to gpu.
                         math::rect glyphRect = glyphMetrics->quadRect;
                         glyphRect.offset *= fontSize;
                         glyphRect.extents *= fontSize;
                         glyphRect = translate(glyphRect, pen);
-                        command.modelMatrix = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
+                        command.instanceData.transform = baseTransform * make2dRectTRS(glyphRect, 0, anchor::topLeft);
                         pen.x += glyphMetrics->advance * fontSize;
 
                         GlyphInstanceData instanceData;
@@ -264,10 +260,10 @@ engine_ui::engine_ui(flecs::world& ecs)
                         instanceData.color = renderData.color;
                         instanceData.fontRenderSize = renderData.size;
 
-                        ENGINE_ASSERT(glyphDataBuffer != nullptr);
+                        ENGINE_ASSERT(glyphDataBuffer != nullptr, "A nullptr glyphbuffer at this point can only be the result of a corrupt font asset. (font asset id: {})", renderData.font.id());
                         glyphDataBuffer->append(instanceData);
 
-                        command.customInstanceData.c0 = glyphBufferIndex;
+                        command.instanceData.customData.c0 = glyphBufferIndex;
 
                         renderer->submitDrawCommand(command);
                         glyphBufferIndex++;
