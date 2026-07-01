@@ -31,7 +31,7 @@ WindowState engine::getInitialWindowState()
 void engine::setupGame(const flecs::world& world)
 {
     const flecs::entity cam = world.entity("Debug camera")
-        .set<PerspectiveCameraData>({60, .1, 100})
+        .set<PerspectiveCameraData>({60, .1, 1000})
         .add<ActiveCamera>();
 
     cam.get_ref<PerspectiveCameraData>();
@@ -60,9 +60,7 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Material> avacadooMat = pipeline->newMaterialInstance("mat");
     avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
 
-    // spdlog::debug("uvcheckerpath: {}, avacadoo path: {}", AssetDatabase::getAssetInfo(uvCheckerMat).path, AssetDatabase::getAssetInfo(avacadooMat).path);
-
-    constexpr int count = 50;
+    constexpr int count = 100;
     int n = 0;
     for (int i = 0; i < count; i++)
     {
@@ -78,7 +76,8 @@ void engine::setupGame(const flecs::world& world)
             {
                 e = world.entity(fmt::format("sphere {}-{}", i, j).c_str())
                     .set<MeshRenderData>({.mesh = sphere, .material = uvCheckerMat})
-                    .set<RotateData>({((i % 5) - 2) * 30.f});
+                    // .set<RotateData>({((i % 5) - 2) * 30.f})
+                ;
             }
             transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
         }
@@ -87,6 +86,7 @@ void engine::setupGame(const flecs::world& world)
     world.system<HierarchyTransform, const RotateData>("Rotating")
         .each([](flecs::iter& it, usize i, HierarchyTransform& transform, const RotateData& rotation)
         {
+            if (math::abs(rotation.angularVelocity) < EPSILON) return;
             transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, rotation.angularVelocity * time::delta()));
         });
 
@@ -146,12 +146,13 @@ void engine::setupGame(const flecs::world& world)
     // const flecs::entity ui = world.entity("UI root")
     //     .set<ui::UiRoot>({1920, 1080});
 
-    world.entity("Beautiful panel")
-        .set<ui::Rect>({{500, 500}, {100, 50}, 0})
-        .set<RotateData>({.angularVelocity = 15});
+    // world.entity("Beautiful panel")
+    //     .set<ui::Rect>({{500, 500}, {100, 50}, 0})
+    //     .set<RotateData>({.angularVelocity = 15});
 
-    world.system<ui::Rect, const RotateData>().each([](ui::Rect& rect, const RotateData& rotation)
-    {
-        rect.rotation += rotation.angularVelocity * time::delta();
-    });
+    world.system<ui::Rect, const RotateData>()
+        .each([](ui::Rect& rect, const RotateData& rotation)
+        {
+            rect.rotation += rotation.angularVelocity * time::delta();
+        });
 }

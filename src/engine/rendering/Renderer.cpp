@@ -26,7 +26,7 @@ mat4 ViewportData::getScreenSpaceProjectionMatrix() const
     return mat4::makeOrtho(0, pixelWidth, pixelHeight, 0, -1, 1) * constants::COORDINATE_BASIS;
 }
 
-// BELOW FUNCTIONS ARE LLM GENERATED, THEY DON'T WORK AMAZINGLY.
+// BELOW FUNCTIONS ARE LLM GENERATED; THEY DON'T WORK AMAZINGLY.
 
 // depth: 0.0 = on near plane, 1.0 = on far plane
 vec3 ViewportData::screenToWorld(vec2 pixelPos, float depth) const
@@ -70,7 +70,6 @@ Renderer::Renderer()
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(PassDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-
     glCreateSamplers(1, &_defaultSampler);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -111,7 +110,7 @@ void Renderer::renderFrame()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     static_assert(std::is_trivially_destructible_v<FrameStats>);
-    _frameStats = FrameStats{};
+    _frameStats = FrameStats{ };
 
     const float currentTime = time::sinceLoad();
 
@@ -335,6 +334,8 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
             glBindVertexArray(baseCommand.mesh.vao);
             currentMeshId = baseCommand.getMeshId();
         }
+
+        _frameStats.triCount += (baseCommand.mesh.indexCount / 3) * batchCount;
 
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES, baseCommand.mesh.indexCount, GL_UNSIGNED_INT, nullptr, batchCount, batchStart + instanceIndex);
         _frameStats.numDrawCalls++;

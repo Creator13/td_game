@@ -46,7 +46,5 @@ void main() {
     float opacity = clamp(screenPxDistance + 0.5f, 0.0, 1.0f);
 
     vec4 color = glyphData.color;
-    color.a *= opacity;
-    color.rgb *= color.a; 
-    fragColor = color;
+    fragColor = color * opacity;
 }

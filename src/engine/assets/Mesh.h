@@ -44,6 +44,13 @@ namespace core
 
         void recalculateBounds();
 
+        u64 getVertexCount() const { return vertices.size(); }
+        u64 getTriCount() const
+        {
+            ENGINE_ASSERT(indices.size() % 3 == 0, "It's a little weird that your index list is not a multiple of 3.");
+            return indices.size() / 3;
+        }
+
         static assets::AssetRef<Mesh> loadFromFile(std::string_view path);
         static assets::AssetRef<Mesh> create(std::string_view name);
         static assets::AssetRef<Mesh> createView(std::string_view name, std::span<const Vertex> vertices, std::span<const u32> indices, math::AABB bounds);

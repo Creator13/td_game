@@ -39,6 +39,7 @@ namespace core::gfx
             i32 numDrawCalls = 0;
             i32 numPipelineBinds = 0;
             i32 numCommands = 0;
+            u64 triCount = 0;
         };
 
         using CommandQueue = std::vector<DrawCommand>;

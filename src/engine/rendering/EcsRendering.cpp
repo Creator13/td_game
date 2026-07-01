@@ -112,10 +112,11 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(orthoSystem);
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
+        .kind(flecs::OnStore)
         .multi_threaded()
         .run([](flecs::iter& it)
         {
-            ZoneScopedN("_engine::CullingSystem");
+            ZoneScopedN("Culling system");
 
             auto& camera = it.world().get<const ViewportData>();
             const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
@@ -124,15 +125,15 @@ rendering::rendering(flecs::world& ecs)
             {
                 auto f_transform = it.field<const HierarchyTransform>(0);
                 auto f_bounds = it.field<const BoxBoundsData>(1);
-                auto f_renderer = it.field<MeshRenderData>(2);
+                auto f_renderData = it.field<MeshRenderData>(2);
 
                 for (auto i : it)
                 {
                     const HierarchyTransform& transform = f_transform[i];
                     const BoxBoundsData& bounds = f_bounds[i];
-                    MeshRenderData& renderer = f_renderer[i];
+                    MeshRenderData& renderData = f_renderData[i];
 
-                    renderer.cullReason = CullReason::None;
+                    renderData.cullReason = CullReason::None;
 
                     const mat4& worldMat = transform.getWorldMatrix();
 
@@ -157,7 +158,7 @@ rendering::rendering(flecs::world& ecs)
                     // Cull entity if it falls outside the frustum
                     if (!isAABBInFrustum(worldBounds, frustum))
                     {
-                        renderer.cullReason = CullReason::Frustum;
+                        renderData.cullReason = CullReason::Frustum;
                     }
                 }
             }

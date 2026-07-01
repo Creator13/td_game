@@ -37,11 +37,11 @@ engine_debug::engine_debug(flecs::world& ecs)
         {
             auto renderStats = renderer.ptr->getFrameStats();
 
-            std::string stats = fmt::format(
+            std::string stats = fmt::format(std::locale("en_US.UTF-8"),
                 "{:.3f}ms (avg:{:.3f}ms, 1%:{:.3f}ms) | {:.1f}fps\n"
-                "Commands submitted: {} | draw calls: {} | pipeline binds: {}",
+                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {}",
                 time::deltaMs(), time::averageDeltaMs(), time::onePercentMs(), time::fps(),
-                renderStats.numCommands, renderStats.numDrawCalls, renderStats.numPipelineBinds);
+                renderStats.numCommands, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds);
             text.setText(stats);
         });
 }
