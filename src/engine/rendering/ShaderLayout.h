@@ -81,6 +81,8 @@ namespace core::gfx
     public:
         static ShaderLayout buildFromProgram(gl::program_t program);
 
+        gl::program_t getProgram() const { return _program; }
+
         bool hasMaterialBlock() const;
         bool hasFrameDataBlock() const;
         int getSamplerCount() const { return _numSamplers; }

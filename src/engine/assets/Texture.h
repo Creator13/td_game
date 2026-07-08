@@ -55,6 +55,18 @@ namespace core
         Count
     };
 
+    enum class TextureWrap : u8
+    {
+        Repeat,
+        Clamp,
+    };
+
+    enum class TextureFilter : u8
+    {
+        Linear,
+        Nearest
+    };
+
     struct Texture
     {
         ~Texture();
@@ -102,5 +114,13 @@ namespace core
         u8 getChannelCountInFormat(TextureFormat format);
         gl::enum_t getGlPixelDataType(TextureFormat format);
         gl::enum_t getGlPixelFormat(TextureFormat format);
+
+        gl::enum_t getGlTexWrap(TextureWrap wrap);
+        gl::enum_t getGlTexFilter(TextureFilter filter, bool withMips);
+
+        gl::texture_t createGlTexture(int width, int height, gl::enum_t internalFormat,
+            bool createMips,
+            TextureWrap wrapU = TextureWrap::Repeat, TextureWrap wrapV = TextureWrap::Repeat,
+            TextureFilter filter = TextureFilter::Linear);
     }
 }

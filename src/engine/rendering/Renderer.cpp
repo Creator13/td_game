@@ -6,6 +6,7 @@
 #include <tracy/TracyOpenGL.hpp>
 
 #include "assets/Mesh.h"
+#include "assets/ShaderLoader.h"
 #include "core/Constants.h"
 #include "core/Time.h"
 #include "rendering/DataLayout.h"
@@ -62,10 +63,21 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 }
 
 Renderer::Renderer()
-    : _instanceDataBuffer(1_MB)
+    : _instanceDataBuffer(1_MB), _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, true) { }
+
+void Renderer::init(int fbWidth, int fbHeight)
 {
     glFrontFace(GL_CCW);
     glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
+
+    _mainFramebuffer.setSize(fbWidth, fbHeight);
+    _mainFramebuffer.create();
+
+    PipelineDescriptor desc;
+    desc.depthTest = false;
+    desc.blend = false;
+    desc.backfaceCulling = BackfaceCulling::Back;
+    _fullscreenBlitPipeline = Pipeline::create("Fullscreen blit", desc, "shaders/fullscreen.vert", "shaders/fullscreenBlit.frag");
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(PassDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -75,10 +87,18 @@ Renderer::Renderer()
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glCreateVertexArrays(1, &_emptyVao.id);
 }
 
 void Renderer::setViewportData(const ViewportData& params)
 {
+    if (_viewportData.pixelHeight != params.pixelHeight || _viewportData.pixelWidth != params.pixelWidth)
+    {
+        _mainFramebuffer.setSize(params.pixelWidth, params.pixelHeight);
+        _mainFramebuffer.create();
+    }
+
     _viewportData = params;
 }
 
@@ -106,9 +126,6 @@ void Renderer::renderFrame()
 {
     ZoneScopedN("Renderer::renderFrame");
 
-    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     static_assert(std::is_trivially_destructible_v<FrameStats>);
     _frameStats = FrameStats{ };
 
@@ -132,6 +149,10 @@ void Renderer::renderFrame()
 
     usize instanceIndex = 0;
 
+    glBindFramebuffer(GL_FRAMEBUFFER, _mainFramebuffer._fbo);
+    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     // Execute opaque pass
     PassDataBlock opaqueData;
     opaqueData.view = _viewportData.viewMatrix;
@@ -151,6 +172,17 @@ void Renderer::renderFrame()
     executePass(uiPassData, _uiCommandQueue, instanceIndex);
     instanceIndex += _uiCommandQueue.size();
     _uiCommandQueue.clear();
+
+    // Swap render buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    bindPipeline(*_fullscreenBlitPipeline);
+    auto sceneColorProp = _fullscreenBlitPipeline->getShaderLayout().getPropertyInfo("_sceneColor"_spid);
+    glBindTextureUnit(sceneColorProp->getSamplerInfo().textureUnit, _mainFramebuffer._colorAttachment);
+    glBindVertexArray(_emptyVao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    _frameStats.numDrawCalls += 1;
 }
 
 u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
@@ -274,12 +306,6 @@ void Renderer::bindPassData(const PassDataBlock& passData) const
     glBindBufferBase(GL_UNIFORM_BUFFER, PassDataBlock::SHADER_BINDING, _frameDataUboHandle);
 }
 
-void Renderer::sortCommandList(CommandQueue& queue)
-{
-    ZoneScopedN("Command list sorting")
-    std::ranges::sort(queue, { }, &DrawCommand::sortKey);
-}
-
 void Renderer::appendInstanceData(CommandQueue& queue)
 {
     ZoneScopedN("Instance data fetch & upload")
@@ -294,11 +320,12 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
 {
     if (queue.empty()) return;
 
-    ZoneScopedN("Renderer::renderSceneGeometry");
-    TracyGpuZone("Renderer::renderSceneGeometry");
+    ZoneScopedN("Pass execution");
+    TracyGpuZone("Pass execution");
 
     bindPassData(passData);
 
+    // TODO why do these still start at ffff, and not just zero? Isn't that a leftover from some older design?
     u16 currentPipelineId = 0xFFFF;
     u16 currentMaterialId = 0xFFFF;
     u16 currentMeshId = 0xFFFF;
@@ -342,4 +369,10 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
 
         batchStart = batchEnd;
     }
+}
+
+void Renderer::sortCommandList(CommandQueue& queue)
+{
+    ZoneScopedN("Command list sorting")
+    std::ranges::sort(queue, { }, &DrawCommand::sortKey);
 }

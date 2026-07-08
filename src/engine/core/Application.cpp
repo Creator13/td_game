@@ -101,6 +101,9 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     assets::AssetDatabase::initialize(resourceRoot);
 
     _renderer = std::make_unique<gfx::Renderer>();
+    // Initialize renderer
+    _renderer->init(_windowState.fbWidth, _windowState.fbHeight);
+
     _debugRenderer = std::make_unique<debug::DebugRenderer>();
     debug::bindDebugRenderer(*_debugRenderer);
 
@@ -168,7 +171,7 @@ bool Application::createWindow(const WindowState& windowState)
 
     glfwMakeContextCurrent(_windowPtr);
 
-    glfwSetFramebufferSizeCallback(_windowPtr, core::glfw_framebufferSizeCallback);
+    glfwSetFramebufferSizeCallback(_windowPtr, glfw_framebufferSizeCallback);
 
     if (int version = gladLoadGL(glfwGetProcAddress); version == 0)
     {

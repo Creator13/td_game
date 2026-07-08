@@ -6,32 +6,11 @@
 #include "assets/AssetDatabase.h"
 #include "assets/File.h"
 #include "core/Assert.h"
-#include "core/Color.h"
 #include "math/func.h"
 #include "util/PagedStorage.h"
 
 using namespace core;
 using namespace assets;
-
-namespace
-{
-    gl::texture_t createGlTexture(int width, int height, gl::enum_t internalFormat, bool createMips)
-    {
-        gl::texture_t texName;
-        glCreateTextures(GL_TEXTURE_2D, 1, &texName.id);
-
-        glTextureParameteri(texName, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(texName, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(texName, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(texName, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        const int mipLevels = createMips ? static_cast<int>(math::floor(math::log2(math::max(width, height)))) + 1 : 1;
-
-        glTextureStorage2D(texName, mipLevels, internalFormat, width, height);
-
-        return texName;
-    }
-}
 
 Texture::~Texture()
 {
@@ -50,7 +29,7 @@ AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_
     auto [texMem, index] = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
-    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
+    outTexture->_glBindPoint = texture_util::createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
 
     outTexture->_isReadable = !readOnly;
 
@@ -101,7 +80,7 @@ AssetRef<Texture> Texture::loadFromFile(std::string_view path, TextureFormat for
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
     outTexture->_isReadable = readable;
-    outTexture->_glBindPoint = createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
+    outTexture->_glBindPoint = texture_util::createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
     outTexture->_genMipMaps = createMips;
 
     if (!readable)
@@ -367,4 +346,71 @@ gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
             ENGINE_ASSERT(false, "Unknown texture format.");
             ENGINE_UNREACHABLE();
     }
+}
+
+gl::enum_t texture_util::getGlTexWrap(TextureWrap wrap)
+{
+    switch (wrap)
+    {
+        case TextureWrap::Repeat:
+            return GL_REPEAT;
+        case TextureWrap::Clamp:
+            return GL_CLAMP_TO_EDGE;
+        default:
+            ENGINE_UNREACHABLE();
+    }
+}
+
+gl::enum_t texture_util::getGlTexFilter(TextureFilter filter, bool withMips)
+{
+    gl::enum_t minFilter;
+    if (withMips)
+    {
+        switch (filter)
+        {
+            case TextureFilter::Linear:
+                minFilter = GL_LINEAR_MIPMAP_LINEAR;
+                break;
+            case TextureFilter::Nearest:
+                minFilter = GL_NEAREST_MIPMAP_NEAREST;
+                break;
+            default:
+                ENGINE_UNREACHABLE();
+        }
+    }
+    else
+    {
+        switch (filter)
+        {
+            case TextureFilter::Linear:
+                minFilter = GL_LINEAR;
+                break;
+            case TextureFilter::Nearest:
+                minFilter = GL_NEAREST;
+                break;
+            default:
+                ENGINE_UNREACHABLE();
+        }
+    }
+    return minFilter;
+}
+
+gl::texture_t texture_util::createGlTexture(int width, int height,
+    gl::enum_t internalFormat, bool createMips,
+    TextureWrap wrapU, TextureWrap wrapV,
+    TextureFilter filter)
+{
+    gl::texture_t texName;
+    glCreateTextures(GL_TEXTURE_2D, 1, &texName.id);
+
+    glTextureParameteri(texName, GL_TEXTURE_MIN_FILTER, getGlTexFilter(filter, createMips));
+    glTextureParameteri(texName, GL_TEXTURE_MAG_FILTER, getGlTexFilter(filter, false));
+    glTextureParameteri(texName, GL_TEXTURE_WRAP_S, getGlTexWrap(wrapU));
+    glTextureParameteri(texName, GL_TEXTURE_WRAP_T, getGlTexWrap(wrapV));
+
+    const int mipLevels = createMips ? static_cast<int>(math::floor(math::log2(math::max(width, height)))) + 1 : 1;
+
+    glTextureStorage2D(texName, mipLevels, internalFormat, width, height);
+
+    return texName;
 }

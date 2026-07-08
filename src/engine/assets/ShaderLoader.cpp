@@ -8,7 +8,6 @@
 #include "assets/AssetDatabase.h"
 #include "assets/File.h"
 #include "rendering/DataLayout.h"
-#include "util/StringExtensions.h"
 
 using namespace core;
 using namespace core::assets;
@@ -139,7 +138,7 @@ std::optional<gl::program_t> ShaderLoader::linkShaderProgram(std::initializer_li
     return programId;
 }
 
-std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_view path, gl::enum_t stageType)
+std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_view path, gl::enum_t stageType, bool preprocess)
 {
     AssetId id = AssetId::idFromPath(path);
     // Check cache
@@ -160,7 +159,7 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
         return std::nullopt;
     }
 
-    std::optional<gl::shader_t> glShaderId = compileFromSource(preprocessShader(source.value()), stageType);
+    std::optional<gl::shader_t> glShaderId = compileFromSource(preprocess ? preprocessShader(source.value()) : source.value(), stageType);
     if (glShaderId.has_value())
     {
         _shaderStageCache.insert({id, glShaderId.value()});
@@ -171,8 +170,8 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
 
 gl::program_t ShaderLoader::glProgramFromFiles(std::string_view vertPath, std::string_view fragPath)
 {
-    std::optional<gl::shader_t> vertId = loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER);
-    std::optional<gl::shader_t> fragId = loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER);
+    std::optional<gl::shader_t> vertId = loadShaderStageFromFile(vertPath, GL_VERTEX_SHADER, true);
+    std::optional<gl::shader_t> fragId = loadShaderStageFromFile(fragPath, GL_FRAGMENT_SHADER, true);
     if (!vertId || !fragId)
     {
         return getErrorShader();

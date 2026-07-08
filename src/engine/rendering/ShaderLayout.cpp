@@ -1,13 +1,12 @@
 #include "ShaderLayout.h"
 
 #include <algorithm>
-#include <ranges>
 #include <string>
 #include <vector>
 #include <glad/gl.h>
+#include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>
 
-#include "../../../build/debug/vcpkg_installed/x64-windows-static-md/include/magic_enum/magic_enum.hpp"
 #include "core/Assert.h"
 #include "formatting/fmt_gl.h"
 

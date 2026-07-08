@@ -6,6 +6,7 @@
 #include "assets/Mesh.h"
 #include "math/mat4.h"
 #include "rendering/DataLayout.h"
+#include "rendering/Framebuffer.h"
 #include "rendering/GraphicsBuffer.h"
 #include "rendering/Material.h"
 #include "rendering/MeshGpuHandle.h"
@@ -52,15 +53,20 @@ namespace core::gfx
         gl::buffer_t _frameDataUboHandle;
         GraphicsBuffer _instanceDataBuffer;
 
-        gl::framebuffer_t _mainFramebuffer;
-        gl::Uint _defaultSampler;
+        Framebuffer _mainFramebuffer;
+        gl::Uint _defaultSampler = 0; // TODO define samplers as a type
+        gl::vert_arr_t _emptyVao = 0;
+
+        assets::AssetRef<Pipeline> _fullscreenBlitPipeline = assets::AssetRef<Pipeline>::null();
 
         FrameStats _frameStats;
 
     public:
         Renderer();
 
-        [[nodiscard]] const FrameStats& getFrameStats() const noexcept {return _frameStats;}
+        void init(int fbWidth, int fbHeight);
+
+        [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
         void setViewportData(const ViewportData& params);
         void submitDrawCommand(const DrawCommand& command);
