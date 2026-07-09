@@ -39,12 +39,11 @@ void Framebuffer::createAttachments()
 {
     // TODO validate texture format to be an allowed format for framebuffers (not every format is allowed, see compressed formats)
 
-    _colorAttachment = texture_util::createGlTexture(
-        _width, _height,
-        texture_util::getGlInternalFormat(_textureFormat), false,
+    _colorAttachment = Texture::create("anonymous framebuffer texture",
+        _width, _height, _textureFormat, false, true,
         TextureWrap::Clamp, TextureWrap::Clamp, TextureFilter::Linear);
 
-    glNamedFramebufferTexture(_fbo, GL_COLOR_ATTACHMENT0, _colorAttachment, 0);
+    glNamedFramebufferTexture(_fbo, GL_COLOR_ATTACHMENT0, _colorAttachment->getGlBindPoint(), 0);
 
     if (_hasDepth)
     {
@@ -58,10 +57,11 @@ void Framebuffer::createAttachments()
 
 void Framebuffer::deleteAttachments()
 {
-    if (_colorAttachment > 0)
-    {
-        glDeleteTextures(1, &_colorAttachment.id);
-    }
+    // TODO _colorattachment is an asset, and assets cannot be deleted atm so fix that (PPLEASE allow textures to not be assets?? or something??)
+    // if (_colorAttachment > 0)
+    // {
+    //     glDeleteTextures(1, &_colorAttachment.id);
+    // }
     if (_depthAttachment > 0)
     {
         glDeleteRenderbuffers(1, &_depthAttachment);

@@ -46,10 +46,12 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> avacadoo = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
 
-    PipelineDescriptor pDesc;
-    pDesc.blend = false;
-    pDesc.depthTest = true;
-    pDesc.backfaceCulling = BackfaceCulling::Back;
+    constexpr PipelineDescriptor pDesc{
+        .depthTest = true,
+        .depthFunc = DepthFunction::Less,
+        .blend = false,
+        .backfaceCulling = BackfaceCulling::Back,
+    };
 
     AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
 
@@ -59,6 +61,10 @@ void engine::setupGame(const flecs::world& world)
 
     AssetRef<Material> avacadooMat = pipeline->newMaterialInstance("mat");
     avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
+
+    auto& sceneRenderData = world.get_mut<SceneRenderData>();
+    auto invert = Pipeline::createFullscreenEffect("Invert", "shaders/invert.frag");
+    sceneRenderData.postEffects = std::vector{invert->newMaterialInstance("h")};
 
     constexpr int count = 100;
     int n = 0;
@@ -77,7 +83,7 @@ void engine::setupGame(const flecs::world& world)
                 e = world.entity(fmt::format("sphere {}-{}", i, j).c_str())
                     .set<MeshRenderData>({.mesh = sphere, .material = uvCheckerMat})
                     // .set<RotateData>({((i % 5) - 2) * 30.f})
-                ;
+                    ;
             }
             transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
         }

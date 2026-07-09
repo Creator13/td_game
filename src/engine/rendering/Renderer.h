@@ -54,10 +54,13 @@ namespace core::gfx
         GraphicsBuffer _instanceDataBuffer;
 
         Framebuffer _mainFramebuffer;
+        std::array<Framebuffer, 2> _pingPongFramebuffers;
+
         gl::Uint _defaultSampler = 0; // TODO define samplers as a type
         gl::vert_arr_t _emptyVao = 0;
 
-        assets::AssetRef<Pipeline> _fullscreenBlitPipeline = assets::AssetRef<Pipeline>::null();
+        assets::AssetRef<Material> _fullscreenBlitEffect = assets::AssetRef<Material>::null();
+        std::vector<assets::AssetRef<Material>> _postEffects;
 
         FrameStats _frameStats;
 
@@ -71,6 +74,7 @@ namespace core::gfx
         void setViewportData(const ViewportData& params);
         void submitDrawCommand(const DrawCommand& command);
         void renderFrame();
+        void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
 
         static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
 
@@ -79,8 +83,12 @@ namespace core::gfx
         void bindMaterial(assets::AssetRef<Material> material);
         void bindPassData(const PassDataBlock& passData) const;
 
+        void resizeFrameBuffers(int newWidth, int newHeight);
+
         void appendInstanceData(CommandQueue& queue);
         void executePass(const PassDataBlock& passData, CommandQueue& queue, usize instanceIndex);
+        void executePostEffectStack();
+        void executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst);
 
         static void sortCommandList(std::vector<DrawCommand>& queue);
     };

@@ -36,7 +36,7 @@ void Material::constructBuffers()
 
 void Material::initializeData()
 {
-    // Init all data to zero (probably unnecessary considering constructBuffers does a resize, aka zero-init)
+    // Init all data to zero (not really necessary considering constructBuffers does a resize, aka zero-init)
     std::memset(_materialBlockData.data(), 0, _materialBlockData.size());
 
     for (auto& [id, property] : _layout.properties())

@@ -63,21 +63,22 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 }
 
 Renderer::Renderer()
-    : _instanceDataBuffer(1_MB), _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, true) { }
+    : _instanceDataBuffer(1_MB),
+      _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, true),
+      _pingPongFramebuffers({
+          Framebuffer(800, 600, TextureFormat::RGBA16_FLOAT, false),
+          Framebuffer(800, 600, TextureFormat::RGBA16_FLOAT, false)
+      }) { }
 
 void Renderer::init(int fbWidth, int fbHeight)
 {
     glFrontFace(GL_CCW);
-    glEnable(GL_FRAMEBUFFER_SRGB); // Set *default* framebuffer to convert back to srgb on present
+    glEnable(GL_FRAMEBUFFER_SRGB); // Set backbuffer to convert back to srgb on present
 
-    _mainFramebuffer.setSize(fbWidth, fbHeight);
-    _mainFramebuffer.create();
+    resizeFrameBuffers(fbWidth, fbHeight);
 
-    PipelineDescriptor desc;
-    desc.depthTest = false;
-    desc.blend = false;
-    desc.backfaceCulling = BackfaceCulling::Back;
-    _fullscreenBlitPipeline = Pipeline::create("Fullscreen blit", desc, "shaders/fullscreen.vert", "shaders/fullscreenBlit.frag");
+    auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreenBlit.frag");
+    _fullscreenBlitEffect = fsPipeline->newMaterialInstance("anonymous");
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(PassDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -95,8 +96,7 @@ void Renderer::setViewportData(const ViewportData& params)
 {
     if (_viewportData.pixelHeight != params.pixelHeight || _viewportData.pixelWidth != params.pixelWidth)
     {
-        _mainFramebuffer.setSize(params.pixelWidth, params.pixelHeight);
-        _mainFramebuffer.create();
+        resizeFrameBuffers(params.pixelWidth, params.pixelHeight);
     }
 
     _viewportData = params;
@@ -173,16 +173,13 @@ void Renderer::renderFrame()
     instanceIndex += _uiCommandQueue.size();
     _uiCommandQueue.clear();
 
-    // Swap render buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    bindPipeline(*_fullscreenBlitPipeline);
-    auto sceneColorProp = _fullscreenBlitPipeline->getShaderLayout().getPropertyInfo("_sceneColor"_spid);
-    glBindTextureUnit(sceneColorProp->getSamplerInfo().textureUnit, _mainFramebuffer._colorAttachment);
-    glBindVertexArray(_emptyVao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    _frameStats.numDrawCalls += 1;
+    executePostEffectStack();
+}
+
+void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
+{
+    _postEffects.clear();
+    _postEffects.assign_range(stack);
 }
 
 u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
@@ -306,6 +303,18 @@ void Renderer::bindPassData(const PassDataBlock& passData) const
     glBindBufferBase(GL_UNIFORM_BUFFER, PassDataBlock::SHADER_BINDING, _frameDataUboHandle);
 }
 
+void Renderer::resizeFrameBuffers(int newWidth, int newHeight)
+{
+    ZoneScopedN("Framebuffer resize");
+    _mainFramebuffer.setSize(newWidth, newHeight);
+    _mainFramebuffer.create();
+
+    _pingPongFramebuffers[0].setSize(newWidth, newHeight);
+    _pingPongFramebuffers[0].create();
+    _pingPongFramebuffers[1].setSize(newWidth, newHeight);
+    _pingPongFramebuffers[1].create();
+}
+
 void Renderer::appendInstanceData(CommandQueue& queue)
 {
     ZoneScopedN("Instance data fetch & upload")
@@ -369,6 +378,35 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
 
         batchStart = batchEnd;
     }
+}
+void Renderer::executePostEffectStack()
+{
+    if (_postEffects.empty())
+    {
+        executePostEffect(_fullscreenBlitEffect, _mainFramebuffer, 0);
+    }
+
+    Framebuffer* src = &_mainFramebuffer;
+    for (usize i = 0; i < _postEffects.size() - 1; ++i)
+    {
+        Framebuffer& target = _pingPongFramebuffers[i % 2];
+        executePostEffect(_postEffects[i], *src, target._fbo);
+        src = &target;
+    }
+
+    // Last effect uses the last destination as source and writes to the backbuffer
+    executePostEffect(_postEffects[_postEffects.size() - 1], *src, 0);
+}
+
+void Renderer::executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst)
+{
+    bindPipeline(material->pipeline);
+    material->setTexture2D("_sceneColor"_spid, src._colorAttachment);
+    bindMaterial(material);
+    glBindFramebuffer(GL_FRAMEBUFFER, dst);
+    glBindVertexArray(_emptyVao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    _frameStats.numDrawCalls++;
 }
 
 void Renderer::sortCommandList(CommandQueue& queue)

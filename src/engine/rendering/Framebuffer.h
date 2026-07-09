@@ -18,7 +18,7 @@ namespace core::gfx
 
         // GL handles
         gl::framebuffer_t _fbo;
-        gl::texture_t _colorAttachment;
+        assets::AssetRef<Texture> _colorAttachment;
         gl::Uint _depthAttachment = 0; // Default value?
 
         bool _isCreated = false;

@@ -20,6 +20,7 @@ namespace flecs
 
 namespace core::ecs
 {
+
     // #### CAMERA ####
     struct PerspectiveCameraData
     {
@@ -66,6 +67,11 @@ namespace core::ecs
         gfx::Renderer* ptr;
     };
 
+    struct SceneRenderData
+    {
+        std::vector<assets::AssetRef<Material>> postEffects;
+    };
+
     struct rendering
     {
         explicit rendering(flecs::world& ecs);
@@ -74,5 +80,6 @@ namespace core::ecs
         static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& viewportData);
         static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
         static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
+        static void syncPostEffectStack(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData);
     };
 }

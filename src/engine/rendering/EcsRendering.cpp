@@ -58,6 +58,7 @@ namespace
         // TODO minimal reflection data
 
         ecs.component<ViewportData>().add(flecs::Singleton);
+        ecs.component<SceneRenderData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
     }
@@ -73,6 +74,7 @@ rendering::rendering(flecs::world& ecs)
     registerComponents(ecs);
 
     ecs.set<ViewportData>({ });
+    ecs.set<SceneRenderData>({ });
 
     ecs.observer("Active camera uniqueness observer")
         .with<ActiveCamera>()
@@ -110,6 +112,8 @@ rendering::rendering(flecs::world& ecs)
         .each(syncRendererToActiveCamera)
         .depends_on(perspSystem)
         .depends_on(orthoSystem);
+
+    ecs.system<const RendererSingleton, const SceneRenderData>().each(syncPostEffectStack);
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
@@ -209,6 +213,12 @@ void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const
 {
     Renderer& renderer = *r_ptr.ptr;
     renderer.setViewportData(viewportData);
+}
+
+void rendering::syncPostEffectStack(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData)
+{
+    Renderer& renderer = *r_ptr.ptr;
+    renderer.setPostEffectStack(sceneRenderData.postEffects);
 }
 
 void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)

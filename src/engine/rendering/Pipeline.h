@@ -29,16 +29,16 @@ namespace core::gfx
 
     struct PipelineDescriptor
     {
-        PipelineDescriptor();
+        // TODO make constructors that automatically set bools
 
-        bool depthTest;
-        DepthFunction depthFunc;
+        bool depthTest = true;
+        DepthFunction depthFunc = DepthFunction::Less;
 
-        bool blend;
-        BlendOption blendSource;
-        BlendOption blendDestination;
+        bool blend = false;
+        BlendOption blendSource = BlendOption::One;
+        BlendOption blendDestination = BlendOption::Zero;
 
-        BackfaceCulling backfaceCulling;
+        BackfaceCulling backfaceCulling = BackfaceCulling::Back;
     };
 
     class Pipeline
@@ -59,7 +59,8 @@ namespace core::gfx
         assets::AssetRef<Material> newMaterialInstance(std::string_view name) const;
         const ShaderLayout& getShaderLayout() const;
 
-        static assets::AssetRef<Pipeline> create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertProgram, std::string_view fragProgram);
+        static assets::AssetRef<Pipeline> create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertSourcePath, std::string_view fragSourcePath);
+        static assets::AssetRef<Pipeline> createFullscreenEffect(std::string_view name, std::string_view fullscreenShaderSourcePath);
     };
 
     namespace gl_platform

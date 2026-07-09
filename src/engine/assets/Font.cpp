@@ -20,12 +20,13 @@ AssetRef<gfx::Pipeline> Font::getOrCreateDefaultPipeline()
 
     if (_defaultFontPipeline.isNull())
     {
-        PipelineDescriptor desc;
-        desc.blend = true;
-        desc.blendSource = BlendOption::One;
-        desc.blendDestination = BlendOption::OneMinusSourceAlpha;
-        desc.backfaceCulling = BackfaceCulling::None;
-        desc.depthTest = false;
+        constexpr PipelineDescriptor desc{
+            .depthTest = false,
+            .blend = true,
+            .blendSource = BlendOption::One,
+            .blendDestination = BlendOption::OneMinusSourceAlpha,
+            .backfaceCulling = BackfaceCulling::Back,
+        };
         _defaultFontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.vert", "shaders/font.frag");
     }
 

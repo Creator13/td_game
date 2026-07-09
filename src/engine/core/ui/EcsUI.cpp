@@ -102,10 +102,12 @@ engine_ui::engine_ui(flecs::world& ecs)
 
     auto tex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
 
-    PipelineDescriptor desc;
-    desc.blend = false;
-    desc.backfaceCulling = BackfaceCulling::None;
-    desc.depthTest = false;
+    constexpr PipelineDescriptor desc{
+        .depthTest = false,
+        .blend = false,
+        .backfaceCulling = BackfaceCulling::None, // Culling could technically be Back for all screenspace ui elements, its only required to be None for worldspace elements
+    };
+
     auto uiRenderPipeline = Pipeline::create("UI sprite", desc, "shaders/basic.vert", "shaders/ui.frag");
     _uiMaterial = uiRenderPipeline->newMaterialInstance("UI material");
     _uiMaterial->setTexture2D("_texture"_spid, tex);

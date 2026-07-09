@@ -123,20 +123,35 @@ int Application::run()
     {
         FrameMark;
 
-        glfwPollEvents();
+        {
+            ZoneScopedN("glfw events")
+            glfwPollEvents();
+        }
 
         time::markFrame();
 
-        if (!_ecs.progress())
         {
-            glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
+            ZoneScopedN("Run ECS")
+            if (!_ecs.progress())
+            {
+                glfwSetWindowShouldClose(_windowPtr, GLFW_TRUE);
+            }
         }
 
-        _renderer->renderFrame();
-        _debugRenderer->render();
+        {
+            ZoneScopedN("Render frame")
+            _renderer->renderFrame();
+        }
+        {
+            ZoneScopedN("Debug render")
+            _debugRenderer->render();
+        }
 
-        glfwSwapBuffers(_windowPtr);
-        TracyGpuCollect;
+        {
+            ZoneScopedN("Glfw buffer swap (wait for present)")
+            glfwSwapBuffers(_windowPtr);
+        }
+            TracyGpuCollect;
 
         _inputState.endFrame();
     }
@@ -223,7 +238,8 @@ void Application::initFlecs()
     }
     else
     {
-        const i32 numFlecsThreads = numOsThreads - 2;
+        // const i32 numFlecsThreads = numOsThreads - 2;
+        const i32 numFlecsThreads = 4;
         spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", numOsThreads, numFlecsThreads);
         _ecs.set_threads(math::max(0, numFlecsThreads));
     }

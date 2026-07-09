@@ -22,14 +22,14 @@ u32 Texture::rawSizeBytes() const
     return _width * _height * texture_util::getChannelCountInFormat(_format);
 }
 
-AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_t height, TextureFormat format, bool createMips, bool readOnly)
+AssetRef<Texture> Texture::create(std::string_view name, uint32_t width, uint32_t height, TextureFormat format, bool createMips, bool readOnly, TextureWrap wrapU, TextureWrap wrapV, TextureFilter filter)
 {
     ENGINE_ASSERT(width > 0 && height > 0, "Width and height values should be greater than zero");
 
     auto [texMem, index] = AssetDatabase::instance->_textureStorage.allocate_uninitialized();
     Texture* outTexture = ::new(texMem) Texture(width, height, format);
 
-    outTexture->_glBindPoint = texture_util::createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips);
+    outTexture->_glBindPoint = texture_util::createGlTexture(width, height, texture_util::getGlInternalFormat(format), createMips, wrapU, wrapV, filter);
 
     outTexture->_isReadable = !readOnly;
 
@@ -105,10 +105,10 @@ AssetRef<Texture> Texture::fallbackWhite()
 
     if (!_fallbackWhiteRef)
     {
-        spdlog::warn("Fallback texture was required, try to avoid in production.");
-        _fallbackWhiteRef = create("FallbackWhite", 1, 1, TextureFormat::RGBA8_SRGB, false, true);
+        _fallbackWhiteRef = create("FallbackWhite", 1, 1, TextureFormat::RGBA8_SRGB, false, true, TextureWrap::Repeat, TextureWrap::Repeat, TextureFilter::Nearest);
         _fallbackWhiteRef->uploadExternalData(whitePixel, GL_RGBA, GL_UNSIGNED_BYTE, false);
     }
+    spdlog::warn("Fallback texture was required, try to avoid in production.");
     return _fallbackWhiteRef;
 }
 

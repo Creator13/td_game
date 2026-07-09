@@ -12,10 +12,10 @@ using namespace core::gfx;
 using namespace core::assets;
 
 
-PipelineDescriptor::PipelineDescriptor()
-    : depthTest(true), depthFunc(DepthFunction::Less),
-      blend(false), blendSource(BlendOption::SourceAlpha), blendDestination(BlendOption::OneMinusSourceAlpha),
-      backfaceCulling(BackfaceCulling::Back) { }
+// PipelineDescriptor::PipelineDescriptor()
+//     : depthTest(true), depthFunc(DepthFunction::Less),
+//       blend(false), blendSource(BlendOption::SourceAlpha), blendDestination(BlendOption::OneMinusSourceAlpha),
+//       backfaceCulling(BackfaceCulling::Back) { }
 
 Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey)
     : _descriptor(descriptor), _programId(program), _shaderLayout(ShaderLayout::buildFromProgram(program)),
@@ -43,15 +43,26 @@ const ShaderLayout& Pipeline::getShaderLayout() const
     return _shaderLayout;
 }
 
-AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertProgram, std::string_view fragProgram)
+AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescriptor& descriptor, std::string_view vertSourcePath, std::string_view fragSourcePath)
 {
-    const gl::program_t program = AssetDatabase::instance->_shaderLoader.glProgramFromFiles(vertProgram, fragProgram);
+    const gl::program_t program = AssetDatabase::instance->_shaderLoader.glProgramFromFiles(vertSourcePath, fragSourcePath);
 
     auto& pipelineStorage = AssetDatabase::instance->_pipelineStorage;
     auto [mem, index] = pipelineStorage.allocate_uninitialized();
     Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, index);
 
     return AssetDatabase::registerRuntimeAsset<Pipeline>(name, pipeline, index);
+}
+
+AssetRef<Pipeline> Pipeline::createFullscreenEffect(std::string_view name, std::string_view fullscreenShaderSourcePath)
+{
+    constexpr PipelineDescriptor fsDescriptor{
+        .depthTest = false,
+        .blend = false,
+        .backfaceCulling = BackfaceCulling::Back,
+    };
+
+    return create(name, fsDescriptor, "shaders/fullscreen.vert", fullscreenShaderSourcePath);
 }
 
 gl::enum_t gl_platform::getGlBlendFuncOption(BlendOption in)
