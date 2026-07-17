@@ -113,7 +113,7 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(perspSystem)
         .depends_on(orthoSystem);
 
-    ecs.system<const RendererSingleton, const SceneRenderData>().each(syncPostEffectStack);
+    ecs.system<const RendererSingleton, const SceneRenderData>().each(syncSceneData);
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
@@ -215,10 +215,11 @@ void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const
     renderer.setViewportData(viewportData);
 }
 
-void rendering::syncPostEffectStack(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData)
+void rendering::syncSceneData(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData)
 {
     Renderer& renderer = *r_ptr.ptr;
     renderer.setPostEffectStack(sceneRenderData.postEffects);
+    renderer.setClearColor(sceneRenderData.backgroundColor);
 }
 
 void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)

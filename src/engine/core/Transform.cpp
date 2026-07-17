@@ -200,29 +200,19 @@ vec3 HierarchyTransform::getRight() const
     return normalize(worldMatrix.getCol(0).xyz());
 }
 
-vec3 HierarchyTransform::getForward() const
-{
-    return normalize(worldMatrix.getCol(1).xyz());
-}
-
 vec3 HierarchyTransform::getUp() const
 {
     return normalize(worldMatrix.getCol(2).xyz());
 }
 
+vec3 HierarchyTransform::getForward() const
+{
+    return normalize(worldMatrix.getCol(1).xyz());
+}
+
 const mat4& HierarchyTransform::getWorldMatrix() const
 {
     return worldMatrix;
-}
-
-bool transform::hasParentEntity(flecs::entity e)
-{
-    return e.has(flecs::ChildOf, flecs::Wildcard);
-}
-
-bool transform::hasParentTransform(flecs::entity e)
-{
-    return hasParentEntity(e) && e.parent().has<HierarchyTransform>();
 }
 
 void HierarchyTransform::applyModified(flecs::entity e_self)
@@ -236,7 +226,7 @@ void HierarchyTransform::applyModified(flecs::entity e_self)
         const HierarchyTransform* t_parent = e_self.parent().try_get<HierarchyTransform>();
         if (t_parent)
         {
-            parentMatx = &t_parent->worldMatrix;
+            parentMatx = &(t_parent->worldMatrix);
         }
     }
 
@@ -245,7 +235,7 @@ void HierarchyTransform::applyModified(flecs::entity e_self)
 
 void HierarchyTransform::propagateMatrixToChildren(flecs::entity e_self, const mat4* parentMatrix)
 {
-    if (parentMatrix)
+    if (parentMatrix != nullptr)
     {
         worldMatrix = *parentMatrix * mat4::makeTRS(localPos, localRot, localScale);
     }
@@ -329,4 +319,14 @@ void transform::add(flecs::entity target, vec3 pos)
 
     const mat4 localMatx = mat4::makeTRS(pos, quaternion::identity, vec3::one);
     target.set<HierarchyTransform>({pos, quaternion::identity, vec3::one, localMatx});
+}
+
+bool transform::hasParentEntity(flecs::entity e)
+{
+    return e.has(flecs::ChildOf, flecs::Wildcard);
+}
+
+bool transform::hasParentTransform(flecs::entity e)
+{
+    return hasParentEntity(e) && e.parent().has<HierarchyTransform>();
 }

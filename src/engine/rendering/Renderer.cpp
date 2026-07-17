@@ -66,8 +66,8 @@ Renderer::Renderer()
     : _instanceDataBuffer(1_MB),
       _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, true),
       _pingPongFramebuffers({
-          Framebuffer(800, 600, TextureFormat::RGBA16_FLOAT, false),
-          Framebuffer(800, 600, TextureFormat::RGBA16_FLOAT, false)
+          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false),
+          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false)
       }) { }
 
 void Renderer::init(int fbWidth, int fbHeight)
@@ -150,7 +150,7 @@ void Renderer::renderFrame()
     usize instanceIndex = 0;
 
     glBindFramebuffer(GL_FRAMEBUFFER, _mainFramebuffer._fbo);
-    glClearColor(_viewportData.clearColor.r, _viewportData.clearColor.g, _viewportData.clearColor.b, _viewportData.clearColor.a);
+    glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Execute opaque pass
@@ -180,6 +180,11 @@ void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>&
 {
     _postEffects.clear();
     _postEffects.assign_range(stack);
+}
+
+void Renderer::setClearColor(const Color& clearColor)
+{
+    _clearColor = clearColor;
 }
 
 u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
@@ -381,9 +386,11 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
 }
 void Renderer::executePostEffectStack()
 {
+    ZoneScopedN("Execute post processing stack")
     if (_postEffects.empty())
     {
         executePostEffect(_fullscreenBlitEffect, _mainFramebuffer, 0);
+        return;
     }
 
     Framebuffer* src = &_mainFramebuffer;
@@ -400,6 +407,9 @@ void Renderer::executePostEffectStack()
 
 void Renderer::executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst)
 {
+    ZoneScopedN("Apply effect")
+    TracyGpuZone("Apply effect");
+
     bindPipeline(material->pipeline);
     material->setTexture2D("_sceneColor"_spid, src._colorAttachment);
     bindMaterial(material);

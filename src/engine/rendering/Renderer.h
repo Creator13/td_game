@@ -46,6 +46,7 @@ namespace core::gfx
         using CommandQueue = std::vector<DrawCommand>;
 
         ViewportData _viewportData = ViewportData();
+        Color _clearColor;
 
         CommandQueue _opaqueCommandQueue;
         CommandQueue _uiCommandQueue;
@@ -74,7 +75,9 @@ namespace core::gfx
         void setViewportData(const ViewportData& params);
         void submitDrawCommand(const DrawCommand& command);
         void renderFrame();
+
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
+        void setClearColor(const Color& clearColor);
 
         static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
 

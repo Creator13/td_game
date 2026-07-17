@@ -44,7 +44,7 @@ void engine::setupGame(const flecs::world& world)
     const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
 
     AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
-    AssetRef<Texture> avacadoo = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
+    AssetRef<Texture> avacadooTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
 
     constexpr PipelineDescriptor pDesc{
         .depthTest = true,
@@ -57,14 +57,16 @@ void engine::setupGame(const flecs::world& world)
 
     AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance("mat");
     uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
-    uvCheckerMat->setColor("color"_spid, Color::fromSrgb(SrgbColor::green));
+    uvCheckerMat->setColor("color"_spid, Color::green);
 
     AssetRef<Material> avacadooMat = pipeline->newMaterialInstance("mat");
-    avacadooMat->setTexture2D("_mainTex"_spid, avacadoo);
+    avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
 
-    auto& sceneRenderData = world.get_mut<SceneRenderData>();
-    auto invert = Pipeline::createFullscreenEffect("Invert", "shaders/invert.frag");
-    sceneRenderData.postEffects = std::vector{invert->newMaterialInstance("h")};
+    SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
+    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/invert.frag");
+    const auto invertMat = invert->newMaterialInstance("h");
+    sceneRenderData.postEffects = std::vector{invertMat, invertMat};
+    sceneRenderData.backgroundColor = Color::lightSkyBlue;
 
     constexpr int count = 100;
     int n = 0;
