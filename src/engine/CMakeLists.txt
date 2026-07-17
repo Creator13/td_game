@@ -83,8 +83,9 @@ add_dependencies(engine_core copy_resources)
 
 ## Spdlog debug level depends on target
 target_compile_definitions(engine_core PUBLIC
-        $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG>
+        $<$<CONFIG:RelWithDebInfo>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE>
         $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>
+        $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE>
 )
 
 ## Set DEBUG_BUILD definition on Debug and RelWithDebInfo targets

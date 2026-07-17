@@ -100,7 +100,7 @@ constexpr size_t SIZE = 16;
 
 TEST_CASE("Default construction", PAGED_STORAGE_TEST_TAG)
 {
-    spdlog::info("sizeof(PagedStorage<TrackedTestType, 16>) == {}", sizeof(PagedStorage<TrackedTestType, 16>));
+    SPDLOG_INFO("sizeof(PagedStorage<TrackedTestType, 16>) == {}", sizeof(PagedStorage<TrackedTestType, 16>));
     const PagedStorage<TrackedTestType, SIZE> storage;
     CHECK(storage.page_count() == 1);
     CHECK(storage.mem_size() == SIZE * sizeof(TrackedTestType));

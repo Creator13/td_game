@@ -40,14 +40,14 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
     auto fId = compileFromSource(preprocessShader(errorShaderFrag), GL_FRAGMENT_SHADER);
     if (!vId || !fId)
     {
-        spdlog::error("Failed to compile debug shader!");
+        SPDLOG_ERROR("Failed to compile debug shader!");
         return 0;
     }
 
     const auto pId = linkShaderProgram({vId.value(), fId.value()});
     if (!pId)
     {
-        spdlog::error("Failed to link debug shader!");
+        SPDLOG_ERROR("Failed to link debug shader!");
         return 0;
     }
 
@@ -104,7 +104,7 @@ std::optional<gl::shader_t> ShaderLoader::compileFromSource(std::string_view sou
         std::string infoLog = std::string(infoLogLength, '\0');
 
         glGetShaderInfoLog(shaderId, infoLogLength, nullptr, infoLog.data());
-        spdlog::error("Shader compilation failed:\n{}", infoLog);
+        SPDLOG_CRITICAL("Shader compilation failed:\n{}", infoLog);
         glDeleteShader(shaderId);
         return std::nullopt;
     }
@@ -131,7 +131,7 @@ std::optional<gl::program_t> ShaderLoader::linkShaderProgram(std::initializer_li
 
         glGetProgramInfoLog(programId, infoLogLength, nullptr, infoLog.data());
 
-        spdlog::error("Shader linking failed:\n{}", infoLog);
+        SPDLOG_ERROR("Shader linking failed:\n{}", infoLog);
         return std::nullopt;
     }
 
@@ -144,18 +144,18 @@ std::optional<gl::shader_t> ShaderLoader::loadShaderStageFromFile(std::string_vi
     // Check cache
     if (_shaderStageCache.contains(id))
     {
-        spdlog::debug("Cache hit for shader stage at {}", path);
+        SPDLOG_DEBUG("Cache hit for shader stage at {}", path);
         return _shaderStageCache.at(id);
     }
 
     // Not cached -> load into cache
     const file::fs::path fullPath = AssetDatabase::resolveResourcePath(path);
-    spdlog::debug("Loading shader stage file from {}", fullPath.generic_string());
+    SPDLOG_DEBUG("Loading shader stage file from {}", fullPath.generic_string());
 
     std::optional<std::string> source = file::readFileText(fullPath);
     if (!source.has_value())
     {
-        spdlog::error("Failed to load shader stage: {}", path);
+        SPDLOG_ERROR("Failed to load shader stage: {}", path);
         return std::nullopt;
     }
 

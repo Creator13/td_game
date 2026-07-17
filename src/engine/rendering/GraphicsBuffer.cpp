@@ -58,6 +58,6 @@ void core::GraphicsBuffer::resize(u32 newSize)
     _localBuffer.resize(newSize);
     _size = newSize;
 
-    spdlog::debug("Resizing graphics buffer (id:{}) to {:b}.", _handle, FormattableBytes{newSize});
+    SPDLOG_DEBUG("Resizing graphics buffer (id:{}) to {:b}.", _handle, FormattableBytes{newSize});
 }
 

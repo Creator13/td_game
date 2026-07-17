@@ -62,7 +62,7 @@ AssetRef<Pipeline> Pipeline::createFullscreenEffect(std::string_view name, std::
         .backfaceCulling = BackfaceCulling::Back,
     };
 
-    return create(name, fsDescriptor, "shaders/fullscreen.vert", fullscreenShaderSourcePath);
+    return create(name, fsDescriptor, "shaders/fullscreen/fullscreen.vert", fullscreenShaderSourcePath);
 }
 
 gl::enum_t gl_platform::getGlBlendFuncOption(BlendOption in)

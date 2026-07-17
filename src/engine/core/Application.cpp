@@ -2,6 +2,7 @@
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/spdlog.h>
 
 #include <tracy/Tracy.hpp>
@@ -21,7 +22,7 @@ namespace
 {
     void glfw_errorCallback(int code, const char* description)
     {
-        spdlog::error("GLFW Error {}: {}", code, description);
+        SPDLOG_ERROR("GLFW Error {}: {}", code, description);
     }
 
     constexpr std::string_view glDebugEnumToString(GLenum e) noexcept
@@ -94,6 +95,7 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     : _ecs(argc, argv), _windowState(windowState)
 {
     spdlog::set_level(spdlog::level::debug);
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] [%s:%#] %v");
 
     createWindow(windowState);
 
@@ -163,7 +165,7 @@ bool Application::createWindow(const WindowState& windowState)
 {
     if (!glfwInit())
     {
-        spdlog::error("Failed to initialize GLFW");
+        SPDLOG_ERROR("Failed to initialize GLFW");
         return false;
     }
 
@@ -180,7 +182,7 @@ bool Application::createWindow(const WindowState& windowState)
     _windowPtr = glfwCreateWindow(windowState.width, windowState.height, windowState.title.c_str(), nullptr, nullptr);
     if (!_windowPtr)
     {
-        spdlog::error("Failed to create GLFW window.");
+        SPDLOG_ERROR("Failed to create GLFW window.");
         glfwTerminate();
     }
 
@@ -190,7 +192,7 @@ bool Application::createWindow(const WindowState& windowState)
 
     if (int version = gladLoadGL(glfwGetProcAddress); version == 0)
     {
-        spdlog::error("Failed to initialize GLAD");
+        SPDLOG_ERROR("Failed to initialize GLAD");
         return false;
     }
     TracyGpuContext;
@@ -233,14 +235,15 @@ void Application::initFlecs()
     if (numOsThreads == 0)
     {
         // if value is 0, something went wrong in obtaining the value and we cannot rely on it, so assume 2 is a decent value
-        spdlog::debug("Failed to detect cpu threads; spawning 2 flecs worker threads.");
+        SPDLOG_DEBUG("Failed to detect cpu threads; spawning 2 flecs worker threads.");
         _ecs.set_threads(2);
     }
     else
     {
+        // TODO figure out proper thread count. Testing showed that using all available threads -2 showed much worse performance than no threads at all, but 2 was better than none and 4 was slightly better still.
         // const i32 numFlecsThreads = numOsThreads - 2;
         const i32 numFlecsThreads = 4;
-        spdlog::debug("Detected {} threads, spawning {} flecs worker threads.", numOsThreads, numFlecsThreads);
+        SPDLOG_DEBUG("Detected {} threads, spawning {} flecs worker threads.", numOsThreads, numFlecsThreads);
         _ecs.set_threads(math::max(0, numFlecsThreads));
     }
 
@@ -252,7 +255,7 @@ void Application::initFlecs()
 #ifdef DEBUG_BUILD
     _ecs.import<flecs::stats>();
     _ecs.set<flecs::Rest>({ });
-    spdlog::debug("Open flecs explorer at https://flecs.dev/explorer");
+    SPDLOG_DEBUG("Open flecs explorer at https://flecs.dev/explorer");
 #endif
 
     _ecs.import<::debug::ecs::engine_debug>();
@@ -276,7 +279,7 @@ void Application::cleanup()
 
 void Application::cleanWindow()
 {
-    spdlog::debug("Destroying window, ending OpenGL context.");
+    SPDLOG_DEBUG("Destroying window, ending OpenGL context.");
     glfwDestroyWindow(_windowPtr);
     glfwTerminate();
 }

@@ -77,7 +77,7 @@ void Renderer::init(int fbWidth, int fbHeight)
 
     resizeFrameBuffers(fbWidth, fbHeight);
 
-    auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreenBlit.frag");
+    auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreen/fullscreenBlit.frag");
     _fullscreenBlitEffect = fsPipeline->newMaterialInstance("anonymous");
 
     glCreateBuffers(1, &_frameDataUboHandle.id);

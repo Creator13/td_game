@@ -4,7 +4,7 @@
 
 void core::debug::handle_assert(const char* expression, const std::string_view& message, const std::source_location& location)
 {
-    spdlog::critical("Assertion Failed: {} | Message: {}", expression, message);
+    SPDLOG_CRITICAL("Assertion Failed: {} | Message: {}", expression, message);
 
     cpptrace::stacktrace trace = cpptrace::generate_trace(1);
     trace.print();

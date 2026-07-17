@@ -52,7 +52,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     auto data = fastgltf::GltfDataBuffer::FromPath(absPath);
     if (data.error() != fastgltf::Error::None)
     {
-        spdlog::error("Error loading gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
+        SPDLOG_ERROR("Error loading gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
         return AssetRef<Mesh>::null();
     }
 
@@ -61,7 +61,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     auto load = gltfParser.loadGltfBinary(data.get(), absPath.parent_path(), parserOptions);
     if (auto error = load.error(); error != fastgltf::Error::None)
     {
-        spdlog::error("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
+        SPDLOG_ERROR("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
     }
 
     fastgltf::Asset asset = std::move(load.get());
@@ -80,7 +80,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
         auto posAttribute = primitive.findAttribute("POSITION");
         if (posAttribute == nullptr)
         {
-            spdlog::error("No POSITION attribute (TODO add more info)"); // TODO add more info
+            SPDLOG_ERROR("No POSITION attribute (TODO add more info)"); // TODO add more info
             continue;
         }
         const fastgltf::Accessor& posAccessor = asset.accessors[posAttribute->accessorIndex];

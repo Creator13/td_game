@@ -41,7 +41,7 @@ bool FontLoader::validateFontFile(std::string_view path) const
 
     if (err)
     {
-        spdlog::error("Failed to load font file at \"{}\": {}", path, FT_Error_String(err));
+        SPDLOG_ERROR("Failed to load font file at \"{}\": {}", path, FT_Error_String(err));
         return false;
     }
     FT_Done_Face(face);
@@ -93,7 +93,7 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
     packer.setMiterLimit(1);
     if (packer.pack(glyphs.data(), glyphs.size()) != 0)
     {
-        spdlog::error("Failed to pack glyphs for font {}", path);
+        SPDLOG_ERROR("Failed to pack glyphs for font {}", path);
         return false;
     }
 

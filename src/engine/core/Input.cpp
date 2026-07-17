@@ -230,7 +230,7 @@ void core::glfw_cursorPosCallback(GLFWwindow* window, double x, double y)
     // TODO replace with runtime assert
     else
     {
-        spdlog::error("Mouse pos input callback was called on a window with a nullptr input manager");
+        SPDLOG_ERROR("Mouse pos input callback was called on a window with a nullptr input manager");
     }
 #endif
 }
@@ -261,7 +261,7 @@ void core::glfw_keyCallback(GLFWwindow* window, int token, int scancode, int act
     // TODO replace with runtime assert
     else
     {
-        spdlog::error("Key input callback was called on a window with a nullptr input manager");
+        SPDLOG_ERROR("Key input callback was called on a window with a nullptr input manager");
     }
 #endif
 }

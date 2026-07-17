@@ -63,7 +63,7 @@ void engine::setupGame(const flecs::world& world)
     avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
 
     SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
-    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/invert.frag");
+    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.frag");
     const auto invertMat = invert->newMaterialInstance("h");
     sceneRenderData.postEffects = std::vector{invertMat, invertMat};
     sceneRenderData.backgroundColor = Color::lightSkyBlue;

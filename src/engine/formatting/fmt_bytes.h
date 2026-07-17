@@ -1,7 +1,6 @@
 #pragma once
-#include <fmt/format.h>
-#include <cmath>
 #include <cstdint>
+#include <fmt/format.h>
 
 struct FormattableBytes {
     uint64_t bytes;
