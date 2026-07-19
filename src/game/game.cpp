@@ -36,12 +36,14 @@ void engine::setupGame(const flecs::world& world)
 
     cam.get_ref<PerspectiveCameraData>();
 
-    vec3 camPos = vec3(.2, -5, 3) * 2;
+    vec3 camPos = vec3(.2, -5, 3);
     transform::add(cam, camPos, quaternion::eulerAngles(-25, 0, 0));
     cam.set<FreeLookCameraControlData>({.targetSpeed = 5, .speedMultiplier = 1.75f});
 
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
     const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
+    const AssetRef<Mesh> cube = Mesh::loadFromFile("mesh/primitive/cube.glb");
+    const AssetRef<Mesh> groundPlane = Mesh::loadFromFile("mesh/primitive/plane.glb");
 
     AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> avacadooTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
@@ -59,9 +61,6 @@ void engine::setupGame(const flecs::world& world)
     uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
     uvCheckerMat->setColor("color"_spid, Color::green);
 
-    AssetRef<Material> avacadooMat = pipeline->newMaterialInstance("mat");
-    avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
-
     SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
     const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.fs.glsl");
     const auto invertMat = invert->newMaterialInstance("h");
@@ -72,31 +71,86 @@ void engine::setupGame(const flecs::world& world)
     tonemapMat->setInt("uMode"_spid, 0);
     const AssetRef<Pipeline> fxaa = Pipeline::createFullscreenEffect("FXAA", "shaders/fullscreen/fxaa.fs.glsl");
     const auto fxaaMat = fxaa->newMaterialInstance("qw");
-    sceneRenderData.postEffects = std::vector{tonemapMat, fxaaMat};
-    sceneRenderData.backgroundColor = Color::lightSkyBlue;
 
-    constexpr int count = 100;
-    int n = 0;
-    for (int i = 0; i < count; i++)
-    {
-        for (int j = 0; j < count; j++, n++)
-        {
-            flecs::entity e;
-            if (n % 3 == 0)
-            {
-                e = world.entity(fmt::format("avacadoo {}-{}", i, j).c_str())
-                    .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
-            }
-            else
-            {
-                e = world.entity(fmt::format("sphere {}-{}", i, j).c_str())
-                    .set<MeshRenderData>({.mesh = sphere, .material = uvCheckerMat})
-                    // .set<RotateData>({((i % 5) - 2) * 30.f})
-                    ;
-            }
-            transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
-        }
-    }
+    sceneRenderData.postEffects = std::vector{tonemapMat, fxaaMat};
+    sceneRenderData.backgroundColor = Color::fromSrgb(.07, .07, .1);
+
+    // #### Lighting test scene
+    auto floor = world.entity("Floor")
+        .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
+    transform::add(floor, vec3(0, 0, 0));
+
+    AssetRef<Pipeline> lit = Pipeline::create("lit", pDesc, "shaders/lit.v.glsl", "shaders/lit.f.glsl");
+
+    auto cube1Mat = lit->newMaterialInstance("cube1");
+    auto cube1 = world.entity("cube1")
+        .set<MeshRenderData>({.mesh = cube, .material = cube1Mat});
+    transform::add(cube1, vec3(-2, 3, 0.65), quaternion::eulerAngles(15, 0, 66));
+
+    auto cube2Mat = lit->newMaterialInstance("cube2");
+    auto cube2 = world.entity("cube2")
+        .set<MeshRenderData>({.mesh = cube, .material = cube2Mat});
+    transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
+
+    auto cube3Mat = lit->newMaterialInstance("cube3");
+    auto cube3 = world.entity("cube3")
+        .set<MeshRenderData>({.mesh = cube, .material = cube3Mat})
+        .set<RotateData>({.angularVelocity = 15});
+    transform::add(cube3, vec3(-1, -2, 0.5), quaternion::eulerAngles(0, 0, -14), vec3::one * 1.5f);
+
+    auto sphereMat = lit->newMaterialInstance("sphere1");
+    auto sphere1 = world.entity("sphere1")
+        .set<MeshRenderData>({.mesh = sphere, .material = sphereMat});
+    transform::add(sphere1, vec3(1, -1.5, .5));
+
+    AssetRef<Material> avacadooMat = lit->newMaterialInstance("mat");
+    avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
+    auto avacadoo = world.entity("avacadoo")
+        .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
+    transform::add(avacadoo, vec3(1, 1, .15), quaternion::eulerAngles(90, 0, 22), vec3::one * 10);
+
+    PipelineDescriptor gizmosDesc = pDesc;
+    gizmosDesc.depthTest = false;
+    AssetRef<Pipeline> colored = Pipeline::create("colored", gizmosDesc, "shaders/basic.vert", "shaders/color.frag");
+
+    auto redMat = colored->newMaterialInstance("red");
+    redMat->setColor("color"_spid, Color::red);
+    auto gizmoX = world.entity("gizmoX").set<MeshRenderData>({.mesh = cube, .material = redMat});
+    transform::add(gizmoX, vec3::zero, quaternion::identity, vec3(4, .01, .01));
+
+    auto greenMat = colored->newMaterialInstance("green");
+    greenMat->setColor("color"_spid, Color::green);
+    auto gizmoY = world.entity("gizmoY").set<MeshRenderData>({.mesh = cube, .material = greenMat});
+    transform::add(gizmoY, vec3::zero, quaternion::identity, vec3(.01, 4, .01));
+
+    auto blueMat = colored->newMaterialInstance("blue");
+    blueMat->setColor("color"_spid, Color::blue);
+    auto gizmoZ = world.entity("gizmoZ").set<MeshRenderData>({.mesh = cube, .material = blueMat});
+    transform::add(gizmoZ, vec3::zero, quaternion::identity, vec3(.01, .01, 4));
+
+    // #### NxN object scene
+    // constexpr int count = 100;
+    // int n = 0;
+    // for (int i = 0; i < count; i++)
+    // {
+    //     for (int j = 0; j < count; j++, n++)
+    //     {
+    //         flecs::entity e;
+    //         if (n % 3 == 0)
+    //         {
+    //             e = world.entity(fmt::format("avacadoo {}-{}", i, j).c_str())
+    //                 .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
+    //         }
+    //         else
+    //         {
+    //             e = world.entity(fmt::format("sphere {}-{}", i, j).c_str())
+    //                 .set<MeshRenderData>({.mesh = sphere, .material = uvCheckerMat})
+    //                 // .set<RotateData>({((i % 5) - 2) * 30.f})
+    //                 ;
+    //         }
+    //         transform::add(e, vec3((i - count / 2) * 1.5f, (j - count / 2) * 1.5f, 0), quaternion::identity, vec3(1.f));
+    //     }
+    // }
 
     world.system<HierarchyTransform, const RotateData>("Rotating")
         .each([](flecs::iter& it, usize i, HierarchyTransform& transform, const RotateData& rotation)
