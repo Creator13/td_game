@@ -33,6 +33,7 @@ namespace core::gfx
         math::mat4 view = math::mat4::identity;
         math::mat4 projection = math::mat4::identity;
         math::mat4 viewProj = math::mat4::identity;
+        math::vec2 screenSize;
         float time = 0;
 
         constexpr static gl::Int SHADER_BINDING = 0;
@@ -45,6 +46,7 @@ layout (binding = 0, std140) uniform PassDataBlock
     mat4 view;
     mat4 projection;
     mat4 viewProj;
+    vec2 screenSize;
     float time;
 } scene;
             )";

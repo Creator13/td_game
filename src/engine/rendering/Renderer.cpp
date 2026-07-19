@@ -73,11 +73,10 @@ Renderer::Renderer()
 void Renderer::init(int fbWidth, int fbHeight)
 {
     glFrontFace(GL_CCW);
-    glEnable(GL_FRAMEBUFFER_SRGB); // Set backbuffer to convert back to srgb on present
 
     resizeFrameBuffers(fbWidth, fbHeight);
 
-    auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreen/fullscreenBlit.frag");
+    auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreen/blit.fs.glsl");
     _fullscreenBlitEffect = fsPipeline->newMaterialInstance("anonymous");
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
@@ -158,22 +157,27 @@ void Renderer::renderFrame()
     opaqueData.view = _viewportData.viewMatrix;
     opaqueData.projection = _viewportData.projectionMatrix;
     opaqueData.viewProj = _viewportData.getCombinedViewProjectionMatrix();
+    opaqueData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
     opaqueData.time = currentTime;
     executePass(opaqueData, _opaqueCommandQueue, instanceIndex);
     instanceIndex += _opaqueCommandQueue.size();
     _opaqueCommandQueue.clear();
+
+    executePostEffectStack();
 
     // Execute UI pass
     PassDataBlock uiPassData;
     uiPassData.view = mat4::identity;
     uiPassData.projection = _viewportData.getScreenSpaceProjectionMatrix();
     uiPassData.viewProj = uiPassData.projection; // view matrix is identity, so view-projection is simply the projection mat
+    uiPassData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
     uiPassData.time = currentTime;
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Render UI as overlay to the current image in the backbuffer (the scene)
     executePass(uiPassData, _uiCommandQueue, instanceIndex);
+    glDisable(GL_FRAMEBUFFER_SRGB);
     instanceIndex += _uiCommandQueue.size();
     _uiCommandQueue.clear();
-
-    executePostEffectStack();
 }
 
 void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
@@ -387,11 +391,17 @@ void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, u
 void Renderer::executePostEffectStack()
 {
     ZoneScopedN("Execute post processing stack")
+
     if (_postEffects.empty())
     {
         executePostEffect(_fullscreenBlitEffect, _mainFramebuffer, 0);
         return;
     }
+
+    PassDataBlock postPassData;
+    postPassData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
+    postPassData.time = time::sinceLoad();
+    bindPassData(postPassData);
 
     Framebuffer* src = &_mainFramebuffer;
     for (usize i = 0; i < _postEffects.size() - 1; ++i)
@@ -411,7 +421,7 @@ void Renderer::executePostEffect(assets::AssetRef<Material> material, const Fram
     TracyGpuZone("Apply effect");
 
     bindPipeline(material->pipeline);
-    material->setTexture2D("_sceneColor"_spid, src._colorAttachment);
+    material->setTexture2D("_screenTexture"_spid, src._colorAttachment);
     bindMaterial(material);
     glBindFramebuffer(GL_FRAMEBUFFER, dst);
     glBindVertexArray(_emptyVao);

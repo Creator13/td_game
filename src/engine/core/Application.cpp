@@ -95,7 +95,7 @@ Application::Application(int argc, char* argv[], std::string_view resourceRoot, 
     : _ecs(argc, argv), _windowState(windowState)
 {
     spdlog::set_level(spdlog::level::debug);
-    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] [%s:%#] %v");
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%s:%#] [%^%l%$] %v");
 
     createWindow(windowState);
 

@@ -63,9 +63,16 @@ void engine::setupGame(const flecs::world& world)
     avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
 
     SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
-    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.frag");
+    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.fs.glsl");
     const auto invertMat = invert->newMaterialInstance("h");
-    sceneRenderData.postEffects = std::vector{invertMat, invertMat};
+    const AssetRef<Pipeline> tonemap = Pipeline::createFullscreenEffect("Tonemapping", "shaders/fullscreen/tonemap.fs.glsl");
+    const auto tonemapMat = tonemap->newMaterialInstance("default");
+    tonemapMat->setFloat("uExposure"_spid, 1);
+    tonemapMat->setFloat("uGammaAdjust"_spid, 1);
+    tonemapMat->setInt("uMode"_spid, 0);
+    const AssetRef<Pipeline> fxaa = Pipeline::createFullscreenEffect("FXAA", "shaders/fullscreen/fxaa.fs.glsl");
+    const auto fxaaMat = fxaa->newMaterialInstance("qw");
+    sceneRenderData.postEffects = std::vector{tonemapMat, fxaaMat};
     sceneRenderData.backgroundColor = Color::lightSkyBlue;
 
     constexpr int count = 100;
