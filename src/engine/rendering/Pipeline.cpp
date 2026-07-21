@@ -11,12 +11,6 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::assets;
 
-
-// PipelineDescriptor::PipelineDescriptor()
-//     : depthTest(true), depthFunc(DepthFunction::Less),
-//       blend(false), blendSource(BlendOption::SourceAlpha), blendDestination(BlendOption::OneMinusSourceAlpha),
-//       backfaceCulling(BackfaceCulling::Back) { }
-
 Pipeline::Pipeline(const PipelineDescriptor& descriptor, gl::program_t program, u16 sortKey)
     : _descriptor(descriptor), _programId(program), _shaderLayout(ShaderLayout::buildFromProgram(program)),
       sortKey(sortKey)

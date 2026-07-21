@@ -8,7 +8,7 @@ in VertToFrag {
 
 layout (binding = 2, std140) uniform MaterialBlock
 {
-    vec4 color;
+    vec4 albedoColor;
 };
 
 uniform sampler2D _mainTex;
@@ -16,8 +16,5 @@ uniform sampler2D _mainTex;
 out vec4 fragColor;
 
 void main() {
-    float sinTime = sin(scene.time);
-    sinTime = sinTime * .5f + .5f;
-
-    fragColor = texture(_mainTex, fragIn.vTexCoord) * mix(vec4(1), color, sinTime);
+    fragColor = texture(_mainTex, fragIn.vTexCoord) * albedoColor;
 }

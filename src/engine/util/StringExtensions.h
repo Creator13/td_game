@@ -32,4 +32,14 @@ namespace util::string
         }
         return result;
     }
+
+    inline bool containsCaseInsensitive(std::string_view in, std::string_view toFind)
+    {
+        const auto it = std::ranges::search(in, toFind,
+            [](uint8_t a, uint8_t b)
+            {
+                return std::tolower(a) == std::tolower(b);
+            }).begin();
+        return it != in.end();
+    }
 }

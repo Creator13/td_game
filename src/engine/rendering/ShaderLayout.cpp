@@ -9,6 +9,7 @@
 
 #include "core/Assert.h"
 #include "formatting/fmt_gl.h"
+#include "util/StringExtensions.h"
 
 using namespace core;
 using namespace core::gfx;
@@ -132,12 +133,6 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
 
             shaderPropInfo.glType = varProps[0];
 
-            UniformInfo uniformInfo;
-            uniformInfo.offset = varProps[1];
-            uniformInfo.size = varProps[2];
-            uniformInfo.blockIndex = iBlock;
-            shaderPropInfo.data = uniformInfo;
-
             const gl::Int varNameLength = varProps[3];
             shaderPropInfo.name.resize(varNameLength);
             glGetProgramResourceName(program, GL_UNIFORM, varIndex, varNameLength, nullptr, shaderPropInfo.name.data());
@@ -148,6 +143,20 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
             {
                 shaderPropInfo.name = shaderPropInfo.name.substr(0, shaderPropInfo.name.find_first_of('['));
             }
+
+            // Special case for colors:
+            // Colors are recognized as such if the uniform name contains the word "color" and the type is vec4, set GL_TYPE to GL_COLOR if so
+            if ((shaderPropInfo.glType == GL_FLOAT_VEC4 || shaderPropInfo.glType == GL_DOUBLE_VEC4) &&
+                util::string::containsCaseInsensitive(shaderPropInfo.name, "color"))
+            {
+                shaderPropInfo.glType = GL_COLOR;
+            }
+
+            UniformInfo uniformInfo;
+            uniformInfo.offset = varProps[1];
+            uniformInfo.size = varProps[2];
+            uniformInfo.blockIndex = iBlock;
+            shaderPropInfo.data = uniformInfo;
 
             ShaderPropertyId spid = makePropertyId(shaderPropInfo.name);
 

@@ -59,7 +59,6 @@ void engine::setupGame(const flecs::world& world)
 
     AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance("mat");
     uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
-    uvCheckerMat->setColor("color"_spid, Color::green);
 
     SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
     const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.fs.glsl");

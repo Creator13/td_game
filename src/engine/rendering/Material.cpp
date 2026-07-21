@@ -55,6 +55,11 @@ void Material::initializeData()
             {
                 setMat4(id, mat4::identity);
             }
+            // Exception two is colors, we want these at (1,1,1,1) (pass-through color)
+            if (property.glType == GL_COLOR)
+            {
+                setColor(id, Color(1, 1, 1, 1));
+            }
         }
     }
 }
@@ -107,8 +112,7 @@ void Material::setVec4(ShaderPropertyId id, vec4 value)
 
 void Material::setColor(ShaderPropertyId id, Color value)
 {
-    // Color is a vec4 in shaders; alias function
-    setVec4(id, static_cast<vec4>(value));
+    setUniform<vec4>(id, static_cast<const vec4&>(value), GL_COLOR);
 }
 
 void Material::setMat4(ShaderPropertyId id, const mat4& value)

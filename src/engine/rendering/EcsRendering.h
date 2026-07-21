@@ -1,6 +1,5 @@
 #pragma once
 
-#include "datatype.h"
 #include "assets/AssetId.h"
 #include "assets/Mesh.h"
 #include "core/Transform.h"
