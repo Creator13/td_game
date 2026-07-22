@@ -33,6 +33,14 @@ namespace util::string
         return result;
     }
 
+    constexpr std::string_view trimWhitespace(std::string_view s)
+    {
+        const auto start = s.find_first_not_of(" \t\r\n");
+        if (start == std::string_view::npos) return "";
+        const auto end = s.find_last_not_of(" \t\r\n");
+        return s.substr(start, end - start + 1);
+    }
+
     inline bool containsCaseInsensitive(std::string_view in, std::string_view toFind)
     {
         const auto it = std::ranges::search(in, toFind,

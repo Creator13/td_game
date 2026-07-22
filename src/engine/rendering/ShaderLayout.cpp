@@ -9,6 +9,7 @@
 
 #include "core/Assert.h"
 #include "formatting/fmt_gl.h"
+#include "rendering/DataLayout.h"
 #include "util/StringExtensions.h"
 
 using namespace core;
@@ -107,15 +108,17 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
         blockInfo.name.resize(blockNameLength - 1);
 
         // Sort block
-        if (blockInfo.name == "MaterialBlock" || blockInfo.name == "Material" || blockInfo.name == "MaterialData")
+        if (MaterialBlock::isBlockName(blockInfo.name))
         {
             ENGINE_ASSERT(resultLayout._materialBlockIndex == -1, "Found illegal second material block in program! (program id: {})", program);
+            ENGINE_ASSERT(blockInfo.binding == MaterialBlock::SHADER_BINDING);
             resultLayout._materialBlockIndex = iBlock;
         }
-        else if (blockInfo.name == "PassDataBlock" || blockInfo.name == "Pass" || blockInfo.name == "PassData")
+        else if (ViewportDataBlock::isBlockName(blockInfo.name))
         {
-            ENGINE_ASSERT(resultLayout._passDataBlockIndex == -1, "Found illegal second pass data block in program! (program id: {})", program);
-            resultLayout._passDataBlockIndex = iBlock;
+            ENGINE_ASSERT(resultLayout._viewportDataBlockIndex == -1, "Found illegal second pass data block in program! (program id: {})", program);
+            ENGINE_ASSERT(blockInfo.binding == ViewportDataBlock::SHADER_BINDING);
+            resultLayout._viewportDataBlockIndex = iBlock;
         }
 
         std::vector<gl::Int> activeVariables(numActiveVariables);
@@ -246,21 +249,10 @@ bool ShaderLayout::hasMaterialBlock() const
     return _materialBlockIndex > -1;
 }
 
-bool ShaderLayout::hasFrameDataBlock() const
-{
-    return _passDataBlockIndex > -1;
-}
-
 const UniformBlockInfo& ShaderLayout::getMaterialBlockInfo() const
 {
     ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get material block on shader without said block. (This block should not be missing if you see this message.)");
     return _uniformBlocks[_materialBlockIndex];
-}
-
-const UniformBlockInfo& ShaderLayout::getPassDataBlockInfo() const
-{
-    ENGINE_ASSERT(hasMaterialBlock(), "Illegal call to get frame data block on shader without said block. (This block should not be missing if you see this message.)");
-    return _uniformBlocks[_passDataBlockIndex];
 }
 
 const ShaderPropertyInfo* ShaderLayout::getPropertyInfo(ShaderPropertyId id) const

@@ -6,7 +6,7 @@ in VertToFrag {
     vec2 vTexCoord;
 } fragIn;
 
-layout (binding = 2, std140) uniform MaterialBlock
+layout (binding = 3, std140) uniform MaterialBlock
 {
     vec4 albedoColor;
 };

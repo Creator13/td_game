@@ -79,8 +79,11 @@ void Renderer::init(int fbWidth, int fbHeight)
     auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreen/blit.fs.glsl");
     _fullscreenBlitEffect = fsPipeline->newMaterialInstance("anonymous");
 
+    glCreateBuffers(1, &_viewportDataUboHandle.id);
+    glNamedBufferStorage(_viewportDataUboHandle, sizeof(ViewportDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
     glCreateBuffers(1, &_frameDataUboHandle.id);
-    glNamedBufferStorage(_frameDataUboHandle, sizeof(PassDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
     glCreateSamplers(1, &_defaultSampler);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -128,7 +131,10 @@ void Renderer::renderFrame()
     static_assert(std::is_trivially_destructible_v<FrameStats>);
     _frameStats = FrameStats{ };
 
-    const float currentTime = time::sinceLoad();
+    FrameDataBlock frameData;
+    frameData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
+    frameData.time = time::sinceLoad();
+    bindFrameData(frameData);
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
@@ -153,12 +159,10 @@ void Renderer::renderFrame()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Execute opaque pass
-    PassDataBlock opaqueData;
+    ViewportDataBlock opaqueData;
     opaqueData.view = _viewportData.viewMatrix;
     opaqueData.projection = _viewportData.projectionMatrix;
     opaqueData.viewProj = _viewportData.getCombinedViewProjectionMatrix();
-    opaqueData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
-    opaqueData.time = currentTime;
     executePass(opaqueData, _opaqueCommandQueue, instanceIndex);
     instanceIndex += _opaqueCommandQueue.size();
     _opaqueCommandQueue.clear();
@@ -166,12 +170,10 @@ void Renderer::renderFrame()
     executePostEffectStack();
 
     // Execute UI pass
-    PassDataBlock uiPassData;
+    ViewportDataBlock uiPassData;
     uiPassData.view = mat4::identity;
     uiPassData.projection = _viewportData.getScreenSpaceProjectionMatrix();
     uiPassData.viewProj = uiPassData.projection; // view matrix is identity, so view-projection is simply the projection mat
-    uiPassData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
-    uiPassData.time = currentTime;
     glEnable(GL_FRAMEBUFFER_SRGB);
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // Render UI as overlay to the current image in the backbuffer (the scene)
     executePass(uiPassData, _uiCommandQueue, instanceIndex);
@@ -257,9 +259,7 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
     material->flushUboChangesToGpu();
     if (material->_layout.hasMaterialBlock())
     {
-        const auto& blockInfo = material->_layout.getMaterialBlockInfo();
-        // TODO block binding location is supposed to be 2 by convention so technically we could omit obtaining it from reflected layout, but then it should be validated on load.
-        glBindBufferBase(GL_UNIFORM_BUFFER, blockInfo.binding, material->_uboHandle);
+        glBindBufferBase(GL_UNIFORM_BUFFER, MaterialBlock::SHADER_BINDING, material->_uboHandle);
     }
 
     // Bind textures
@@ -306,10 +306,16 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
     }
 }
 
-void Renderer::bindPassData(const PassDataBlock& passData) const
+void Renderer::bindPassData(const ViewportDataBlock& passData) const
 {
-    glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(PassDataBlock), &passData);
-    glBindBufferBase(GL_UNIFORM_BUFFER, PassDataBlock::SHADER_BINDING, _frameDataUboHandle);
+    glNamedBufferSubData(_viewportDataUboHandle, 0, sizeof(ViewportDataBlock), &passData);
+    glBindBufferBase(GL_UNIFORM_BUFFER, ViewportDataBlock::SHADER_BINDING, _viewportDataUboHandle);
+}
+
+void Renderer::bindFrameData(const FrameDataBlock& passData) const
+{
+    glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(FrameDataBlock), &passData);
+    glBindBufferBase(GL_UNIFORM_BUFFER, FrameDataBlock::SHADER_BINDING, _frameDataUboHandle);
 }
 
 void Renderer::resizeFrameBuffers(int newWidth, int newHeight)
@@ -334,7 +340,7 @@ void Renderer::appendInstanceData(CommandQueue& queue)
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
 }
 
-void Renderer::executePass(const PassDataBlock& passData, CommandQueue& queue, usize instanceIndex)
+void Renderer::executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex)
 {
     if (queue.empty()) return;
 
@@ -397,11 +403,6 @@ void Renderer::executePostEffectStack()
         executePostEffect(_fullscreenBlitEffect, _mainFramebuffer, 0);
         return;
     }
-
-    PassDataBlock postPassData;
-    postPassData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
-    postPassData.time = time::sinceLoad();
-    bindPassData(postPassData);
 
     Framebuffer* src = &_mainFramebuffer;
     for (usize i = 0; i < _postEffects.size() - 1; ++i)

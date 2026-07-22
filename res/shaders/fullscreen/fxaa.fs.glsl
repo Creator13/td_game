@@ -1,5 +1,7 @@
 #version 460 core
 
+#include "../cginc/core.inc.glsl"
+
 uniform sampler2D _screenTexture;
 
 in vec2 vTexCoord;
@@ -16,7 +18,7 @@ float rgb2luma(vec3 rgb) {
 }
 
 void main() {
-    vec2 inverseScreenSize = 1.0 / scene.screenSize;
+    vec2 inverseScreenSize = 1.0 / frame.screenSize;
 
     vec3 colorCenter = texture(_screenTexture, vTexCoord).rgb;
 

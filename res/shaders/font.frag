@@ -7,7 +7,7 @@ in VertToFrag {
     flat uint glyphIndex;
 } fragIn;
 
-layout (std140, binding = 2) uniform MaterialData {
+layout (std140, binding = 3) uniform MaterialData {
     float emRange;
 };
 

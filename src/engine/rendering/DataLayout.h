@@ -28,29 +28,26 @@ namespace core::gfx
         constexpr operator math::vec3() const { return value.xyz(); }
     };
 
-    struct alignas(16) PassDataBlock
+    struct alignas(16) ViewportDataBlock
     {
         math::mat4 view = math::mat4::identity;
         math::mat4 projection = math::mat4::identity;
         math::mat4 viewProj = math::mat4::identity;
-        math::vec2 screenSize;
-        float time = 0;
 
         constexpr static gl::Int SHADER_BINDING = 0;
 
-        constexpr static std::string_view getShaderDeclaration()
+        constexpr static bool isBlockName(std::string_view name)
         {
-            return R"(
-layout (binding = 0, std140) uniform PassDataBlock
-{
-    mat4 view;
-    mat4 projection;
-    mat4 viewProj;
-    vec2 screenSize;
-    float time;
-} scene;
-            )";
+            return name == "ViewportDataBlock" || name == "ViewportData";
         }
+    };
+
+    struct alignas(16) FrameDataBlock
+    {
+        math::vec2 screenSize;
+        float time;
+
+        constexpr static gl::Int SHADER_BINDING = 1;
     };
 
     struct alignas(16) InstanceData
@@ -63,27 +60,21 @@ layout (binding = 0, std140) uniform PassDataBlock
         math::mat4 transform = math::mat4::identity;
         CustomData customData;
 
-        constexpr static gl::Int SHADER_BINDING = 1;
+        constexpr static gl::Int SHADER_BINDING = 2;
+    };
 
-        constexpr static std::string_view getShaderDeclaration()
+    struct MaterialBlock
+    {
+        constexpr static gl::Int SHADER_BINDING = 3;
+
+        constexpr static bool isBlockName(std::string_view name)
         {
-            return R"(
-struct CustomData {
-    uint c0, c1, c2, c3;
-};
-
-struct InstanceData {
-    mat4 transform;
-    CustomData customData;
-};
-
-layout (std430, binding = 1) readonly buffer instanceSSBO {
-    InstanceData instances[];
-};
-
-#define INSTANCE_TRANSFORM (instances[gl_BaseInstance + gl_InstanceID].transform)
-#define INSTANCE_DATA (instances[gl_BaseInstance + gl_InstanceID].customData)
-            )";
+            return name == "MaterialBlock" || name == "MaterialDataBlock" || name == "MaterialData" || name == "Material";
         }
+    };
+
+    struct alignas(16) LightingData
+    {
+        constexpr static gl::Int SHADER_BINDING = 4;
     };
 }

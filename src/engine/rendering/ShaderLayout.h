@@ -63,13 +63,13 @@ namespace core::gfx
     struct ShaderLayout
     {
     private:
-        constexpr static int MAX_UBOS = 4;
+        constexpr static int MAX_UBOS = 8;
 
         int _numUBOs;
         int _numSamplers;
 
         int _materialBlockIndex = -1;
-        int _passDataBlockIndex = -1;
+        int _viewportDataBlockIndex = -1;
 
         gl::program_t _program;
 
@@ -84,14 +84,10 @@ namespace core::gfx
         gl::program_t getProgram() const { return _program; }
 
         bool hasMaterialBlock() const;
-        bool hasFrameDataBlock() const;
         int getSamplerCount() const { return _numSamplers; }
 
         int getMaterialBlockIndex() const { return _materialBlockIndex; }
         const UniformBlockInfo& getMaterialBlockInfo() const;
-
-        int getPassDataBlockIndex() const { return _passDataBlockIndex; }
-        const UniformBlockInfo& getPassDataBlockInfo() const;
 
         const ShaderPropertyInfo* getPropertyInfo(ShaderPropertyId id) const;
         auto properties() const { return std::views::all(_shaderProperties); }

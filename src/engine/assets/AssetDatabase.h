@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <string_view>
 
@@ -32,7 +31,7 @@ namespace core::assets
         static std::unique_ptr<AssetDatabase> instance;
 
         // Loader systems with retained state
-        // TODO move these systems towards built-time and load bytes directly into storage
+        // TODO move these systems towards build-time and load bytes directly into storage
         ShaderLoader _shaderLoader;
         FontLoader _fontLoader;
 

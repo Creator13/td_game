@@ -51,6 +51,7 @@ namespace core::gfx
         CommandQueue _opaqueCommandQueue;
         CommandQueue _uiCommandQueue;
 
+        gl::buffer_t _viewportDataUboHandle;
         gl::buffer_t _frameDataUboHandle;
         GraphicsBuffer _instanceDataBuffer;
 
@@ -84,12 +85,13 @@ namespace core::gfx
     private:
         void bindPipeline(const Pipeline& pipeline);
         void bindMaterial(assets::AssetRef<Material> material);
-        void bindPassData(const PassDataBlock& passData) const;
+        void bindPassData(const ViewportDataBlock& passData) const;
+        void bindFrameData(const FrameDataBlock& passData) const;
 
         void resizeFrameBuffers(int newWidth, int newHeight);
 
         void appendInstanceData(CommandQueue& queue);
-        void executePass(const PassDataBlock& passData, CommandQueue& queue, usize instanceIndex);
+        void executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex);
         void executePostEffectStack();
         void executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -15,7 +16,7 @@ namespace core::assets
         gl::program_t _errorShaderId;
 
         static gl::program_t compileInternalErrorShader();
-        [[nodiscard]] static std::string preprocessShader(std::string_view sourceString);
+        [[nodiscard]] static std::optional<std::string> preprocessShader(const std::filesystem::path& sourcePath);
 
     public:
         ~ShaderLoader();

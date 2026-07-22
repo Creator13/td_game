@@ -1,7 +1,6 @@
 #include "FontLoader.h"
 
 #include <ft2build.h>
-#include <tracy/Tracy.hpp>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 #include FT_FREETYPE_H
 

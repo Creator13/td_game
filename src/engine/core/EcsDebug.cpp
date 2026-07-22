@@ -10,7 +10,9 @@ using namespace core;
 using namespace core::ui;
 using namespace core::assets;
 
-struct RenderDebugEntity { };
+namespace {
+    struct RenderDebugEntity { };
+}
 
 engine_debug::engine_debug(flecs::world& ecs)
 {

@@ -2,7 +2,7 @@
 
 uniform sampler2D _screenTexture;
 
-layout (binding = 2, std140) uniform MaterialBlock {
+layout (binding = 3, std140) uniform MaterialBlock {
     float uExposure;
     float uGammaAdjust;
 // TODO implement shader variants and make each mode a separate precompiled variant
@@ -10,7 +10,7 @@ layout (binding = 2, std140) uniform MaterialBlock {
 };
 
 in vec2 vTexCoord;
-out vec4 fragColor;
+out vec3 fragColor;
 
 vec3 reinhard(vec3 hdr) {
     return hdr / (hdr + vec3(1.0));
@@ -59,5 +59,5 @@ void main() {
     vec3 srgb = linearToSrgb(mapped);
     srgb = pow(srgb, vec3(1.0 / uGammaAdjust));
 
-    fragColor = vec4(srgb, 1.0);
+    fragColor = srgb;
 }

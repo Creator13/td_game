@@ -6,7 +6,7 @@
 
 namespace core::debug
 {
-    struct DebugRenderer;
+    class DebugRenderer;
 }
 
 namespace debug::ecs
