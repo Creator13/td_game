@@ -2,6 +2,7 @@
 
 #include "assets/File.h"
 
+using namespace core;
 using namespace core::assets;
 
 std::unique_ptr<AssetDatabase> AssetDatabase::instance = nullptr;
@@ -48,4 +49,55 @@ bool AssetDatabase::hasAsset(AssetId assetId)
     ENGINE_ASSERT(instance != nullptr, "Usage of AssetDatabase before initialization.");
 
     return instance->_registry.contains(assetId);
+}
+
+template<C_AssetType T, size_t PageSize>
+PagedStorageStats getPagedStorageStats(const util::PagedStorage<T, PageSize>& storage)
+{
+    return PagedStorageStats {
+        .itemCount = static_cast<u16>(storage.count_alive()),
+        .pageCount = static_cast<u16>(storage.page_count()),
+        .bytesUsed = static_cast<u32>(storage.mem_size()),
+        .assetBytesUsed = static_cast<u32>(storage.count_alive() * sizeof(T)),
+        .fragmentation = storage.fragmentation(),
+        .occupation = storage.occupation()
+    };
+}
+
+AssetStats AssetDatabase::stats()
+{
+    ENGINE_ASSERT(instance != nullptr, "Usage of AssetDatabase before initialization.");
+
+    u32 count = 0;
+    u64 bytes = 0;
+
+    const auto pipelineStats = getPagedStorageStats(instance->_pipelineStorage);
+    count += pipelineStats.itemCount;
+    bytes += pipelineStats.bytesUsed;
+
+    const auto materialStats = getPagedStorageStats(instance->_materialStorage);
+    count += materialStats.itemCount;
+    bytes += materialStats.bytesUsed;
+
+    const auto textureStats = getPagedStorageStats(instance->_textureStorage);
+    count += textureStats.itemCount;
+    bytes += textureStats.bytesUsed;
+
+    const auto meshStats = getPagedStorageStats(instance->_meshStorage);
+    count += meshStats.itemCount;
+    bytes += meshStats.bytesUsed;
+
+    const auto fontStats = getPagedStorageStats(instance->_fontStorage);
+    count += fontStats.itemCount;
+    bytes += fontStats.bytesUsed;
+
+    return AssetStats {
+        .totalBytesUsed = bytes,
+        .totalAssetCount =count,
+        .pipelineStats = pipelineStats,
+        .materialStats = materialStats,
+        .textureStats = textureStats,
+        .meshStats = meshStats,
+        .fontStats = fontStats,
+    };
 }

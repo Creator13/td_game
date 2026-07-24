@@ -19,6 +19,28 @@
 
 namespace core::assets
 {
+    struct PagedStorageStats
+    {
+        u16 itemCount;
+        u16 pageCount;
+        u32 bytesUsed;
+        u32 assetBytesUsed;
+        float fragmentation;
+        float occupation;
+    };
+
+    struct AssetStats
+    {
+        u64 totalBytesUsed;
+        u32 totalAssetCount;
+
+        PagedStorageStats pipelineStats;
+        PagedStorageStats materialStats;
+        PagedStorageStats textureStats;
+        PagedStorageStats meshStats;
+        PagedStorageStats fontStats;
+    };
+
     class AssetDatabase
     {
         // Befriend every asset type that wants to construct assets in the database's storage.
@@ -73,6 +95,8 @@ namespace core::assets
 
         template<C_AssetType T>
         static void deleteAsset(AssetRef<T> assetRef);
+
+        static AssetStats stats();
     };
 
     template<C_AssetType T>

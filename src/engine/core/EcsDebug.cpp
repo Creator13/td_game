@@ -1,8 +1,10 @@
 #include "EcsDebug.h"
 
 #include "Debug.h"
+#include "assets/AssetDatabase.h"
 #include "core/Time.h"
 #include "core/ui/EcsUI.h"
+#include "formatting/fmt_bytes.h"
 #include "rendering/EcsRendering.h"
 
 using namespace debug::ecs;
@@ -38,12 +40,21 @@ engine_debug::engine_debug(flecs::world& ecs)
         .each([](Text& text, const core::ecs::RendererSingleton& renderer)
         {
             auto renderStats = renderer.ptr->getFrameStats();
+            auto assetStats = AssetDatabase::stats();
 
             std::string stats = fmt::format(std::locale("en_US.UTF-8"),
                 "{:.3f}ms (avg:{:.3f}ms, 1%:{:.3f}ms) | {:.1f}fps\n"
-                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {}",
+                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {}\n"
+                "Asset storage: {} items, {:.2b} (Pl:{}/{:.1b} | Mat:{}/{:.1b} | Tex:{}/{:.1b} | Mesh:{}/{:.1b} | Font:{}/{:.1b})",
                 time::deltaMs(), time::averageDeltaMs(), time::onePercentMs(), time::fps(),
-                renderStats.numCommands, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds);
+                renderStats.numCommands, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds,
+                assetStats.totalAssetCount, FormattableBytes(assetStats.totalBytesUsed),
+                assetStats.pipelineStats.itemCount, FormattableBytes(assetStats.pipelineStats.bytesUsed),
+                assetStats.materialStats.itemCount, FormattableBytes(assetStats.materialStats.bytesUsed),
+                assetStats.textureStats.itemCount, FormattableBytes(assetStats.textureStats.bytesUsed),
+                assetStats.meshStats.itemCount, FormattableBytes(assetStats.meshStats.bytesUsed),
+                assetStats.fontStats.itemCount, FormattableBytes(assetStats.fontStats.bytesUsed)
+                );
             text.setText(stats);
         });
 }
