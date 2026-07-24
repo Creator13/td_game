@@ -27,6 +27,7 @@ namespace core::assets
         friend Mesh;
         friend Texture;
         friend Font;
+        friend Material;
 
         static std::unique_ptr<AssetDatabase> instance;
 

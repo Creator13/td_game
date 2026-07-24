@@ -68,7 +68,15 @@ Renderer::Renderer()
       _pingPongFramebuffers({
           Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false),
           Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false)
-      }) { }
+      })
+{
+    gl::Int maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings;
+    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUboBindings);
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSsboBindings);
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
+    glGetIntegerv(GL_MAX_IMAGE_UNITS, &maxImageBindings);
+    SPDLOG_DEBUG("Max shader object bindings: UBO|{} - SSBO|{} - Tex|{} - Img|{}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
+}
 
 void Renderer::init(int fbWidth, int fbHeight)
 {
@@ -84,6 +92,9 @@ void Renderer::init(int fbWidth, int fbHeight)
 
     glCreateBuffers(1, &_frameDataUboHandle.id);
     glNamedBufferStorage(_frameDataUboHandle, sizeof(FrameDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+    glCreateBuffers(1, &_lightingDataUboHandle.id);
+    glNamedBufferStorage(_lightingDataUboHandle, sizeof(LightingDataBlock), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
     glCreateSamplers(1, &_defaultSampler);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -124,6 +135,11 @@ void Renderer::submitDrawCommand(const DrawCommand& command)
     targetQueue->push_back(command);
 }
 
+void Renderer::setLightData(const LightingDataBlock& lightingData)
+{
+    _lightingData = lightingData;
+}
+
 void Renderer::renderFrame()
 {
     ZoneScopedN("Renderer::renderFrame");
@@ -135,6 +151,8 @@ void Renderer::renderFrame()
     frameData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
+
+    bindLightingData(_lightingData);
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
@@ -163,6 +181,7 @@ void Renderer::renderFrame()
     opaqueData.view = _viewportData.viewMatrix;
     opaqueData.projection = _viewportData.projectionMatrix;
     opaqueData.viewProj = _viewportData.getCombinedViewProjectionMatrix();
+    opaqueData.cameraPos = _viewportData.cameraPos;
     executePass(opaqueData, _opaqueCommandQueue, instanceIndex);
     instanceIndex += _opaqueCommandQueue.size();
     _opaqueCommandQueue.clear();
@@ -174,6 +193,7 @@ void Renderer::renderFrame()
     uiPassData.view = mat4::identity;
     uiPassData.projection = _viewportData.getScreenSpaceProjectionMatrix();
     uiPassData.viewProj = uiPassData.projection; // view matrix is identity, so view-projection is simply the projection mat
+    uiPassData.cameraPos = vec3::zero; // Not rendering with a specific camera position, so we just set this to the origin.
     glEnable(GL_FRAMEBUFFER_SRGB);
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // Render UI as overlay to the current image in the backbuffer (the scene)
     executePass(uiPassData, _uiCommandQueue, instanceIndex);
@@ -316,6 +336,12 @@ void Renderer::bindFrameData(const FrameDataBlock& passData) const
 {
     glNamedBufferSubData(_frameDataUboHandle, 0, sizeof(FrameDataBlock), &passData);
     glBindBufferBase(GL_UNIFORM_BUFFER, FrameDataBlock::SHADER_BINDING, _frameDataUboHandle);
+}
+
+void Renderer::bindLightingData(const LightingDataBlock& lightingData) const
+{
+    glNamedBufferSubData(_lightingDataUboHandle, 0, sizeof(LightingDataBlock), &lightingData);
+    glBindBufferBase(GL_UNIFORM_BUFFER, LightingDataBlock::SHADER_BINDING, _lightingDataUboHandle);
 }
 
 void Renderer::resizeFrameBuffers(int newWidth, int newHeight)

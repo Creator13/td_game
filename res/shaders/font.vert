@@ -20,7 +20,7 @@ struct GlyphInstanceData {
     float fontSize;
 };
 
-layout (std430, binding = 3) readonly buffer GlyphBuffer {
+layout (std430) readonly buffer GlyphBuffer {
     GlyphInstanceData[] glyphs;
 };
 

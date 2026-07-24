@@ -16,8 +16,12 @@ namespace core
         constexpr Color(float r, float g, float b) : r(r), g(g), b(b), a(1.0f) { }
 
         [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b, float a);
+        [[nodiscard]] static constexpr Color fromSrgb(math::vec4 rgba);
         [[nodiscard]] static constexpr Color fromSrgb(const SrgbColor& srgbColor);
         [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b);
+        [[nodiscard]] static constexpr Color fromSrgb(math::vec3 rgb);
+
+        [[nodiscard]] constexpr math::vec3 rgb() const { return math::vec3(r, g, b); }
 
         constexpr explicit operator math::vec4() const { return math::vec4(r, g, b, a); }
 
@@ -43,6 +47,7 @@ namespace core
         static const Color snow, honeydew, mintCream, azure, aliceBlue, ghostWhite, seashell, beige, oldLace;
         static const Color floralWhite, ivory, antiqueWhite, linen, lavenderBlush, mistyRose;
         static const Color slateGray, lightSlateGray, darkSlateGray;
+        static const Color gray1, gray2, gray3, gray4, gray5, gray6, gray7, gray8, gray9;
         // ReSharper enable CppInconsistentNaming
     };
 
@@ -191,6 +196,15 @@ namespace core
     inline const Color Color::slateGray            = fromSrgb(112.0f / 255.0f, 128.0f / 255.0f, 144.0f / 255.0f);
     inline const Color Color::lightSlateGray       = fromSrgb(119.0f / 255.0f, 136.0f / 255.0f, 153.0f / 255.0f);
     inline const Color Color::darkSlateGray        = fromSrgb( 47.0f / 255.0f,  79.0f / 255.0f,  79.0f / 255.0f);
+    inline const Color Color::gray1                = fromSrgb(.1f, .1f, .1f, .1f);
+    inline const Color Color::gray2                = fromSrgb(.2f, .2f, .2f, .2f);
+    inline const Color Color::gray3                = fromSrgb(.3f, .3f, .3f, .3f);
+    inline const Color Color::gray4                = fromSrgb(.4f, .4f, .4f, .4f);
+    inline const Color Color::gray5                = fromSrgb(.5f, .5f, .5f, .5f);
+    inline const Color Color::gray6                = fromSrgb(.6f, .6f, .6f, .6f);
+    inline const Color Color::gray7                = fromSrgb(.7f, .7f, .7f, .7f);
+    inline const Color Color::gray8                = fromSrgb(.8f, .8f, .8f, .8f);
+    inline const Color Color::gray9                = fromSrgb(.9f, .9f, .9f, .9f);
     // ReSharper restore CppInconsistentNaming
     // ReSharper restore CppIdenticalOperandsInBinaryExpression
     // @formatter:on
@@ -251,6 +265,11 @@ namespace core
         return result;
     }
 
+    constexpr Color Color::fromSrgb(math::vec4 rgba)
+    {
+        return fromSrgb(rgba.x, rgba.y, rgba.z, rgba.w);
+    }
+
     constexpr Color Color::fromSrgb(const SrgbColor& srgbColor)
     {
         return fromSrgb(srgbColor.r, srgbColor.g, srgbColor.b, srgbColor.a);
@@ -259,6 +278,11 @@ namespace core
     constexpr Color Color::fromSrgb(float r, float g, float b)
     {
         return fromSrgb(r, g, b, 1.0f);
+    }
+
+    constexpr Color Color::fromSrgb(math::vec3 rgb)
+    {
+        return fromSrgb(rgb.x, rgb.y, rgb.z);
     }
 
     constexpr SrgbColor SrgbColor::fromLinear(float r, float g, float b, float a)

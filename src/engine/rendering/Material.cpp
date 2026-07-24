@@ -2,6 +2,7 @@
 
 #include <glad/gl.h>
 
+#include "assets/AssetDatabase.h"
 #include "formatting/fmt_gl.h"
 #include "math/mat4.h"
 #include "rendering/Pipeline.h"
@@ -11,11 +12,25 @@ using namespace core::gfx;
 using namespace math;
 
 Material::Material(const Pipeline& pipeline, u16 sortKey)
-    : _layout(pipeline.getShaderLayout()), _uboHandle(0), _dirty(true), pipeline(pipeline), sortKey(sortKey)
+    : _layout(pipeline.getShaderLayout()),
+      _uboHandle(0), _dirty(true),
+      pipeline(pipeline), sortKey(sortKey)
 {
     ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
     constructBuffers();
     initializeData();
+}
+
+Material::Material(const Material& original, u16 sortKey)
+    : _layout(original.pipeline.getShaderLayout()), _textures(original._textures),
+      _uboHandle(0), _dirty(true), pipeline(original.pipeline), sortKey(sortKey)
+{
+    ENGINE_ASSERT(sortKey < 0xFFFF, "Sort key out of range (65535).");
+    constructBuffers();
+
+    // memcopy the material data from the original to the new block
+    ENGINE_ASSERT(original._materialBlockData.size() == _materialBlockData.size(), "Material block sizes did not match after duplication.");
+    std::memcpy(_materialBlockData.data(), original._materialBlockData.data(), _materialBlockData.size());
 }
 
 void Material::constructBuffers()
@@ -142,4 +157,15 @@ void Material::setBuffer(ShaderPropertyId id, const GraphicsBuffer* buffer)
     }
 
     _buffers.insert_or_assign(id, buffer);
+}
+
+assets::AssetRef<Material> Material::duplicate(assets::AssetRef<Material> original, std::string_view name)
+{
+    using namespace core::assets;
+
+    auto& materialStorage = AssetDatabase::instance->_materialStorage;
+    auto [mem, index] = materialStorage.allocate_uninitialized();
+    Material* mat = ::new(mem) Material(*original, index);
+
+    return AssetDatabase::registerRuntimeAsset<Material>(name, mat, index);
 }

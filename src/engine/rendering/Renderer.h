@@ -46,6 +46,7 @@ namespace core::gfx
         using CommandQueue = std::vector<DrawCommand>;
 
         ViewportData _viewportData = ViewportData();
+        LightingDataBlock _lightingData = LightingDataBlock();
         Color _clearColor;
 
         CommandQueue _opaqueCommandQueue;
@@ -53,6 +54,8 @@ namespace core::gfx
 
         gl::buffer_t _viewportDataUboHandle;
         gl::buffer_t _frameDataUboHandle;
+        gl::buffer_t _lightingDataUboHandle;
+
         GraphicsBuffer _instanceDataBuffer;
 
         Framebuffer _mainFramebuffer;
@@ -74,6 +77,7 @@ namespace core::gfx
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
         void setViewportData(const ViewportData& params);
+        void setLightData(const LightingDataBlock& lightingData);
         void submitDrawCommand(const DrawCommand& command);
         void renderFrame();
 
@@ -87,6 +91,7 @@ namespace core::gfx
         void bindMaterial(assets::AssetRef<Material> material);
         void bindPassData(const ViewportDataBlock& passData) const;
         void bindFrameData(const FrameDataBlock& passData) const;
+        void bindLightingData(const LightingDataBlock& lightingData) const;
 
         void resizeFrameBuffers(int newWidth, int newHeight);
 

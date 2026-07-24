@@ -260,7 +260,7 @@ const ShaderPropertyInfo* ShaderLayout::getPropertyInfo(ShaderPropertyId id) con
     const auto it = _shaderProperties.find(id);
     if (it == _shaderProperties.end())
     {
-        SPDLOG_DEBUG("Shader property id {} does not exist in shader (program id {}). This is likely fine, but I'm warning you nonetheless.", id, _program);
+        SPDLOG_WARN("Shader property id {} does not exist in shader (program id {}). This is likely fine, but I'm warning you nonetheless.", id, _program);
         return nullptr;
     }
 

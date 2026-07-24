@@ -41,7 +41,10 @@ namespace core
         mutable bool _dirty;
 
         // Private constructor from pipeline object takes a Pipeline& and not an AssetRef because it should only be called by the owning pipeline.
-        explicit Material(const gfx::Pipeline& pipeline, u16 sortKey);
+        Material(const gfx::Pipeline& pipeline, u16 sortKey);
+        Material(const Material& original, u16 sortKey); // Copy constructor but it requires a separate sort key because I can't manage my sortkeys properly
+        Material(const Material& other) = delete;
+
         void constructBuffers(); // constructor helper
         void initializeData();
 
@@ -68,6 +71,8 @@ namespace core
 
         void setTexture2D(gfx::ShaderPropertyId id, assets::AssetRef<Texture> tex);
         void setBuffer(gfx::ShaderPropertyId id, const GraphicsBuffer* buffer); // TODO do not like passing a raw pointer??? Who keeps the buffer alive? It's better than a ref because it shows that lifetime is not managed by this function but... (shared_ptr<> is an option, I guess?)
+
+        static assets::AssetRef<Material> duplicate(assets::AssetRef<Material> original, std::string_view name);
     };
 
 #include "Material.inl"

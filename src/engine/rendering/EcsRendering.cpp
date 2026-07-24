@@ -113,7 +113,24 @@ rendering::rendering(flecs::world& ecs)
         .depends_on(perspSystem)
         .depends_on(orthoSystem);
 
-    ecs.system<const RendererSingleton, const SceneRenderData>().each(syncSceneData);
+    ecs.system<const RendererSingleton, const SceneRenderData>("Scene data synchronization system").each(syncSceneData);
+
+    ecs.system<const LightData, const HierarchyTransform>("Light collection system")
+        .kind(flecs::PreStore).run([](flecs::iter& it)
+        {
+            const auto& renderer = it.world().get<const RendererSingleton>();
+
+            it.next();
+
+            auto f_lightData = it.field<const LightData>(0);
+            auto f_transform = it.field<const HierarchyTransform>(1);
+
+            renderer.ptr->setLightData(LightingDataBlock{
+                .lightColor = f_lightData[0].color.rgb(),
+                .lightPos = f_transform[0].getWorldPosition(),
+                .ambientStrength = .01f,
+            });
+        });
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
@@ -199,6 +216,7 @@ rendering::rendering(flecs::world& ecs)
                     command.mesh = renderData.mesh->gpuHandle;
                     command.material = renderData.material;
                     command.instanceData.transform = f_transform[i].getWorldMatrix();
+                    command.instanceData.invTransform = inverse(command.instanceData.transform); // TODO cache inverse matrix on objects, this is expensive to calculate each frame.
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
                     renderer.ptr->submitDrawCommand(command);
 
@@ -228,6 +246,7 @@ void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& camer
 
     viewportData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
     viewportData.viewMatrix = inverse(transform.getWorldMatrix());
+    viewportData.cameraPos = transform.getWorldPosition();
 
     viewportData.pixelWidth = window.state->fbWidth;
     viewportData.pixelHeight = window.state->fbHeight;

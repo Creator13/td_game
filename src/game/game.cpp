@@ -55,14 +55,6 @@ void engine::setupGame(const flecs::world& world)
         .backfaceCulling = BackfaceCulling::Back,
     };
 
-    AssetRef<Pipeline> pipeline = Pipeline::create("textured", pDesc, "shaders/textured.vert", "shaders/textured.frag");
-
-    AssetRef<Material> uvCheckerMat = pipeline->newMaterialInstance("mat");
-    uvCheckerMat->setTexture2D("_mainTex"_spid, uvCheckerTex);
-
-    SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
-    const AssetRef<Pipeline> invert = Pipeline::createFullscreenEffect("Invert", "shaders/fullscreen/invert.fs.glsl");
-    const auto invertMat = invert->newMaterialInstance("h");
     const AssetRef<Pipeline> tonemap = Pipeline::createFullscreenEffect("Tonemapping", "shaders/fullscreen/tonemap.fs.glsl");
     const auto tonemapMat = tonemap->newMaterialInstance("default");
     tonemapMat->setFloat("uExposure"_spid, 1);
@@ -71,60 +63,79 @@ void engine::setupGame(const flecs::world& world)
     const AssetRef<Pipeline> fxaa = Pipeline::createFullscreenEffect("FXAA", "shaders/fullscreen/fxaa.fs.glsl");
     const auto fxaaMat = fxaa->newMaterialInstance("qw");
 
+    SceneRenderData& sceneRenderData = world.get_mut<SceneRenderData>();
     sceneRenderData.postEffects = std::vector{tonemapMat, fxaaMat};
-    sceneRenderData.backgroundColor = Color::fromSrgb(.07, .07, .1);
+    sceneRenderData.backgroundColor = Color::fromSrgb(vec3(.07, .07, .1) * .5f);
+
+    AssetRef<Pipeline> lit = Pipeline::create("lit", pDesc, "shaders/lit.v.glsl", "shaders/lit.f.glsl");
+    auto baseMat = lit->newMaterialInstance("baseMat");
+    baseMat->setFloat("specularStrength"_spid, 0.5);
+    baseMat->setColor("baseColor"_spid, Color::coral);
 
     // #### Lighting test scene
+    AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/basic.vert", "shaders/color.frag");
+    AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
+    whiteUnlit->setColor("color"_spid, Color::white);
+    auto lightParent = world.entity("light parent").set<RotateData>({.angularVelocity = 25});
+    transform::add(lightParent, vec3::zero);
+    auto light = world.entity("light")
+        .set<MeshRenderData>({.mesh = sphere, .material = whiteUnlit})
+        .set<LightData>({.color = Color::white, .strength = 1});
+    transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::identity, vec3(.1f));
+
+    AssetRef<Material> uvCheckerMat = Material::duplicate(baseMat, "mat");
+    uvCheckerMat->setTexture2D("baseTexture"_spid, uvCheckerTex);
+    uvCheckerMat->setColor("baseColor"_spid, Color::gray);
     auto floor = world.entity("Floor")
         .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
     transform::add(floor, vec3(0, 0, 0));
 
-    AssetRef<Pipeline> lit = Pipeline::create("lit", pDesc, "shaders/lit.v.glsl", "shaders/lit.f.glsl");
-
-    auto cube1Mat = lit->newMaterialInstance("cube1");
+    auto cube1Mat = Material::duplicate(baseMat, "cube1");
+    cube1Mat->setColor("baseColor"_spid, Color::blanchedAlmond);
     auto cube1 = world.entity("cube1")
         .set<MeshRenderData>({.mesh = cube, .material = cube1Mat});
     transform::add(cube1, vec3(-2, 3, 0.65), quaternion::eulerAngles(15, 0, 66));
 
-    auto cube2Mat = lit->newMaterialInstance("cube2");
     auto cube2 = world.entity("cube2")
-        .set<MeshRenderData>({.mesh = cube, .material = cube2Mat});
+        .set<MeshRenderData>({.mesh = cube, .material = baseMat});
     transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
 
-    auto cube3Mat = lit->newMaterialInstance("cube3");
     auto cube3 = world.entity("cube3")
-        .set<MeshRenderData>({.mesh = cube, .material = cube3Mat})
+        .set<MeshRenderData>({.mesh = cube, .material = baseMat})
         .set<RotateData>({.angularVelocity = 15});
     transform::add(cube3, vec3(-1, -2, 0.5), quaternion::eulerAngles(0, 0, -14), vec3::one * 1.5f);
 
-    auto sphereMat = lit->newMaterialInstance("sphere1");
+    auto sphereMat = Material::duplicate(baseMat, "sphere1");
+    sphereMat->setColor("baseColor"_spid, Color::gray2);
+    sphereMat->setFloat("specularStrength"_spid, 1);
     auto sphere1 = world.entity("sphere1")
         .set<MeshRenderData>({.mesh = sphere, .material = sphereMat});
     transform::add(sphere1, vec3(1, -1.5, .5));
 
-    AssetRef<Material> avacadooMat = lit->newMaterialInstance("mat");
-    avacadooMat->setTexture2D("_mainTex"_spid, avacadooTex);
+    AssetRef<Material> avacadooMat = Material::duplicate(baseMat, "mat");
+    avacadooMat->setTexture2D("baseTexture"_spid, avacadooTex);
+    avacadooMat->setColor("baseColor"_spid, Color::white);
     auto avacadoo = world.entity("avacadoo")
         .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
     transform::add(avacadoo, vec3(1, 1, .15), quaternion::eulerAngles(90, 0, 22), vec3::one * 10);
 
     PipelineDescriptor gizmosDesc = pDesc;
     gizmosDesc.depthTest = false;
-    AssetRef<Pipeline> colored = Pipeline::create("colored", gizmosDesc, "shaders/basic.vert", "shaders/color.frag");
+    AssetRef<Pipeline> coloredGizmoShader = Pipeline::create("colored", gizmosDesc, "shaders/basic.vert", "shaders/color.frag");
 
-    auto redMat = colored->newMaterialInstance("red");
-    redMat->setColor("color"_spid, Color::red);
-    auto gizmoX = world.entity("gizmoX").set<MeshRenderData>({.mesh = cube, .material = redMat});
+    auto redGizmoMat = coloredGizmoShader->newMaterialInstance("red");
+    redGizmoMat->setColor("color"_spid, Color::red);
+    auto gizmoX = world.entity("gizmoX").set<MeshRenderData>({.mesh = cube, .material = redGizmoMat});
     transform::add(gizmoX, vec3::zero, quaternion::identity, vec3(4, .01, .01));
 
-    auto greenMat = colored->newMaterialInstance("green");
-    greenMat->setColor("color"_spid, Color::green);
-    auto gizmoY = world.entity("gizmoY").set<MeshRenderData>({.mesh = cube, .material = greenMat});
+    auto greenGizmoMat = coloredGizmoShader->newMaterialInstance("green");
+    greenGizmoMat->setColor("color"_spid, Color::green);
+    auto gizmoY = world.entity("gizmoY").set<MeshRenderData>({.mesh = cube, .material = greenGizmoMat});
     transform::add(gizmoY, vec3::zero, quaternion::identity, vec3(.01, 4, .01));
 
-    auto blueMat = colored->newMaterialInstance("blue");
-    blueMat->setColor("color"_spid, Color::blue);
-    auto gizmoZ = world.entity("gizmoZ").set<MeshRenderData>({.mesh = cube, .material = blueMat});
+    auto blueGizmoMat = coloredGizmoShader->newMaterialInstance("blue");
+    blueGizmoMat->setColor("color"_spid, Color::blue);
+    auto gizmoZ = world.entity("gizmoZ").set<MeshRenderData>({.mesh = cube, .material = blueGizmoMat});
     transform::add(gizmoZ, vec3::zero, quaternion::identity, vec3(.01, .01, 4));
 
     // #### NxN object scene

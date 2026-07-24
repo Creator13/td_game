@@ -9,6 +9,7 @@ namespace core::gfx
     {
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewMatrix = math::mat4::identity;
+        math::vec3 cameraPos = math::vec3::zero;
 
         u16 pixelWidth, pixelHeight;
 

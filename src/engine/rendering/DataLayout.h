@@ -10,6 +10,7 @@ namespace core::gfx
     struct alignas(4) Std140Bool
     {
         u32 value;
+        constexpr Std140Bool() = default;
         constexpr Std140Bool(bool value) : value{value} { }
         constexpr operator bool() const { return value; }
     };
@@ -17,6 +18,7 @@ namespace core::gfx
     struct alignas(16) Std140Vec3
     {
         math::vec4 value;
+        constexpr Std140Vec3() = default;
         constexpr Std140Vec3(math::vec3 value) : value(value, 0) { }
 
         constexpr Std140Vec3 operator=(math::vec3 v)
@@ -33,6 +35,7 @@ namespace core::gfx
         math::mat4 view = math::mat4::identity;
         math::mat4 projection = math::mat4::identity;
         math::mat4 viewProj = math::mat4::identity;
+        Std140Vec3 cameraPos = math::vec3::zero;
 
         constexpr static gl::Int SHADER_BINDING = 0;
 
@@ -58,6 +61,7 @@ namespace core::gfx
         };
 
         math::mat4 transform = math::mat4::identity;
+        math::mat4 invTransform = math::mat4::identity;
         CustomData customData;
 
         constexpr static gl::Int SHADER_BINDING = 2;
@@ -73,8 +77,12 @@ namespace core::gfx
         }
     };
 
-    struct alignas(16) LightingData
+    struct alignas(16) LightingDataBlock
     {
+        Std140Vec3 lightColor;
+        math::vec3 lightPos;
+        float ambientStrength;
+
         constexpr static gl::Int SHADER_BINDING = 4;
     };
 }

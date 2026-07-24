@@ -55,6 +55,12 @@ namespace core::ecs
         math::AABB localBounds;
     };
 
+    struct LightData
+    {
+        Color color;
+        float strength;
+    };
+
     // #### SINGLETON ####
     struct WindowSingleton
     {
