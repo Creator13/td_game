@@ -19,7 +19,6 @@ namespace flecs
 
 namespace core::ecs
 {
-
     // #### CAMERA ####
     struct PerspectiveCameraData
     {
@@ -57,6 +56,9 @@ namespace core::ecs
 
     struct LightData
     {
+        enum class Type { Directional, Point, Spot, Area };
+
+        Type type;
         Color color;
         float intensity;
     };

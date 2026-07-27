@@ -120,21 +120,41 @@ rendering::rendering(flecs::world& ecs)
         {
             const auto& renderer = it.world().get<const RendererSingleton>();
 
-            it.next();
-
-            auto f_lightData = it.field<const LightData>(0);
-            auto f_transform = it.field<const HierarchyTransform>(1);
-
-            for (auto i : it)
+            while (it.next())
             {
-                const HierarchyTransform& transform = f_transform[i];
-                const LightData& ecsLight = f_lightData[i];
+                auto f_lightData = it.field<const LightData>(0);
+                auto f_transform = it.field<const HierarchyTransform>(1);
 
-                Light lightData;
-                lightData.position = transform.getWorldPosition();
-                lightData.color = ecsLight.color;
-                lightData.intensity = ecsLight.intensity;
-                renderer.ptr->submitLight(lightData);
+                for (auto i : it)
+                {
+                    const HierarchyTransform& transform = f_transform[i];
+                    const LightData& ecsLight = f_lightData[i];
+
+                    switch (ecsLight.type)
+                    {
+                        case LightData::Type::Directional:
+                        {
+                            DirectionalLight dirLight;
+                            dirLight.direction = transform.getForward();
+                            dirLight.color = ecsLight.color;
+                            dirLight.intensity = ecsLight.intensity;
+                            renderer.ptr->submitDirectionalLight(dirLight);
+                            break;
+                        }
+                        case LightData::Type::Point:
+                        {
+                            PointLight pointLight;
+                            pointLight.position = transform.getWorldPosition();
+                            pointLight.color = ecsLight.color;
+                            pointLight.intensity = ecsLight.intensity;
+                            renderer.ptr->submitPointLight(pointLight);
+                            break;
+                        }
+                        default:
+                            ENGINE_ASSERT(false, "Invlaid");
+                            break;
+                    }
+                }
             }
         });
 

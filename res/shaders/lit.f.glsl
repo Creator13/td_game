@@ -21,27 +21,42 @@ in VertToFrag {
 
 out vec4 fragColor;
 
+///
+
+struct Surface {
+    vec3 normal;
+    vec3 viewDir;
+    vec3 albedo;
+    vec3 specularColor;
+    float shininess;
+};
+
+vec3 phong(LightSample light, Surface surf) {
+    float diff = max(dot(surf.normal, light.dir), 0.0);
+
+    vec3 halfDir = normalize(light.dir + surf.viewDir);
+    float spec = pow(max(dot(surf.normal, halfDir), 0.0), surf.shininess);
+
+    vec3 diffuse = diff * surf.albedo;
+    vec3 specular = spec * surf.specularColor;
+
+    return (diffuse + specular) * light.radiance;
+}
+
 void main() {
-    vec3 fragNormal = normalize(fragIn.vNorm);
+    Surface surf;
+    surf.normal = normalize(fragIn.vNorm);
+    surf.viewDir = normalize(scene.cameraPos - fragIn.vWorldPos);
+    surf.albedo = texture(diffuseTexture, fragIn.vTexCoord).rgb * diffuseColor.rgb;
+    surf.specularColor = texture(specularTexture, fragIn.vTexCoord).rgb * specularColor.rgb;
+    surf.shininess = shininess;
 
-    vec3 diffTexSample = texture(diffuseTexture, fragIn.vTexCoord).rgb * diffuseColor.rgb;
-    vec3 specTexSample = texture(specularTexture, fragIn.vTexCoord).rgb * specularColor.rgb;
+    vec3 litColor = lighting.ambientIntensity * surf.albedo;
+    litColor += phong(sampleDirectionalLight(lighting.mainLight), surf);
 
-    // Ambient
-    vec3 ambient = lighting.ambientIntensity * diffTexSample;
+    for (int i = 0; i < MAX_LIGHTS; i++) {
+        litColor += phong(samplePointLight(lighting.pointLights[i], fragIn.vWorldPos), surf);
+    }
 
-    // Diffuse
-    vec3 lightDir = normalize(lighting.light.position - fragIn.vWorldPos);
-    float diff = max(dot(fragNormal, lightDir), 0.0);
-    vec3 diffuse = lighting.light.color * lighting.light.intensity * (diff * diffTexSample);
-
-    // Specular
-    vec3 viewDir = normalize(scene.cameraPos - fragIn.vWorldPos);
-    vec3 reflectDir = reflect(-lightDir, fragNormal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 specular = lighting.light.color * lighting.light.intensity * (spec * specTexSample);
-
-    vec3 lighting = ambient + diffuse + specular;
-    vec3 result = lighting;
-    fragColor = vec4(result, 1.0);
+    fragColor = vec4(litColor, 1.0);
 }

@@ -115,9 +115,14 @@ void Renderer::setViewportData(const ViewportData& params)
     _viewportData = params;
 }
 
-void Renderer::submitLight(const Light& light)
+void Renderer::submitPointLight(const PointLight& light)
 {
-    _lights.push_back(light);
+    _pointLights.push_back(light);
+}
+
+void Renderer::submitDirectionalLight(const DirectionalLight& light)
+{
+    _dirLights.push_back(light);
 }
 
 void Renderer::submitDrawCommand(const DrawCommand& command)
@@ -154,12 +159,26 @@ void Renderer::renderFrame()
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
 
-    const Light& firstLight = _lights[0];
+    const DirectionalLight& firstDirLight = _dirLights[0];
     LightingDataBlock lightingData;
     lightingData.ambientStrength = _environmentSettings.ambientIntensity;
-    lightingData.light.position = firstLight.position;
-    lightingData.light.intensity = firstLight.intensity;
-    lightingData.light.color = firstLight.color.rgbVec3();
+    lightingData.numPointLights = min(_pointLights.size(), 8);
+    for (int i = 0; i < lightingData.numPointLights; i++)
+    {
+        lightingData.pointLights[i] = {
+            .position = _pointLights[i].position,
+            .color = _pointLights[i].color.rgbVec3(),
+            .intensity = _pointLights[i].intensity,
+        };
+    }
+    if (_dirLights.size() > 0)
+    {
+        lightingData.dirLight = {
+            .direction = firstDirLight.direction,
+            .color = firstDirLight.color.rgbVec3(),
+            .intensity = firstDirLight.intensity,
+        };
+    }
     bindLightingData(lightingData);
 
     // Upload instance data for all passes in the same buffer
@@ -210,7 +229,7 @@ void Renderer::renderFrame()
     _uiCommandQueue.clear();
 
     // Frame cleanup
-    _lights.clear();
+    _pointLights.clear();
 }
 
 void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
@@ -431,6 +450,7 @@ void Renderer::executePass(const ViewportDataBlock& passData, CommandQueue& queu
         batchStart = batchEnd;
     }
 }
+
 void Renderer::executePostEffectStack()
 {
     ZoneScopedN("Execute post processing stack")

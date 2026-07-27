@@ -3,7 +3,9 @@
 #include "engine.h"
 #include "assets/Mesh.h"
 #include "assets/Texture.h"
+#include "core/Debug.h"
 #include "core/EcsCore.h"
+#include "core/EcsDebug.h"
 #include "core/Input.h"
 #include "core/Time.h"
 #include "core/Transform.h"
@@ -25,13 +27,14 @@ struct RotateData
 
 struct DiscoLight
 {
-    float phaseOffset  = 0.0f; // 0-1, randomize per-entity so lights desync
-    float hueSpeed     = 0.15f; // hue cycles per second
-    float pulseSpeed   = 1.2f;  // intensity pulses per second
+    float phaseOffset = 0.0f; // 0-1, randomize per-entity so lights desync
+    float hueSpeed = 0.15f; // hue cycles per second
+    float pulseSpeed = 1.2f; // intensity pulses per second
     float baseIntensity = 5.f;
-    float pulseAmount   = 0.8f; // 0 = steady, 1 = pulses all the way to baseIntensity*(1-pulseAmount)
+    float pulseAmount = 0.8f; // 0 = steady, 1 = pulses all the way to baseIntensity*(1-pulseAmount)
 };
 
+struct VisualizeForward { };
 
 WindowState engine::getInitialWindowState()
 {
@@ -72,7 +75,7 @@ void engine::setupGame(const flecs::world& world)
     const auto tonemapMat = tonemap->newMaterialInstance("default");
     tonemapMat->setFloat("uExposure"_spid, 1);
     tonemapMat->setFloat("uGammaAdjust"_spid, 1);
-    tonemapMat->setInt("uMode"_spid, 0);
+    tonemapMat->setInt("uMode"_spid, 1);
     const AssetRef<Pipeline> fxaa = Pipeline::createFullscreenEffect("FXAA", "shaders/fullscreen/fxaa.fs.glsl");
     const auto fxaaMat = fxaa->newMaterialInstance("qw");
 
@@ -90,14 +93,21 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/basic.vert", "shaders/color.frag");
     AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
     whiteUnlit->setColor("color"_spid, Color::white);
-    auto lightParent = world.entity("light parent").set<RotateData>({.angularVelocity = 25});
+    auto lightParent = world.entity("light parent")
+        // .set<RotateData>({.angularVelocity = 25})
+        ;
     transform::add(lightParent, vec3::zero);
     auto light = world.entity("light")
-        .set<MeshRenderData>({.mesh = sphere, .material = whiteUnlit})
-        .set<LightData>({.color = Color::white, .intensity = 1})
+            .set<MeshRenderData>({.mesh = sphere, .material = whiteUnlit})
+            .set<LightData>({.type = LightData::Type::Directional, .color = Color::white, .intensity = 1})
         // .set<DiscoLight>({})
-    ;
-    transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::identity, vec3(.1f));
+        ;
+    light.add<VisualizeForward>();
+    transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::lookRotation(vec3(1, 1, -.5), vec3::up), vec3(.1f));
+
+    auto pointLight = world.entity("pointLight")
+        .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 2});
+    transform::add(pointLight, vec3(0, -1, .5f));
 
     AssetRef<Material> uvCheckerMat = Material::duplicate(baseMat, "mat");
     uvCheckerMat->setTexture2D("diffuseTexture"_spid, uvCheckerTex);
@@ -192,11 +202,12 @@ void engine::setupGame(const flecs::world& world)
     world.system<LightData, MeshRenderData, DiscoLight>("Disco lights")
         .each([](LightData& light, MeshRenderData& renderData, DiscoLight& disco)
         {
+            //LLM generated
             float t = time::sinceLoad();
 
             // Walk hue around the color wheel instead of wobbling R/G/B independently.
             float hue = math::fract(t * disco.hueSpeed + disco.phaseOffset);
-            Color color = Color::fromSrgb(SrgbColor::fromHsv(hue, lerp(.5, 1, fract(t*2.5)), 1)); // fully saturated, full value
+            Color color = Color::fromSrgb(SrgbColor::fromHsv(hue, lerp(.5, 1, fract(t * 2.5)), 1));
 
             // Remap sine into [1-pulseAmount, 1] so intensity never goes negative
             // or snaps to zero, but still has a punchy pulse.
@@ -206,6 +217,13 @@ void engine::setupGame(const flecs::world& world)
             light.color = color;
             light.intensity = intensity;
             renderData.material->setColor("color"_spid, color * intensity);
+        });
+
+    world.system<const HierarchyTransform>()
+        .with<VisualizeForward>()
+        .each([](const HierarchyTransform& transform)
+        {
+            core::debug::drawRay(transform.getWorldPosition(), transform.getForward(), Color::magenta);
         });
 
     world.system<HierarchyTransform, FreeLookCameraControlData, const GlobalInput>("Camera control")

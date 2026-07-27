@@ -53,7 +53,7 @@ void main() {
         case 1: mapped = reinhard(hdr); break;
         case 2: mapped = neutral(hdr); break;
         case 3: mapped = acesFilm(hdr); break;
-        default : mapped = clamp01(hdr);
+        default: mapped = clamp01(hdr); break;
     }
 
     vec3 srgb = linearToSrgb(mapped);

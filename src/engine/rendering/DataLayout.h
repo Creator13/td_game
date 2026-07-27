@@ -79,14 +79,23 @@ namespace core::gfx
 
     struct alignas(16) LightingDataBlock
     {
-        struct alignas(16) Light
+        struct alignas(16) PointLight
         {
             Std140Vec3 position;
             math::vec3 color;
             float intensity;
         };
 
-        Light light;
+        struct alignas(16) DirectionalLight
+        {
+            Std140Vec3 direction;
+            math::vec3 color;
+            float intensity;
+        };
+
+        DirectionalLight dirLight;
+        PointLight pointLights[8];
+        i32 numPointLights = 0;
         float ambientStrength;
 
         constexpr static gl::Int SHADER_BINDING = 4;

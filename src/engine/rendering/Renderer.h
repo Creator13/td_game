@@ -30,16 +30,23 @@ namespace core::gfx
         u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
-    struct Light
+    struct PointLight
     {
         math::vec3 position = math::vec3::zero;
         Color color = Color::black;
         float intensity = 1;
     };
 
+    struct DirectionalLight
+    {
+        math::vec3 direction = math::vec3::right;
+        Color color = Color::black;
+        float intensity = 1;
+    };
+
     struct EnvironmentSettings
     {
-        float ambientIntensity = .01f;
+        float ambientIntensity = .05f;
     };
 
     static_assert(std::is_trivially_destructible_v<DrawCommand>, "DrawCommand should be a trivially destructible type for good performance.");
@@ -58,7 +65,8 @@ namespace core::gfx
 
         ViewportData _viewportData = ViewportData();
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
-        std::vector<Light> _lights = std::vector<Light>();
+        std::vector<PointLight> _pointLights = std::vector<PointLight>();
+        std::vector<DirectionalLight> _dirLights = std::vector<DirectionalLight>();
         Color _clearColor;
 
         CommandQueue _opaqueCommandQueue;
@@ -89,13 +97,16 @@ namespace core::gfx
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
         void setViewportData(const ViewportData& params);
-        void submitLight(const Light& light);
-        void submitDrawCommand(const DrawCommand& command);
         void setEnvironmentSettings(const EnvironmentSettings& env);
-        void renderFrame();
-
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
         void setClearColor(const Color& clearColor);
+
+        void submitPointLight(const PointLight& light);
+        void submitDirectionalLight(const DirectionalLight& light);
+
+        void submitDrawCommand(const DrawCommand& command);
+
+        void renderFrame();
 
         static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
 
