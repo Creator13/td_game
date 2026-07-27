@@ -35,6 +35,7 @@ namespace core::gfx
         math::vec3 position = math::vec3::zero;
         Color color = Color::black;
         float intensity = 1;
+        float range;
     };
 
     struct DirectionalLight
@@ -44,9 +45,21 @@ namespace core::gfx
         float intensity = 1;
     };
 
+    struct Spotlight
+    {
+        math::vec3 position = math::vec3::zero;
+        math::vec3 direction = math::vec3::right;
+        float innerCutoff;
+        float outerCutoff;
+        float range;
+
+        Color color = Color::black;
+        float intensity = 1;
+    };
+
     struct EnvironmentSettings
     {
-        float ambientIntensity = .05f;
+        float ambientIntensity = .01f;
     };
 
     static_assert(std::is_trivially_destructible_v<DrawCommand>, "DrawCommand should be a trivially destructible type for good performance.");
@@ -67,6 +80,7 @@ namespace core::gfx
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
         std::vector<PointLight> _pointLights = std::vector<PointLight>();
         std::vector<DirectionalLight> _dirLights = std::vector<DirectionalLight>();
+        std::vector<Spotlight> _spotlights = std::vector<Spotlight>();
         Color _clearColor;
 
         CommandQueue _opaqueCommandQueue;
@@ -103,6 +117,7 @@ namespace core::gfx
 
         void submitPointLight(const PointLight& light);
         void submitDirectionalLight(const DirectionalLight& light);
+        void submitSpotlight(const Spotlight& spotlight);
 
         void submitDrawCommand(const DrawCommand& command);
 
@@ -120,6 +135,8 @@ namespace core::gfx
         void resizeFrameBuffers(int newWidth, int newHeight);
 
         void appendInstanceData(CommandQueue& queue);
+        void setupLightingData() const;
+
         void executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex);
         void executePostEffectStack();
         void executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst);

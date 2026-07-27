@@ -76,3 +76,23 @@ TEST_CASE("Clamp", FUNCTIONS_TEST_TAG)
     CHECK(math::clamp01(1.1) == 1);
     CHECK(math::clamp01(-.01) == 0);
 }
+
+TEST_CASE("Min", FUNCTIONS_TEST_TAG)
+{
+    CHECK(math::min(3, 4) == 3);
+    CHECK(math::min(-3, 4) == -3);
+    CHECK(math::min(-3, -4) == -4);
+    CHECK(math::min(0, 0) == 0);
+    CHECK(math::min(1, 0) == 0);
+    CHECK(math::min(0, 1) == 0);
+}
+
+TEST_CASE("Max", FUNCTIONS_TEST_TAG)
+{
+    CHECK(math::max(3, 4) == 4);
+    CHECK(math::max(-3, 4) == 4);
+    CHECK(math::max(-3, -4) == -3);
+    CHECK(math::max(0, 0) == 0);
+    CHECK(math::max(1, 0) == 1);
+    CHECK(math::max(0, 1) == 1);
+}

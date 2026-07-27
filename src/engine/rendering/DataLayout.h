@@ -84,6 +84,7 @@ namespace core::gfx
             Std140Vec3 position;
             math::vec3 color;
             float intensity;
+            float range;
         };
 
         struct alignas(16) DirectionalLight
@@ -93,9 +94,23 @@ namespace core::gfx
             float intensity;
         };
 
+        struct alignas(16) Spotlight
+        {
+            Std140Vec3 position; // 4 byte
+            math::vec3 direction; // 3 + 1 byte
+            float innerCutoff; // 3 + 1 byte
+
+            math::vec3 color;
+            float outerCutoff;
+            float intensity;
+            float range;
+        };
+
         DirectionalLight dirLight;
         PointLight pointLights[8];
+        Spotlight spotlights[8];
         i32 numPointLights = 0;
+        i32 numSpotlights = 0;
         float ambientStrength;
 
         constexpr static gl::Int SHADER_BINDING = 4;

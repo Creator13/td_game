@@ -75,7 +75,7 @@ Renderer::Renderer()
     glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSsboBindings);
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
     glGetIntegerv(GL_MAX_IMAGE_UNITS, &maxImageBindings);
-    SPDLOG_DEBUG("Max shader object bindings: UBO|{} - SSBO|{} - Tex|{} - Img|{}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
+    SPDLOG_DEBUG("Max shader object bindings: UBO:{} - SSBO:{} - Tex:{} - Img:{}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
 }
 
 void Renderer::init(int fbWidth, int fbHeight)
@@ -125,6 +125,11 @@ void Renderer::submitDirectionalLight(const DirectionalLight& light)
     _dirLights.push_back(light);
 }
 
+void Renderer::submitSpotlight(const Spotlight& spotlight)
+{
+    _spotlights.push_back(spotlight);
+}
+
 void Renderer::submitDrawCommand(const DrawCommand& command)
 {
     std::vector<DrawCommand>* targetQueue = nullptr;
@@ -159,27 +164,7 @@ void Renderer::renderFrame()
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
 
-    const DirectionalLight& firstDirLight = _dirLights[0];
-    LightingDataBlock lightingData;
-    lightingData.ambientStrength = _environmentSettings.ambientIntensity;
-    lightingData.numPointLights = min(_pointLights.size(), 8);
-    for (int i = 0; i < lightingData.numPointLights; i++)
-    {
-        lightingData.pointLights[i] = {
-            .position = _pointLights[i].position,
-            .color = _pointLights[i].color.rgbVec3(),
-            .intensity = _pointLights[i].intensity,
-        };
-    }
-    if (_dirLights.size() > 0)
-    {
-        lightingData.dirLight = {
-            .direction = firstDirLight.direction,
-            .color = firstDirLight.color.rgbVec3(),
-            .intensity = firstDirLight.intensity,
-        };
-    }
-    bindLightingData(lightingData);
+    setupLightingData();
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
@@ -230,6 +215,7 @@ void Renderer::renderFrame()
 
     // Frame cleanup
     _pointLights.clear();
+    _spotlights.clear();
 }
 
 void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
@@ -394,6 +380,56 @@ void Renderer::appendInstanceData(CommandQueue& queue)
         return input.instanceData;
     });
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
+}
+
+void Renderer::setupLightingData() const
+{
+    ZoneScopedN("Construct lighting data")
+
+    const DirectionalLight& firstDirLight = _dirLights[0];
+    LightingDataBlock lightingData;
+    lightingData.ambientStrength = _environmentSettings.ambientIntensity;
+    lightingData.numPointLights = min(_pointLights.size(), 8);
+    for (int i = 0; i < lightingData.numPointLights; i++)
+    {
+        lightingData.pointLights[i] = {
+            .position = _pointLights[i].position,
+            .color = _pointLights[i].color.rgbVec3(),
+            .intensity = _pointLights[i].intensity,
+            .range = _pointLights[i].range,
+        };
+    }
+    lightingData.numSpotlights = min(_spotlights.size(), 8);
+    for (int i = 0; i < lightingData.numSpotlights; i++)
+    {
+        lightingData.spotlights[i] = {
+            .position = _spotlights[i].position,
+            .direction = _spotlights[i].direction,
+            .innerCutoff = _spotlights[i].innerCutoff,
+            .color = _spotlights[i].color.rgbVec3(),
+            .outerCutoff = _spotlights[i].outerCutoff,
+            .intensity = _spotlights[i].intensity,
+            .range = _spotlights[i].range,
+        };
+    }
+    if (_dirLights.size() > 0)
+    {
+        lightingData.dirLight = {
+            .direction = firstDirLight.direction,
+            .color = firstDirLight.color.rgbVec3(),
+            .intensity = firstDirLight.intensity,
+        };
+    }
+    else
+    {
+        lightingData.dirLight = {
+            .direction = vec3::right,
+            .color = Color::black.rgbVec3(),
+            .intensity = 0
+        };
+    }
+
+    bindLightingData(lightingData);
 }
 
 void Renderer::executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex)

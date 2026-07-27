@@ -11,9 +11,14 @@ using namespace debug::ecs;
 using namespace core;
 using namespace core::ui;
 using namespace core::assets;
+using namespace core::ecs;
+using namespace math;
 
-namespace {
+namespace
+{
     struct RenderDebugEntity { };
+
+    struct DebugSystemTag { };
 }
 
 engine_debug::engine_debug(flecs::world& ecs)
@@ -35,9 +40,9 @@ engine_debug::engine_debug(flecs::world& ecs)
         .set<TextRenderData>({_debugInfoFont, 12, Color::white})
         .add<RenderDebugEntity>();
 
-    ecs.system<Text, const core::ecs::RendererSingleton&>()
+    ecs.system<Text, const RendererSingleton&>()
         .with<RenderDebugEntity>()
-        .each([](Text& text, const core::ecs::RendererSingleton& renderer)
+        .each([](Text& text, const RendererSingleton& renderer)
         {
             auto renderStats = renderer.ptr->getFrameStats();
             auto assetStats = AssetDatabase::stats();
@@ -54,7 +59,39 @@ engine_debug::engine_debug(flecs::world& ecs)
                 assetStats.textureStats.itemCount, FormattableBytes(assetStats.textureStats.bytesUsed),
                 assetStats.meshStats.itemCount, FormattableBytes(assetStats.meshStats.bytesUsed),
                 assetStats.fontStats.itemCount, FormattableBytes(assetStats.fontStats.bytesUsed)
-                );
+            );
             text.setText(stats);
-        });
+        })
+        .add<DebugSystemTag>();
+
+    ecs.system<const HierarchyTransform, const LightData>()
+        .with<Gizmo>()
+        .each([](const HierarchyTransform& transform, const LightData& light)
+            {
+                core::debug::drawRay(transform.getWorldPosition(), transform.getForward() * max(light.range, 1), light.color);
+                if (light.type == LightData::Type::Spot)
+                {
+                    float halfAngle = light.cutoffDegrees * .5;
+
+                    vec3 fwd = transform.getForward();
+                    vec3 right = transform.getRight();
+                    vec3 up = transform.getUp();
+                    vec3 pos = transform.getWorldPosition();
+
+                    vec3 dirUp = rotate(quaternion::angleAxis(-halfAngle, right), fwd);
+                    vec3 dirDown = rotate(quaternion::angleAxis(halfAngle, right), fwd);
+
+                    vec3 dirRight = rotate(quaternion::angleAxis(-halfAngle, up), fwd);
+                    vec3 dirLeft = rotate(quaternion::angleAxis(halfAngle, up), fwd);
+
+                    core::debug::drawRay(pos, dirUp * light.range, light.color);
+                    core::debug::drawRay(pos, dirDown * light.range, light.color);
+                    core::debug::drawRay(pos, dirLeft * light.range, light.color);
+                    core::debug::drawRay(pos, dirRight * light.range, light.color);
+                }
+            }
+        )
+    .add<DebugSystemTag>();
+
+
 }

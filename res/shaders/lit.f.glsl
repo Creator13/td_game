@@ -21,7 +21,7 @@ in VertToFrag {
 
 out vec4 fragColor;
 
-///
+//##
 
 struct Surface {
     vec3 normal;
@@ -31,7 +31,7 @@ struct Surface {
     float shininess;
 };
 
-vec3 phong(LightSample light, Surface surf) {
+vec3 blinnPhong(LightSample light, Surface surf) {
     float diff = max(dot(surf.normal, light.dir), 0.0);
 
     vec3 halfDir = normalize(light.dir + surf.viewDir);
@@ -52,10 +52,14 @@ void main() {
     surf.shininess = shininess;
 
     vec3 litColor = lighting.ambientIntensity * surf.albedo;
-    litColor += phong(sampleDirectionalLight(lighting.mainLight), surf);
+    litColor += blinnPhong(sampleDirectionalLight(lighting.mainLight), surf);
 
-    for (int i = 0; i < MAX_LIGHTS; i++) {
-        litColor += phong(samplePointLight(lighting.pointLights[i], fragIn.vWorldPos), surf);
+    for (int i = 0; i < lighting.numPointLights; i++) {
+        litColor += blinnPhong(samplePointLight(lighting.pointLights[i], fragIn.vWorldPos), surf);
+    }
+
+    for (int i = 0; i < lighting.numSpotlights; i++) {
+        litColor += blinnPhong(sampleSpotlight(lighting.spotlights[i], fragIn.vWorldPos), surf);
     }
 
     fragColor = vec4(litColor, 1.0);

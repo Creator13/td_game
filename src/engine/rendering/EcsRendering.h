@@ -61,6 +61,8 @@ namespace core::ecs
         Type type;
         Color color;
         float intensity;
+        float cutoffDegrees;
+        float range;
     };
 
     // #### SINGLETON ####

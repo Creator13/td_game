@@ -147,7 +147,21 @@ rendering::rendering(flecs::world& ecs)
                             pointLight.position = transform.getWorldPosition();
                             pointLight.color = ecsLight.color;
                             pointLight.intensity = ecsLight.intensity;
+                            pointLight.range = ecsLight.range;
                             renderer.ptr->submitPointLight(pointLight);
+                            break;
+                        }
+                        case LightData::Type::Spot:
+                        {
+                            Spotlight spotlight;
+                            spotlight.position = transform.getWorldPosition();
+                            spotlight.direction = transform.getForward();
+                            spotlight.innerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * .5f * DEG2RAD); // Hardcode half the outer width, improve once there are better data structures
+                            spotlight.outerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * DEG2RAD);
+                            spotlight.range = ecsLight.range;
+                            spotlight.color = ecsLight.color;
+                            spotlight.intensity = ecsLight.intensity;
+                            renderer.ptr->submitSpotlight(spotlight);
                             break;
                         }
                         default:

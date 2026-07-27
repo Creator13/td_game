@@ -34,7 +34,7 @@ struct DiscoLight
     float pulseAmount = 0.8f; // 0 = steady, 1 = pulses all the way to baseIntensity*(1-pulseAmount)
 };
 
-struct VisualizeForward { };
+struct VisualizeLight { };
 
 WindowState engine::getInitialWindowState()
 {
@@ -75,7 +75,7 @@ void engine::setupGame(const flecs::world& world)
     const auto tonemapMat = tonemap->newMaterialInstance("default");
     tonemapMat->setFloat("uExposure"_spid, 1);
     tonemapMat->setFloat("uGammaAdjust"_spid, 1);
-    tonemapMat->setInt("uMode"_spid, 1);
+    tonemapMat->setInt("uMode"_spid, 0);
     const AssetRef<Pipeline> fxaa = Pipeline::createFullscreenEffect("FXAA", "shaders/fullscreen/fxaa.fs.glsl");
     const auto fxaaMat = fxaa->newMaterialInstance("qw");
 
@@ -87,7 +87,7 @@ void engine::setupGame(const flecs::world& world)
     auto baseMat = lit->newMaterialInstance("baseMat");
     baseMat->setFloat("shininess"_spid, 32);
     baseMat->setColor("diffuseColor"_spid, Color::coral);
-    baseMat->setColor("specularColor"_spid, Color(.5f, .5f, .5f));
+    baseMat->setColor("specularColor"_spid, Color::white);
 
     // #### Lighting test scene
     AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/basic.vert", "shaders/color.frag");
@@ -102,12 +102,28 @@ void engine::setupGame(const flecs::world& world)
             .set<LightData>({.type = LightData::Type::Directional, .color = Color::white, .intensity = 1})
         // .set<DiscoLight>({})
         ;
-    light.add<VisualizeForward>();
+    light.add<::debug::ecs::Gizmo>();
     transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::lookRotation(vec3(1, 1, -.5), vec3::up), vec3(.1f));
 
     auto pointLight = world.entity("pointLight")
-        .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 2});
+        .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 1, .range = 1});
     transform::add(pointLight, vec3(0, -1, .5f));
+
+    auto containerMat = Material::duplicate(baseMat, "container");
+    containerMat->setColor("diffuseColor"_spid, Color::white);
+    containerMat->setTexture2D("diffuseTexture"_spid, containerDiffuse);
+    containerMat->setTexture2D("specularTexture"_spid, containerSpecular);
+    auto cube3 = world.entity("cube3")
+        .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = containerMat})
+        .set<RotateData>({.angularVelocity = 15});
+    constexpr float size = 1.2f;
+    constexpr vec3 containerPos = vec3(-1, -2, 0.5 * size);
+    transform::add(cube3, containerPos, quaternion::eulerAngles(0, 0, -14), vec3::one * size);
+
+    auto spotlight = world.entity("spotlight")
+        .set<LightData>({.type = LightData::Type::Spot, .color = Color::white, .intensity = 50, .cutoffDegrees = 25.f, .range = 15});
+    constexpr vec3 spotlightPos = vec3(0, 0, 2.5f);
+    transform::add(spotlight, spotlightPos, quaternion::lookRotation(containerPos - spotlightPos, vec3::up));
 
     AssetRef<Material> uvCheckerMat = Material::duplicate(baseMat, "mat");
     uvCheckerMat->setTexture2D("diffuseTexture"_spid, uvCheckerTex);
@@ -123,16 +139,6 @@ void engine::setupGame(const flecs::world& world)
     auto cube2 = world.entity("cube2")
         .set<MeshRenderData>({.mesh = cube, .material = baseMat});
     transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
-
-    auto containerMat = Material::duplicate(baseMat, "container");
-    containerMat->setColor("diffuseColor"_spid, Color::white);
-    containerMat->setTexture2D("diffuseTexture"_spid, containerDiffuse);
-    containerMat->setTexture2D("specularTexture"_spid, containerSpecular);
-    auto cube3 = world.entity("cube3")
-        .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = containerMat})
-        .set<RotateData>({.angularVelocity = 15});
-    constexpr float size = 1.2f;
-    transform::add(cube3, vec3(-1, -2, 0.5 * size), quaternion::eulerAngles(0, 0, -14), vec3::one * size);
 
     auto sphereMat = Material::duplicate(baseMat, "sphere1");
     sphereMat->setColor("diffuseColor"_spid, Color::gray2);
@@ -199,8 +205,8 @@ void engine::setupGame(const flecs::world& world)
             transform.rotate(it.entity(i), quaternion::eulerAngles(0, 0, rotation.angularVelocity * time::delta()));
         });
 
-    world.system<LightData, MeshRenderData, DiscoLight>("Disco lights")
-        .each([](LightData& light, MeshRenderData& renderData, DiscoLight& disco)
+    world.system<LightData, DiscoLight>("Disco lights")
+        .each([](flecs::entity e, LightData& light, DiscoLight& disco)
         {
             //LLM generated
             float t = time::sinceLoad();
@@ -216,14 +222,12 @@ void engine::setupGame(const flecs::world& world)
 
             light.color = color;
             light.intensity = intensity;
-            renderData.material->setColor("color"_spid, color * intensity);
-        });
 
-    world.system<const HierarchyTransform>()
-        .with<VisualizeForward>()
-        .each([](const HierarchyTransform& transform)
-        {
-            core::debug::drawRay(transform.getWorldPosition(), transform.getForward(), Color::magenta);
+            if (e.has<MeshRenderData>())
+            {
+                const MeshRenderData& renderData = e.get<MeshRenderData>();
+                renderData.material->setColor("color"_spid, color * intensity);
+            }
         });
 
     world.system<HierarchyTransform, FreeLookCameraControlData, const GlobalInput>("Camera control")

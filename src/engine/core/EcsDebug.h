@@ -16,6 +16,8 @@ namespace debug::ecs
         core::debug::DebugRenderer* ptr;
     };
 
+    struct Gizmo { };
+
     struct engine_debug
     {
         engine_debug(flecs::world& ecs);
