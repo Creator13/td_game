@@ -58,7 +58,7 @@ namespace core::ecs
     struct LightData
     {
         Color color;
-        float strength;
+        float intensity;
     };
 
     // #### SINGLETON ####

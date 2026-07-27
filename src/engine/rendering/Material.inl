@@ -13,6 +13,7 @@ void Material::setUniform(gfx::ShaderPropertyId id, const T& value, gl::enum_t e
     if (property->glType != expectedGlType)
     {
         // Bounce for wrong type
+        SPDLOG_WARN("Shader uniform type mismatch trying to set property id {}. Expected type {}, was {}.", id, expectedGlType, property->glType);
         return;
     }
 

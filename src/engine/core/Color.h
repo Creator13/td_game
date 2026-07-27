@@ -21,8 +21,10 @@ namespace core
         [[nodiscard]] static constexpr Color fromSrgb(float r, float g, float b);
         [[nodiscard]] static constexpr Color fromSrgb(math::vec3 rgb);
 
-        [[nodiscard]] constexpr math::vec3 rgb() const { return math::vec3(r, g, b); }
+        [[nodiscard]] constexpr math::vec3 rgbVec3() const { return math::vec3(r, g, b); }
+        [[nodiscard]] constexpr math::vec4 rgbaVec4() const { return math::vec4(r, g, b, a); }
 
+        constexpr explicit operator math::vec3() const { return math::vec3(r, g, b); }
         constexpr explicit operator math::vec4() const { return math::vec4(r, g, b, a); }
 
         // ReSharper disable CppInconsistentNaming
@@ -209,6 +211,21 @@ namespace core
     // ReSharper restore CppIdenticalOperandsInBinaryExpression
     // @formatter:on
 
+    constexpr Color operator*(const Color& in, float x)
+    {
+        return Color(in.r * x, in.g * x, in.b * x, in.a * x);
+    }
+
+    constexpr Color operator*(float x, const Color& in)
+    {
+        return operator*(in, x);
+    }
+
+    constexpr Color operator*(const Color& in1, const Color& in2)
+    {
+        return Color(in1.r * in2.r, in1.g * in2.g, in1.b * in2.b, in1.a * in2.a);
+    }
+
     /// Represents a color, assumed to be in sRGB space.
     struct SrgbColor
     {
@@ -221,6 +238,8 @@ namespace core
         [[nodiscard]] static constexpr SrgbColor fromLinear(float r, float g, float b, float a);
         [[nodiscard]] static constexpr SrgbColor fromLinear(const Color& color);
         [[nodiscard]] static constexpr SrgbColor fromLinear(float r, float g, float b);
+
+        static constexpr SrgbColor fromHsv(float h, float s, float v, float a = 1.0f);
     };
 
     constexpr float srgbToLinear(float x)
@@ -303,5 +322,31 @@ namespace core
     constexpr SrgbColor SrgbColor::fromLinear(float r, float g, float b)
     {
         return fromLinear(r, g, b, 1.0f);
+    }
+
+    constexpr SrgbColor SrgbColor::fromHsv(float h, float s, float v, float a)
+    {
+        s = math::clamp(s, 0.0f, 1.0f);
+        v = math::clamp(v, 0.0f, 1.0f);
+
+        if (s <= 0.0f) return SrgbColor(v, v, v, a); // fully desaturated: pure gray
+
+        h = math::fract(h) * 6.0f; // wrap hue into [0, 6)
+        const int   sector = static_cast<int>(h);
+        const float frac   = h - static_cast<float>(sector);
+
+        const float p = v * (1.0f - s);
+        const float q = v * (1.0f - s * frac);
+        const float t = v * (1.0f - s * (1.0f - frac));
+
+        switch (sector)
+        {
+            case 0:  return SrgbColor(v, t, p, a);
+            case 1:  return SrgbColor(q, v, p, a);
+            case 2:  return SrgbColor(p, v, t, a);
+            case 3:  return SrgbColor(p, q, v, a);
+            case 4:  return SrgbColor(t, p, v, a);
+            default: return SrgbColor(v, p, q, a); // case 5
+        }
     }
 }

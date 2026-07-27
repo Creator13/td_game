@@ -58,7 +58,7 @@ namespace math
         return static_cast<int>(std::ceil(in));
     }
 
-    MATH_CONSTEXPR_CMATH inline float frac(float a)
+    MATH_CONSTEXPR_CMATH inline float fract(float a)
     {
         return a - floor(a);
     }

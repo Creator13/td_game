@@ -115,6 +115,11 @@ void Renderer::setViewportData(const ViewportData& params)
     _viewportData = params;
 }
 
+void Renderer::submitLight(const Light& light)
+{
+    _lights.push_back(light);
+}
+
 void Renderer::submitDrawCommand(const DrawCommand& command)
 {
     std::vector<DrawCommand>* targetQueue = nullptr;
@@ -135,10 +140,7 @@ void Renderer::submitDrawCommand(const DrawCommand& command)
     targetQueue->push_back(command);
 }
 
-void Renderer::setLightData(const LightingDataBlock& lightingData)
-{
-    _lightingData = lightingData;
-}
+void Renderer::setEnvironmentSettings(const EnvironmentSettings& env) { }
 
 void Renderer::renderFrame()
 {
@@ -152,7 +154,13 @@ void Renderer::renderFrame()
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
 
-    bindLightingData(_lightingData);
+    const Light& firstLight = _lights[0];
+    LightingDataBlock lightingData;
+    lightingData.ambientStrength = _environmentSettings.ambientIntensity;
+    lightingData.light.position = firstLight.position;
+    lightingData.light.intensity = firstLight.intensity;
+    lightingData.light.color = firstLight.color.rgbVec3();
+    bindLightingData(lightingData);
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
@@ -200,6 +208,9 @@ void Renderer::renderFrame()
     glDisable(GL_FRAMEBUFFER_SRGB);
     instanceIndex += _uiCommandQueue.size();
     _uiCommandQueue.clear();
+
+    // Frame cleanup
+    _lights.clear();
 }
 
 void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)

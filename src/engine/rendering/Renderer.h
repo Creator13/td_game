@@ -4,7 +4,6 @@
 
 #include "datatype.h"
 #include "assets/Mesh.h"
-#include "math/mat4.h"
 #include "rendering/DataLayout.h"
 #include "rendering/Framebuffer.h"
 #include "rendering/GraphicsBuffer.h"
@@ -31,6 +30,18 @@ namespace core::gfx
         u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
+    struct Light
+    {
+        math::vec3 position = math::vec3::zero;
+        Color color = Color::black;
+        float intensity = 1;
+    };
+
+    struct EnvironmentSettings
+    {
+        float ambientIntensity = .01f;
+    };
+
     static_assert(std::is_trivially_destructible_v<DrawCommand>, "DrawCommand should be a trivially destructible type for good performance.");
 
     class Renderer
@@ -46,7 +57,8 @@ namespace core::gfx
         using CommandQueue = std::vector<DrawCommand>;
 
         ViewportData _viewportData = ViewportData();
-        LightingDataBlock _lightingData = LightingDataBlock();
+        EnvironmentSettings _environmentSettings = EnvironmentSettings();
+        std::vector<Light> _lights = std::vector<Light>();
         Color _clearColor;
 
         CommandQueue _opaqueCommandQueue;
@@ -77,8 +89,9 @@ namespace core::gfx
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
         void setViewportData(const ViewportData& params);
-        void setLightData(const LightingDataBlock& lightingData);
+        void submitLight(const Light& light);
         void submitDrawCommand(const DrawCommand& command);
+        void setEnvironmentSettings(const EnvironmentSettings& env);
         void renderFrame();
 
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);

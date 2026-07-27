@@ -125,11 +125,17 @@ rendering::rendering(flecs::world& ecs)
             auto f_lightData = it.field<const LightData>(0);
             auto f_transform = it.field<const HierarchyTransform>(1);
 
-            renderer.ptr->setLightData(LightingDataBlock{
-                .lightColor = f_lightData[0].color.rgb(),
-                .lightPos = f_transform[0].getWorldPosition(),
-                .ambientStrength = .01f,
-            });
+            for (auto i : it)
+            {
+                const HierarchyTransform& transform = f_transform[i];
+                const LightData& ecsLight = f_lightData[i];
+
+                Light lightData;
+                lightData.position = transform.getWorldPosition();
+                lightData.color = ecsLight.color;
+                lightData.intensity = ecsLight.intensity;
+                renderer.ptr->submitLight(lightData);
+            }
         });
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")

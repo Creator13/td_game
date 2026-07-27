@@ -6,8 +6,10 @@
 uniform sampler2D baseTexture;
 
 layout (binding = 3, std140) uniform MaterialData {
-    vec4 baseColor;
-    float specularStrength;
+    vec4 ambientColor;
+    vec4 diffuseColor;
+    vec4 specularColor;
+    float shininess;
 };
 
 in VertToFrag {
@@ -20,22 +22,23 @@ in VertToFrag {
 out vec4 fragColor;
 
 void main() {
-    vec3 ambient = lighting.ambientStrength * lighting.lightColor;
-
     vec3 fragNormal = normalize(fragIn.vNorm);
-    vec3 lightDir = normalize(lighting.lightPos - fragIn.vWorldPos);
 
+    // Ambient
+    vec3 ambient = lighting.ambientIntensity * ambientColor.rgb;
+
+    // Diffuse
+    vec3 lightDir = normalize(lighting.light.position - fragIn.vWorldPos);
     float diff = max(dot(fragNormal, lightDir), 0.0);
-    vec3 diffuse = diff * lighting.lightColor;
+    vec3 diffuse = lighting.light.color * lighting.light.intensity * (diff * diffuseColor.rgb);
 
+    // Specular
     vec3 viewDir = normalize(scene.cameraPos - fragIn.vWorldPos);
     vec3 reflectDir = reflect(-lightDir, fragNormal);
-
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lighting.lightColor;
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    vec3 specular = lighting.light.color * lighting.light.intensity * (spec * specularColor.rgb);
 
     vec3 lighting = ambient + diffuse + specular;
-    vec3 albedo = texture(baseTexture, fragIn.vTexCoord).rgb * baseColor.rgb;
-    vec3 result = lighting * albedo;
+    vec3 result = lighting;
     fragColor = vec4(result, 1.0);
 }

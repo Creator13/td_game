@@ -153,7 +153,8 @@ int Application::run()
             ZoneScopedN("Glfw buffer swap (wait for present)")
             glfwSwapBuffers(_windowPtr);
         }
-            TracyGpuCollect;
+
+        TracyGpuCollect;
 
         _inputState.endFrame();
     }
