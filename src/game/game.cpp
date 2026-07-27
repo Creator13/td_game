@@ -53,8 +53,11 @@ void engine::setupGame(const flecs::world& world)
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
     const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
     const AssetRef<Mesh> cube = Mesh::loadFromFile("mesh/primitive/cube.glb");
+    const AssetRef<Mesh> cubeSimpleUv = Mesh::loadFromFile("mesh/cubeSimpleUv.glb");
     const AssetRef<Mesh> groundPlane = Mesh::loadFromFile("mesh/primitive/plane.glb");
 
+    AssetRef<Texture> containerDiffuse = Texture::loadFromFile("tex/container2.png", TextureFormat::RGBA8_SRGB, false, true);
+    AssetRef<Texture> containerSpecular = Texture::loadFromFile("tex/container2_specular.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> avacadooTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
 
@@ -81,7 +84,6 @@ void engine::setupGame(const flecs::world& world)
     auto baseMat = lit->newMaterialInstance("baseMat");
     baseMat->setFloat("shininess"_spid, 32);
     baseMat->setColor("diffuseColor"_spid, Color::coral);
-    baseMat->setColor("ambientColor"_spid, Color::coral);
     baseMat->setColor("specularColor"_spid, Color(.5f, .5f, .5f));
 
     // #### Lighting test scene
@@ -98,45 +100,45 @@ void engine::setupGame(const flecs::world& world)
     transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::identity, vec3(.1f));
 
     AssetRef<Material> uvCheckerMat = Material::duplicate(baseMat, "mat");
-    uvCheckerMat->setTexture2D("baseTexture"_spid, uvCheckerTex);
+    uvCheckerMat->setTexture2D("diffuseTexture"_spid, uvCheckerTex);
     uvCheckerMat->setColor("diffuseColor"_spid, Color::gray);
-    uvCheckerMat->setColor("ambientColor"_spid, Color::gray);
     auto floor = world.entity("Floor")
         .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
     transform::add(floor, vec3(0, 0, 0));
 
-    auto cube1Mat = Material::duplicate(baseMat, "cube1");
-    cube1Mat->setColor("diffuseColor"_spid, Color::blanchedAlmond);
-    cube1Mat->setColor("ambientColor"_spid, Color::blanchedAlmond);
     auto cube1 = world.entity("cube1")
-        .set<MeshRenderData>({.mesh = cube, .material = cube1Mat});
+        .set<MeshRenderData>({.mesh = cube, .material = baseMat});
     transform::add(cube1, vec3(-2, 3, 0.65), quaternion::eulerAngles(15, 0, 66));
 
     auto cube2 = world.entity("cube2")
         .set<MeshRenderData>({.mesh = cube, .material = baseMat});
     transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
 
+    auto containerMat = Material::duplicate(baseMat, "container");
+    containerMat->setColor("diffuseColor"_spid, Color::white);
+    containerMat->setTexture2D("diffuseTexture"_spid, containerDiffuse);
+    containerMat->setTexture2D("specularTexture"_spid, containerSpecular);
     auto cube3 = world.entity("cube3")
-        .set<MeshRenderData>({.mesh = cube, .material = baseMat})
+        .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = containerMat})
         .set<RotateData>({.angularVelocity = 15});
-    transform::add(cube3, vec3(-1, -2, 0.5), quaternion::eulerAngles(0, 0, -14), vec3::one * 1.5f);
+    constexpr float size = 1.2f;
+    transform::add(cube3, vec3(-1, -2, 0.5 * size), quaternion::eulerAngles(0, 0, -14), vec3::one * size);
 
     auto sphereMat = Material::duplicate(baseMat, "sphere1");
     sphereMat->setColor("diffuseColor"_spid, Color::gray2);
-    sphereMat->setColor("ambientColor"_spid, Color::gray2);
     sphereMat->setFloat("shininess"_spid, 128);
     auto sphere1 = world.entity("sphere1")
         .set<MeshRenderData>({.mesh = sphere, .material = sphereMat});
     transform::add(sphere1, vec3(1, -1.5, .5));
 
     AssetRef<Material> avacadooMat = Material::duplicate(baseMat, "mat");
-    avacadooMat->setTexture2D("baseTexture"_spid, avacadooTex);
+    avacadooMat->setTexture2D("diffuseTexture"_spid, avacadooTex);
     avacadooMat->setColor("diffuseColor"_spid, Color::white);
-    avacadooMat->setColor("ambientColor"_spid, Color::white);
     auto avacadoo = world.entity("avacadoo")
         .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
     transform::add(avacadoo, vec3(1, 1, .15), quaternion::eulerAngles(90, 0, 22), vec3::one * 10);
 
+    // Gizmos
     PipelineDescriptor gizmosDesc = pDesc;
     gizmosDesc.depthTest = false;
     AssetRef<Pipeline> coloredGizmoShader = Pipeline::create("colored", gizmosDesc, "shaders/basic.vert", "shaders/color.frag");
