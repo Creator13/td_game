@@ -27,7 +27,7 @@ AssetRef<gfx::Pipeline> Font::getOrCreateDefaultPipeline()
             .blendDestination = BlendOption::OneMinusSourceAlpha,
             .backfaceCulling = BackfaceCulling::Back,
         };
-        _defaultFontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.vert", "shaders/font.frag");
+        _defaultFontPipeline = Pipeline::create("MSDF font", desc, "shaders/font.v.glsl", "shaders/font.f.glsl");
     }
 
     return _defaultFontPipeline;

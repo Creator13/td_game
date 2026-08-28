@@ -108,7 +108,7 @@ engine_ui::engine_ui(flecs::world& ecs)
         .backfaceCulling = BackfaceCulling::None, // Culling could technically be Back for all screenspace ui elements, its only required to be None for worldspace elements
     };
 
-    auto uiRenderPipeline = Pipeline::create("UI sprite", desc, "shaders/basic.vert", "shaders/ui.frag");
+    auto uiRenderPipeline = Pipeline::create("UI sprite", desc, "shaders/unlit.v.glsl", "shaders/ui.frag");
     _uiMaterial = uiRenderPipeline->newMaterialInstance("UI material");
     _uiMaterial->setTexture2D("_texture"_spid, tex);
 

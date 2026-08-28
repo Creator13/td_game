@@ -90,7 +90,7 @@ void engine::setupGame(const flecs::world& world)
     baseMat->setColor("specularColor"_spid, Color::white);
 
     // #### Lighting test scene
-    AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/basic.vert", "shaders/color.frag");
+    AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/unlit.v.glsl", "shaders/unlit.f.glsl");
     AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
     whiteUnlit->setColor("color"_spid, Color::white);
     auto lightParent = world.entity("light parent")
@@ -157,7 +157,7 @@ void engine::setupGame(const flecs::world& world)
     // Gizmos
     PipelineDescriptor gizmosDesc = pDesc;
     gizmosDesc.depthTest = false;
-    AssetRef<Pipeline> coloredGizmoShader = Pipeline::create("colored", gizmosDesc, "shaders/basic.vert", "shaders/color.frag");
+    AssetRef<Pipeline> coloredGizmoShader = Pipeline::create("colored", gizmosDesc, "shaders/unlit.v.glsl", "shaders/unlit.f.glsl");
 
     auto redGizmoMat = coloredGizmoShader->newMaterialInstance("red");
     redGizmoMat->setColor("color"_spid, Color::red);
