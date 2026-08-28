@@ -274,9 +274,14 @@ void engine::setupGame(const flecs::world& world)
             camControl.currentVelocity = lerp(camControl.currentVelocity, targetVelocity, t);
 
             vec3 move = camControl.currentVelocity * deltaTime;
+
             if (input.state->isKeyDown(Key::LeftShift))
             {
                 move *= camControl.speedMultiplier;
+            }
+            if (input.state->isKeyDown(Key::LeftControl))
+            {
+                move /= camControl.speedMultiplier;
             }
 
             transform.translate(e, move);

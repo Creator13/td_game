@@ -5,7 +5,8 @@
 #include "assets/AssetRef.h"
 #include "assets/Font.h"
 
-namespace msdfgen {
+namespace msdfgen
+{
     class FreetypeHandle;
 }
 
@@ -13,13 +14,13 @@ namespace core::assets
 {
     class FontLoader
     {
-        msdfgen::FreetypeHandle* ftHandle;
+        msdfgen::FreetypeHandle* _ftHandle;
         const u32 _numWorkerThreads;
 
         bool validateFontFile(std::string_view path) const;
         static u32 getWorkerThreadCount();
-    public:
 
+    public:
         FontLoader();
         ~FontLoader();
 

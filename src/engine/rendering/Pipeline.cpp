@@ -41,7 +41,7 @@ AssetRef<Pipeline> Pipeline::create(std::string_view name, const PipelineDescrip
 {
     const gl::program_t program = AssetDatabase::instance->_shaderLoader.glProgramFromFiles(vertSourcePath, fragSourcePath);
 
-    auto& pipelineStorage = AssetDatabase::instance->_pipelineStorage;
+    auto& pipelineStorage = AssetDatabase::instance->getStorage<Pipeline>();
     auto [mem, index] = pipelineStorage.allocate_uninitialized();
     Pipeline* pipeline = ::new(mem) Pipeline(descriptor, program, index);
 

@@ -22,7 +22,7 @@ namespace core
     {
     public: // creation
         Application() = delete;
-        Application(int argc, char* argv[], std::string_view resourceRoot, const WindowState& windowState);
+        Application(int argc, char* argv[], const WindowState& windowState);
         ~Application();
 
         // No copy (every application is encapsulated and can not exist twice)

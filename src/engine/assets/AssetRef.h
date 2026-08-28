@@ -62,6 +62,7 @@ namespace core::assets
             return _id;
         }
         bool isNull() const noexcept { return _assetPtr == nullptr || _id == 0; }
+        bool isNotNull() const noexcept { return !isNull(); }
 
         static AssetRef null() { return AssetRef(nullptr, AssetId::null()); }
 

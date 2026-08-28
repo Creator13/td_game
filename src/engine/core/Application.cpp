@@ -91,16 +91,13 @@ namespace
     }
 }
 
-Application::Application(int argc, char* argv[], std::string_view resourceRoot, const WindowState& windowState)
+Application::Application(int argc, char* argv[], const WindowState& windowState)
     : _ecs(argc, argv), _windowState(windowState)
 {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S] [%s:%#] [%^%l%$] %v");
 
     createWindow(windowState);
-
-    // Asset database relies on an opengl context and cannot be created before opengl is initialized (createWindow initializes opengl)
-    assets::AssetDatabase::initialize(resourceRoot);
 
     _renderer = std::make_unique<gfx::Renderer>();
     // Initialize renderer
@@ -274,7 +271,6 @@ void Application::initFlecs()
 
 void Application::cleanup()
 {
-    assets::AssetDatabase::destroy();
     cleanWindow();
 }
 

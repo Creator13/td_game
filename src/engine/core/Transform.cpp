@@ -235,6 +235,8 @@ void HierarchyTransform::applyModified(flecs::entity e_self)
 
 void HierarchyTransform::propagateMatrixToChildren(flecs::entity e_self, const mat4* parentMatrix)
 {
+    ZoneScoped;
+
     if (parentMatrix != nullptr)
     {
         worldMatrix = *parentMatrix * mat4::makeTRS(localPos, localRot, localScale);

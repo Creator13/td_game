@@ -2,6 +2,8 @@
 
 #include "Framebuffer.h"
 
+#include "assets/AssetDatabase.h"
+
 using namespace core;
 using namespace core::gfx;
 
@@ -58,10 +60,10 @@ void Framebuffer::createAttachments()
 void Framebuffer::deleteAttachments()
 {
     // TODO _colorattachment is an asset, and assets cannot be deleted atm so fix that (PPLEASE allow textures to not be assets?? or something??)
-    // if (_colorAttachment > 0)
-    // {
-    //     glDeleteTextures(1, &_colorAttachment.id);
-    // }
+    if (_colorAttachment.isNotNull())
+    {
+        assets::AssetDatabase::deleteAsset(_colorAttachment);
+    }
     if (_depthAttachment > 0)
     {
         glDeleteRenderbuffers(1, &_depthAttachment);

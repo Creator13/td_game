@@ -33,7 +33,7 @@ bool FontLoader::validateFontFile(std::string_view path) const
 {
     // Hack to get the underlying FT_Library from msdfgen's FreetypeHandle, because there is no need to reinitialize the library each time for validation
     // (alternative would be to store two FT_Libraries, one for validation and the other for msdfgen::FreetypeHandle).
-    const FT_Library lib = *reinterpret_cast<FT_Library*>(ftHandle);
+    const FT_Library lib = *reinterpret_cast<FT_Library*>(_ftHandle);
 
     FT_Face face;
     const FT_Error err = FT_New_Face(lib, path.data(), 0, &face);
@@ -56,11 +56,11 @@ u32 FontLoader::getWorkerThreadCount()
 }
 
 FontLoader::FontLoader()
-    : ftHandle(msdfgen::initializeFreetype()), _numWorkerThreads(getWorkerThreadCount()) { }
+    : _ftHandle(msdfgen::initializeFreetype()), _numWorkerThreads(getWorkerThreadCount()) { }
 
 FontLoader::~FontLoader()
 {
-    msdfgen::deinitializeFreetype(ftHandle);
+    msdfgen::deinitializeFreetype(_ftHandle);
 }
 
 bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
@@ -71,7 +71,7 @@ bool FontLoader::loadFontAtlas(std::string_view path, Font& outFont)
     {
         return false;
     }
-    msdfgen::FontHandle* srcFont = msdfgen::loadFont(ftHandle, fullPath.string().c_str());
+    msdfgen::FontHandle* srcFont = msdfgen::loadFont(_ftHandle, fullPath.string().c_str());
 
     std::vector<msdf_atlas::GlyphGeometry> glyphs;
     msdf_atlas::FontGeometry geometry(&glyphs);
