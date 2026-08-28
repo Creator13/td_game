@@ -52,7 +52,7 @@ namespace core
         BC6H_UFLOAT,
         BC7_RGBA_UNORM,
         BC7_RGBA_SRGB,
-        Count
+        _Count
     };
 
     enum class TextureWrap : u8
@@ -122,5 +122,55 @@ namespace core
             bool createMips,
             TextureWrap wrapU = TextureWrap::Repeat, TextureWrap wrapV = TextureWrap::Repeat,
             TextureFilter filter = TextureFilter::Linear);
+
+        constexpr bool isValidFormat(TextureFormat format)
+        {
+            if (format == TextureFormat::Unknown || format == TextureFormat::_Count)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        constexpr bool isCompressedFormat(TextureFormat format)
+        {
+            if (format == TextureFormat::BC1_RGB_UNORM ||
+                format == TextureFormat::BC1_RGB_SRGB ||
+                format == TextureFormat::BC3_RGBA_UNORM ||
+                format == TextureFormat::BC3_RGBA_SRGB ||
+                format == TextureFormat::BC4_UNORM ||
+                format == TextureFormat::BC5_UNORM ||
+                format == TextureFormat::BC6H_UFLOAT ||
+                format == TextureFormat::BC7_RGBA_UNORM ||
+                format == TextureFormat::BC7_RGBA_SRGB ||
+                format == TextureFormat::BC1_RGB_SRGB ||
+                format == TextureFormat::BC3_RGBA_UNORM ||
+                format == TextureFormat::BC3_RGBA_SRGB ||
+                format == TextureFormat::BC4_UNORM ||
+                format == TextureFormat::BC5_UNORM ||
+                format == TextureFormat::BC6H_UFLOAT ||
+                format == TextureFormat::BC7_RGBA_UNORM ||
+                format == TextureFormat::BC7_RGBA_SRGB)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        constexpr bool isDepthFormat(TextureFormat format)
+        {
+            if (format == TextureFormat::D16_UNORM ||
+                format == TextureFormat::D24_UNORM_S8_UINT ||
+                format == TextureFormat::D32_FLOAT)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        constexpr bool isUncompressedColorFormat(TextureFormat format)
+        {
+            return isValidFormat(format) && !isCompressedFormat(format) && !isDepthFormat(format);
+        }
     }
 }

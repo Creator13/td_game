@@ -64,10 +64,10 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 
 Renderer::Renderer()
     : _instanceDataBuffer(1_MB),
-      _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, true),
+      _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, TextureFormat::D24_UNORM_S8_UINT, false),
       _pingPongFramebuffers({
-          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false),
-          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, false)
+          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, std::nullopt, false),
+          Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, std::nullopt, false)
       })
 {
     gl::Int maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings;

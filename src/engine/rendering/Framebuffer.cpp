@@ -6,9 +6,18 @@
 
 using namespace core;
 using namespace core::gfx;
+using namespace assets;
 
-Framebuffer::Framebuffer(int width, int height, TextureFormat textureFormat, bool depth)
-    : _width(width), _height(height), _textureFormat(textureFormat), _hasDepth(depth) { }
+Framebuffer::Framebuffer(
+    int width, int height,
+    std::optional<TextureFormat> colorFormat,
+    std::optional<TextureFormat> depthFormat, bool depthReadable)
+    : _width(width), _height(height),
+      _colorFormat(colorFormat),
+      _depthFormat(depthFormat), _depthReadable(depthReadable)
+{
+    validateTextureFormats();
+}
 
 Framebuffer::~Framebuffer()
 {
@@ -30,52 +39,105 @@ void Framebuffer::create()
         glCreateFramebuffers(1, &_fbo.id);
     }
 
-    deleteAttachments(); // Delete has no effect when called on null attachments, hence we can call this function safely even on first create
+    deleteAttachments(); // Delete has no effect when called on null attachments, therefore we can call this function safely even on first create
     createAttachments();
 
     _isCreated = true;
     validate();
 }
 
+void Framebuffer::setSize(int width, int height)
+{
+    _width = width;
+    _height = height;
+    _isCreated = false;
+}
+
 void Framebuffer::createAttachments()
 {
-    // TODO validate texture format to be an allowed format for framebuffers (not every format is allowed, see compressed formats)
-
-    _colorAttachment = Texture::create("anonymous framebuffer texture",
-        _width, _height, _textureFormat, false, true,
-        TextureWrap::Clamp, TextureWrap::Clamp, TextureFilter::Linear);
-
-    glNamedFramebufferTexture(_fbo, GL_COLOR_ATTACHMENT0, _colorAttachment->getGlBindPoint(), 0);
-
-    if (_hasDepth)
+    if (_colorFormat.has_value())
     {
-        // TODO allow use of texture instead of renderbuffer, AND abstract renderbuffer into a gl::type
-        glCreateRenderbuffers(1, &_depthAttachment);
-        glNamedRenderbufferStorage(_depthAttachment, GL_DEPTH24_STENCIL8, _width, _height);
+        _colorAttachment = Texture::create("anonymous framebuffer color texture",
+            _width, _height, _colorFormat.value(), false, true,
+            TextureWrap::Clamp, TextureWrap::Clamp, TextureFilter::Linear);
 
-        glNamedFramebufferRenderbuffer(_fbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthAttachment);
+        glNamedFramebufferTexture(_fbo, GL_COLOR_ATTACHMENT0, _colorAttachment->getGlBindPoint(), 0);
+    }
+
+    if (_depthFormat.has_value())
+    {
+        if (_depthReadable)
+        {
+            AssetRef<Texture> depthTexture = Texture::create("anonymous framebuffer depth texture",
+                _width, _height, _depthFormat.value(), false, true,
+                TextureWrap::Clamp, TextureWrap::Clamp, TextureFilter::Linear);
+
+            // Special case for the depth+stencil formats TODO: (extract into texture_util::isDepthStencilFormat function)
+            if (_depthFormat.value() == TextureFormat::D24_UNORM_S8_UINT)
+            {
+                glNamedFramebufferTexture(_fbo, GL_DEPTH_STENCIL_ATTACHMENT, depthTexture->getGlBindPoint(), 0);
+            }
+            else
+            {
+                glNamedFramebufferTexture(_fbo, GL_DEPTH_ATTACHMENT, depthTexture->getGlBindPoint(), 0);
+            }
+            _depthAttachment = depthTexture;
+        }
+        else
+        {
+            // TODO abstract renderbuffer into a semantic gl::type alias, or even a RenderBuffer type ?
+            gl::Uint bufferHandle;
+            glCreateRenderbuffers(1, &bufferHandle);
+            glNamedRenderbufferStorage(bufferHandle, texture_util::getGlInternalFormat(_depthFormat.value()), _width, _height);
+
+            if (_depthFormat.value() == TextureFormat::D24_UNORM_S8_UINT)
+            {
+                glNamedFramebufferRenderbuffer(_fbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, bufferHandle);
+            }
+            else
+            {
+                glNamedFramebufferRenderbuffer(_fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, bufferHandle);
+            }
+            _depthAttachment = bufferHandle;
+        }
+
+        // Special case: no color attachment
+        if (!_colorFormat.has_value())
+        {
+            glNamedFramebufferDrawBuffer(_fbo, GL_NONE);
+            glNamedFramebufferReadBuffer(_fbo, GL_NONE);
+        }
     }
 }
 
 void Framebuffer::deleteAttachments()
 {
-    // TODO _colorattachment is an asset, and assets cannot be deleted atm so fix that (PPLEASE allow textures to not be assets?? or something??)
+    // Delete color
     if (_colorAttachment.isNotNull())
     {
-        assets::AssetDatabase::deleteAsset(_colorAttachment);
+        AssetDatabase::deleteAsset(_colorAttachment);
     }
-    if (_depthAttachment > 0)
+
+    std::visit([]<typename T>(T& attachment)
     {
-        glDeleteRenderbuffers(1, &_depthAttachment);
-    }
+        if constexpr (std::is_same_v<T, std::monostate>) { /* no content, no deletion */ }
+        else if constexpr (std::is_same_v<T, AssetRef<Texture>>)
+        {
+            if (attachment.isNotNull())
+            {
+                AssetDatabase::deleteAsset(attachment);
+            }
+        }
+        else if constexpr (std::is_same_v<T, gl::Uint>)
+        {
+            if (attachment > 0)
+            {
+                glDeleteRenderbuffers(1, &attachment);
+            }
+        }
+    }, _depthAttachment);
 
-    _isCreated = false;
-}
-
-void Framebuffer::setSize(int width, int height)
-{
-    _width = width;
-    _height = height;
+    _depthAttachment = std::monostate{ };
     _isCreated = false;
 }
 
@@ -117,4 +179,23 @@ void Framebuffer::validate()
     // de-macro-ify to avoid nested macro (is this a necessary thing? it felt unsafe to nest)
     constexpr int completeStatusCode = GL_FRAMEBUFFER_COMPLETE;
     ENGINE_ASSERT(status == completeStatusCode, "Framebuffer (id {}) incomplete: {}", _fbo.id, errName);
+}
+
+bool Framebuffer::validateTextureFormats() const
+{
+    if (_colorFormat.has_value())
+    {
+        ENGINE_ASSERT(
+            texture_util::isUncompressedColorFormat(_colorFormat.value()),
+            "Invalid texture format for framebuffer color attachment: {}", magic_enum::enum_name(_colorFormat.value())
+        );
+    }
+    if (_depthFormat.has_value())
+    {
+        ENGINE_ASSERT(
+            texture_util::isDepthFormat(_depthFormat.value()),
+            "Invalid texture format for framebuffer depth attachment: {}", magic_enum::enum_name(_depthFormat.value())
+        );
+    }
+    return true;
 }

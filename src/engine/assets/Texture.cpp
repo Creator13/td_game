@@ -193,7 +193,7 @@ gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
         case TextureFormat::BC7_RGBA_SRGB:
             return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 
-        case TextureFormat::Count:
+        case TextureFormat::_Count:
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
@@ -290,7 +290,7 @@ gl::enum_t texture_util::getGlPixelDataType(TextureFormat format)
         case TextureFormat::BC7_RGBA_SRGB:
             ENGINE_ASSERT(false, "Illegal call to get GL pixel data type for a compressed texture format (should not be interpreting compressed data as uncompressed pixels)");
 
-        case TextureFormat::Count:
+        case TextureFormat::_Count:
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format");
@@ -340,7 +340,7 @@ gl::enum_t texture_util::getGlPixelFormat(TextureFormat format)
         case TextureFormat::BC7_RGBA_SRGB:
             ENGINE_ASSERT(false, "Illegal call to get GL pixel format for a compressed texture format (should not be interpreting compressed data as uncompressed pixels)");
 
-        case TextureFormat::Count:
+        case TextureFormat::_Count:
         case TextureFormat::Unknown:
         default:
             ENGINE_ASSERT(false, "Unknown texture format.");
