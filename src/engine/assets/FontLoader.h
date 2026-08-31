@@ -2,8 +2,10 @@
 #include <string_view>
 
 #include "datatype.h"
-#include "assets/AssetRef.h"
-#include "assets/Font.h"
+
+namespace core {
+    class Font;
+}
 
 namespace msdfgen
 {
