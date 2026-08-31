@@ -127,7 +127,7 @@ void Material::setVec4(ShaderPropertyId id, vec4 value)
 
 void Material::setColor(ShaderPropertyId id, Color value)
 {
-    setUniform<vec4>(id, static_cast<const vec4&>(value), GL_COLOR);
+    setUniform<vec4>(id, static_cast<vec4>(value), GL_COLOR);
 }
 
 void Material::setMat4(ShaderPropertyId id, const mat4& value)
