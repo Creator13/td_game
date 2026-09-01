@@ -3,24 +3,25 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 31, "patch": 0 },
   "configurePresets": [
     {
-      "name": "rel-windows-msvc-static",
-      "generator": "Ninja",
+      "name": "windows-msvc-static",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
+      },
+      "architecture": "x64"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "rel-windows-msvc-static",
+      "configurePreset": "windows-msvc-static",
+      "configuration": "Release"
     },
     {
-      "name": "rel-windows-mingw-static",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
+      "name": "relWithDeb-windows-msvc-static",
+      "configurePreset": "windows-msvc-static",
+      "configuration": "RelWithDebInfo"
     }
   ]
 }

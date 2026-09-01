@@ -78,8 +78,11 @@ target_link_libraries(engine_core
 )
 
 ## Copy engine resources to bin directory
-include(${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake)
-add_dependencies(engine_core copy_resources)
+# TODO if I want to make my cmake project compatible with multi-config generators, there seems to be no way to make
+#   copying resources a dependency of the engine library without also putting the resources next to the .lib instead of the .exe
+#   Therefore this is now (hopefully temporarily) moved to the game target
+#include(${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake)
+#add_dependencies(engine_core copy_resources)
 
 ## Spdlog debug level depends on target
 target_compile_definitions(engine_core PUBLIC
