@@ -12,7 +12,10 @@ An attempt to build a 3D tower defense game from scratch that escalated into bui
 
 ## Screenshots
 
-Will put some here soon (dm me if you want to see now)
+A sample scene demonstrating the current work-in-progress state of lighting:
+![](https://cvanbattum.com/project_content/td-game/scene.webp)
+Rendering some 400k entities at around 30fps:
+![](https://cvanbattum.com/project_content/td-game/instances.webp "Rendering ~400k entities at around 30fps")
 
 ## Future plans
 - Have fun.
