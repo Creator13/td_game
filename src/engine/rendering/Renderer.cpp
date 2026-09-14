@@ -106,10 +106,12 @@ void Renderer::init(int fbWidth, int fbHeight, int shadowMapResolution)
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     glCreateSamplers(1, &_shadowSampler);
-    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(_shadowSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glSamplerParameteri(_shadowSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     constexpr float borderColor[] = {1.0, 1.0, 1.0, 1.0};
     glSamplerParameterfv(_shadowSampler, GL_TEXTURE_BORDER_COLOR, borderColor);
 

@@ -24,5 +24,11 @@ void main() {
     vertOut.vLocalPos = aPos;
     vertOut.vNorm = mat3(transpose(INSTANCE_TRANSFORM_INVERSE)) * aNorm;
     vertOut.vTexCoord = aTexCoord;
-    vertOut.vFragPosLightSpace = lighting.mainLight.lightSpaceMatrix * vec4(vertOut.vWorldPos, 1.0);
+
+    // shadow normal offset bias
+    float NdotL = clamp(dot(vertOut.vNorm, normalize(-lighting.mainLight.direction)), 0.0, 1.0);
+    float normalOffsetScale = 0.33 * (1.0 - NdotL);
+    vec3 biasedWorldPos = vertOut.vWorldPos + (vertOut.vNorm * normalOffsetScale);
+
+    vertOut.vFragPosLightSpace = lighting.mainLight.lightSpaceMatrix * vec4(biasedWorldPos, 1.0);
 }

@@ -10,20 +10,22 @@ namespace core
 {
     struct WindowState
     {
+        enum class FullscreenMode { Windowed, Borderless, Exclusive};
+
         WindowState() = default;
 
-        WindowState(int width, int height, std::string_view title, bool fullscreen)
+        WindowState(int width, int height, std::string_view title, FullscreenMode fullscreenMode)
             : width(width), height(height),
               fbWidth(width), fbHeight(height),
               title(title),
-              fullscreen(fullscreen) { }
+              fullscreenMode(fullscreenMode) { }
 
         u16 width, height;
         u16 fbWidth, fbHeight;
         std::string title;
-        bool fullscreen;
+        FullscreenMode fullscreenMode;
 
-        void setSize(int newWidth, int newHeight, bool setFrameBuffer = false);
+        void setSize(int newWidth, int newHeight, bool setFrameBuffer = true);
         float getFrameBufferAspect() const;
     };
 

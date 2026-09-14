@@ -37,7 +37,7 @@ struct VisualizeLight { };
 
 WindowState engine::getInitialWindowState()
 {
-    return WindowState(1280, 720, "game", false);
+    return WindowState(1280, 720, "game", WindowState::FullscreenMode::Windowed);
 }
 
 void engine::setupGame(const flecs::world& world)

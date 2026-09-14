@@ -41,7 +41,7 @@ struct LightSample {
     vec3 radiance;
 };
 
-layout (binding = 15) uniform sampler2D _shadowMap;
+layout (binding = 15) uniform sampler2DShadow _shadowMap;
 
 float distanceAttenuation(float squareDistance, float lightRange) {
     float squareRange = lightRange * lightRange;
@@ -53,28 +53,21 @@ float distanceAttenuation(float squareDistance, float lightRange) {
     return invSquare * window;
 }
 
-float sampleShadow(vec4 fragPosLightSpace, vec3 normal) {
-    float bias = max(0.005 * (1.0 - dot(normal, -lighting.mainLight.direction)), 0.0005f);
-
+float sampleShadow(vec4 fragPosLightSpace) {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     if (projCoords.z > 1.0) return 1.0; // Early return when sampling out of range
-
-    float closestDepth = texture(_shadowMap, projCoords.xy).r;
-    float currentDepth = projCoords.z;
 
     float shadow = 0;
     vec2 texelSize = 1.0 / textureSize(_shadowMap, 0);
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {
-            float pcfDepth = texture(_shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            shadow += texture(_shadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z)).r;
         }
     }
-
     shadow /= 9.0;
 
-    return (1.0 - shadow);
+    return shadow;
 }
 
 LightSample sampleDirectionalLight(DirectionalLight light) {

@@ -52,7 +52,7 @@ void main() {
     surf.specularColor = texture(specularTexture, fragIn.vTexCoord).rgb * specularColor.rgb;
     surf.shininess = shininess;
 
-    float shadow = sampleShadow(fragIn.vFragPosLightSpace, surf.normal);
+    float shadow = sampleShadow(fragIn.vFragPosLightSpace);
     vec3 litColor = lighting.ambientIntensity * surf.albedo;
     litColor += shadow * blinnPhong(sampleDirectionalLight(lighting.mainLight), surf);
 
