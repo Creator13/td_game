@@ -89,6 +89,7 @@ void engine::setupGame(const flecs::world& world)
     baseMat->setColor("specularColor"_spid, Color::white);
 
     // #### Lighting test scene
+    // MAIN LIGHT
     AssetRef<Pipeline> unlitPipeline = Pipeline::create("unlit", pDesc, "shaders/unlit.v.glsl", "shaders/unlit.f.glsl");
     AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
     whiteUnlit->setColor("color"_spid, Color::white);
@@ -103,10 +104,12 @@ void engine::setupGame(const flecs::world& world)
     light.add<::debug::ecs::Gizmo>();
     transform::add(light, lightParent, vec3::zero, quaternion::lookRotation(vec3(1.2, 1.5, -.67), vec3::up), vec3(.1f));
 
+    // POINT LIGHT
     auto pointLight = world.entity("pointLight")
         .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 1, .range = 1});
     transform::add(pointLight, vec3(0, -1, .5f));
 
+    // CONTAINER CUBE
     auto containerMat = Material::duplicate(baseMat, "container");
     containerMat->setColor("diffuseColor"_spid, Color::white);
     containerMat->setTexture2D("diffuseTexture"_spid, containerDiffuse);
@@ -118,21 +121,21 @@ void engine::setupGame(const flecs::world& world)
     constexpr vec3 containerPos = vec3(-1, -2, 0.5 * size);
     transform::add(cube3, containerPos, quaternion::eulerAngles(0, 0, -14), vec3::one * size);
 
+    // SPOTLIGHT
     auto spotlight = world.entity("spotlight")
         .set<LightData>({.type = LightData::Type::Spot, .color = Color::white, .intensity = 50, .cutoffDegrees = 25.f, .range = 15});
     constexpr vec3 spotlightPos = vec3(0, 0, 2.5f);
     transform::add(spotlight, spotlightPos, quaternion::lookRotation(containerPos - spotlightPos, vec3::up));
 
+    // FLOOR
     AssetRef<Material> uvCheckerMat = Material::duplicate(baseMat, "mat");
     uvCheckerMat->setTexture2D("diffuseTexture"_spid, uvCheckerTex);
     uvCheckerMat->setColor("diffuseColor"_spid, Color::gray);
     auto floor = world.entity("Floor")
         .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
-    transform::add(floor, vec3(0, 0, 0));
-    auto floor2 = world.entity("floor2")
-        .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
-    transform::add(floor2, vec3(0, 0, 0), quaternion::eulerAngles(180, 0, 0));
+    transform::add(floor, vec3(0, 0, 0), quaternion::identity, vec3(10));
 
+    // OTHER CUBES
     auto cube1 = world.entity("cube1")
         .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = baseMat});
     transform::add(cube1, vec3(-2, 3, 0.65), quaternion::eulerAngles(15, 0, 66));
@@ -141,6 +144,7 @@ void engine::setupGame(const flecs::world& world)
         .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = baseMat});
     transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
 
+    // SPHERE
     auto sphereMat = Material::duplicate(baseMat, "sphere1");
     sphereMat->setColor("diffuseColor"_spid, Color::gray2);
     sphereMat->setFloat("shininess"_spid, 128);
@@ -148,6 +152,7 @@ void engine::setupGame(const flecs::world& world)
         .set<MeshRenderData>({.mesh = sphere, .material = sphereMat});
     transform::add(sphere1, vec3(1, -1.5, .5));
 
+    // AVACADOO
     AssetRef<Material> avacadooMat = Material::duplicate(baseMat, "mat");
     avacadooMat->setTexture2D("diffuseTexture"_spid, avacadooTex);
     avacadooMat->setColor("diffuseColor"_spid, Color::white);
@@ -155,7 +160,7 @@ void engine::setupGame(const flecs::world& world)
         .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
     transform::add(avacadoo, vec3(1, 1, .15), quaternion::eulerAngles(90, 0, 22), vec3::one * 10);
 
-    // Gizmos
+    // Axes
     PipelineDescriptor gizmosDesc = pDesc;
     gizmosDesc.depthTest = false;
     AssetRef<Pipeline> coloredGizmoShader = Pipeline::create("colored", gizmosDesc, "shaders/unlit.v.glsl", "shaders/unlit.f.glsl");

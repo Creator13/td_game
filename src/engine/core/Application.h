@@ -1,7 +1,6 @@
 #pragma once
 
 #include <flecs.h>
-#include <string_view>
 
 #include "assets/AssetDatabase.h"
 #include "core/Debug.h"
