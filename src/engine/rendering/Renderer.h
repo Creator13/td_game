@@ -57,6 +57,13 @@ namespace core::gfx
         float intensity = 1;
     };
 
+    struct ShadowData
+    {
+        math::mat4 viewMatrix = math::mat4::identity;
+        math::mat4 projectionMatrix = math::mat4::identity;
+        math::mat4 viewProjectionMatrix = math::mat4::identity;
+    };
+
     struct EnvironmentSettings
     {
         float ambientIntensity = .01f;
@@ -66,15 +73,16 @@ namespace core::gfx
 
     class Renderer
     {
+        using CommandQueue = std::vector<DrawCommand>;
+
         struct FrameStats
         {
             i32 numDrawCalls = 0;
             i32 numPipelineBinds = 0;
             i32 numCommands = 0;
+            i32 numShadowCasters = 0;
             u64 triCount = 0;
-        };
-
-        using CommandQueue = std::vector<DrawCommand>;
+        } _frameStats;
 
         ViewportData _viewportData = ViewportData();
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
@@ -82,7 +90,9 @@ namespace core::gfx
         std::vector<DirectionalLight> _dirLights = std::vector<DirectionalLight>();
         std::vector<Spotlight> _spotlights = std::vector<Spotlight>();
         Color _clearColor;
+        int _shadowMapResolution = 512;
 
+        CommandQueue _shadowCommandQueue;
         CommandQueue _opaqueCommandQueue;
         CommandQueue _uiCommandQueue;
 
@@ -93,20 +103,21 @@ namespace core::gfx
         GraphicsBuffer _instanceDataBuffer;
 
         Framebuffer _mainFramebuffer;
+        Framebuffer _shadowFramebuffer;
         std::array<Framebuffer, 2> _pingPongFramebuffers;
 
         gl::Uint _defaultSampler = 0; // TODO define samplers as a type
+        gl::Uint _shadowSampler = 0;
         gl::vert_arr_t _emptyVao = 0;
 
-        assets::AssetRef<Material> _fullscreenBlitEffect = assets::AssetRef<Material>::null();
+        assets::AssetRef<Material> _depthMaterial;
+        assets::AssetRef<Material> _fullscreenBlitEffect;
         std::vector<assets::AssetRef<Material>> _postEffects;
-
-        FrameStats _frameStats;
 
     public:
         Renderer();
 
-        void init(int fbWidth, int fbHeight);
+        void init(int fbWidth, int fbHeight, int shadowMapResolution);
 
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
@@ -119,11 +130,11 @@ namespace core::gfx
         void submitDirectionalLight(const DirectionalLight& light);
         void submitSpotlight(const Spotlight& spotlight);
 
-        void submitDrawCommand(const DrawCommand& command);
+        void submitDrawCommand(const DrawCommand& command, bool castShadow);
 
         void renderFrame();
 
-        static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
+        static u64 buildSortKey(assets::AssetRef<Material> material, u16 meshKey);
 
     private:
         void bindPipeline(const Pipeline& pipeline);
@@ -135,7 +146,7 @@ namespace core::gfx
         void resizeFrameBuffers(int newWidth, int newHeight);
 
         void appendInstanceData(CommandQueue& queue);
-        void setupLightingData() const;
+        LightingDataBlock collectLightingData() const;
 
         void executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex);
         void executePostEffectStack();

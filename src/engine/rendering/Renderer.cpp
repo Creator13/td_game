@@ -27,7 +27,7 @@ mat4 ViewportData::getScreenSpaceProjectionMatrix() const
     return mat4::makeOrtho(0, pixelWidth, pixelHeight, 0, -1, 1) * constants::COORDINATE_BASIS;
 }
 
-// BELOW FUNCTIONS ARE LLM GENERATED; THEY DON'T WORK AMAZINGLY.
+// TODO BELOW FUNCTIONS ARE LLM GENERATED; THEY DON'T WORK AMAZINGLY.
 
 // depth: 0.0 = on near plane, 1.0 = on far plane
 vec3 ViewportData::screenToWorld(vec2 pixelPos, float depth) const
@@ -65,6 +65,7 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 Renderer::Renderer()
     : _instanceDataBuffer(1_MB),
       _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, TextureFormat::D24_UNORM_S8_UINT, false),
+      _shadowFramebuffer(_shadowMapResolution, _shadowMapResolution, std::nullopt, TextureFormat::D32_FLOAT, true),
       _pingPongFramebuffers({
           Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, std::nullopt, false),
           Framebuffer(800, 600, TextureFormat::RGBA8_UNORM, std::nullopt, false)
@@ -75,14 +76,16 @@ Renderer::Renderer()
     glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSsboBindings);
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
     glGetIntegerv(GL_MAX_IMAGE_UNITS, &maxImageBindings);
-    SPDLOG_DEBUG("Max shader object bindings: UBO:{} - SSBO:{} - Tex:{} - Img:{}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
+    SPDLOG_DEBUG("Max shader object bindings: UBO={}, SSBO={}, Tex={}, Img={}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
 }
 
-void Renderer::init(int fbWidth, int fbHeight)
+void Renderer::init(int fbWidth, int fbHeight, int shadowMapResolution)
 {
     glFrontFace(GL_CCW);
 
-    resizeFrameBuffers(fbWidth, fbHeight);
+    _shadowMapResolution = shadowMapResolution;
+    _shadowFramebuffer.setSize(_shadowMapResolution, _shadowMapResolution);
+    _shadowFramebuffer.create();
 
     auto fsPipeline = Pipeline::createFullscreenEffect("Fullscreen blit", "shaders/fullscreen/blit.fs.glsl");
     _fullscreenBlitEffect = fsPipeline->newMaterialInstance("anonymous");
@@ -102,7 +105,21 @@ void Renderer::init(int fbWidth, int fbHeight)
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(_defaultSampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+    glCreateSamplers(1, &_shadowSampler);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(_shadowSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     glCreateVertexArrays(1, &_emptyVao.id);
+
+    PipelineDescriptor depthPipelineDesc;
+    depthPipelineDesc.backfaceCulling = BackfaceCulling::Back;
+    depthPipelineDesc.blend = false;
+    depthPipelineDesc.depthTest = true;
+    depthPipelineDesc.depthFunc = DepthFunction::Less;
+    assets::AssetRef<Pipeline> depthPipeline = Pipeline::create("Default depth shader", depthPipelineDesc, "shaders/depth.v.glsl", "shaders/empty.glsl");
+    _depthMaterial = depthPipeline->newMaterialInstance("Default depth material");
 }
 
 void Renderer::setViewportData(const ViewportData& params)
@@ -113,6 +130,19 @@ void Renderer::setViewportData(const ViewportData& params)
     }
 
     _viewportData = params;
+}
+
+void Renderer::setEnvironmentSettings(const EnvironmentSettings& env) { }
+
+void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
+{
+    _postEffects.clear();
+    _postEffects.assign_range(stack);
+}
+
+void Renderer::setClearColor(const Color& clearColor)
+{
+    _clearColor = clearColor;
 }
 
 void Renderer::submitPointLight(const PointLight& light)
@@ -130,7 +160,7 @@ void Renderer::submitSpotlight(const Spotlight& spotlight)
     _spotlights.push_back(spotlight);
 }
 
-void Renderer::submitDrawCommand(const DrawCommand& command)
+void Renderer::submitDrawCommand(const DrawCommand& command, bool castShadow)
 {
     std::vector<DrawCommand>* targetQueue = nullptr;
 
@@ -148,9 +178,18 @@ void Renderer::submitDrawCommand(const DrawCommand& command)
     }
 
     targetQueue->push_back(command);
-}
 
-void Renderer::setEnvironmentSettings(const EnvironmentSettings& env) { }
+    if (castShadow)
+    {
+        DrawCommand shadowCommand;
+        shadowCommand.queue = DrawCommand::RenderQueue::SHADOW;
+        shadowCommand.material = _depthMaterial;
+        shadowCommand.sortKey = buildSortKey(_depthMaterial, command.getMeshId());
+        shadowCommand.instanceData = command.instanceData;
+        shadowCommand.mesh = command.mesh;
+        _shadowCommandQueue.push_back(shadowCommand);
+    }
+}
 
 void Renderer::renderFrame()
 {
@@ -164,29 +203,70 @@ void Renderer::renderFrame()
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
 
-    setupLightingData();
+    LightingDataBlock lightingData = collectLightingData();
+    ShadowData shadowData;
+
+    const bool hasShadowSource = _dirLights.size() > 0;
+    if (hasShadowSource)
+    {
+        const DirectionalLight& shadowSourceLight = _dirLights[0];
+        // It is a minor optimization to create the view matrix as a TRS, avoids one multiplication and creates the matrix in-place
+        shadowData.viewMatrix = inverse(mat4::makeTRS(-shadowSourceLight.direction * 10, rot3x3::lookRotation(shadowSourceLight.direction, vec3::up), vec3::one));
+        shadowData.projectionMatrix = mat4::makeOrtho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
+        shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
+        lightingData.dirLight.lightSpaceMatrix = shadowData.viewProjectionMatrix;
+    }
+    bindLightingData(lightingData);
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
     _instanceDataBuffer.clear();
 
+    if (hasShadowSource) sortCommandList(_shadowCommandQueue);
     sortCommandList(_opaqueCommandQueue);
     sortCommandList(_uiCommandQueue);
 
+    if (hasShadowSource) appendInstanceData(_shadowCommandQueue);
     appendInstanceData(_opaqueCommandQueue);
     appendInstanceData(_uiCommandQueue);
 
     _instanceDataBuffer.upload();
     _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
 
+    if (hasShadowSource) _frameStats.numCommands += _shadowCommandQueue.size();
     _frameStats.numCommands += _opaqueCommandQueue.size();
     _frameStats.numCommands += _uiCommandQueue.size();
 
     usize instanceIndex = 0;
 
+    // Execute shadow pass (only if there is a light to cast shadows)
+    if (hasShadowSource)
+    {
+        glViewport(0, 0, _shadowMapResolution, _shadowMapResolution);
+        glBindFramebuffer(GL_FRAMEBUFFER, _shadowFramebuffer._fbo);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        ViewportDataBlock shadowPassData;
+        shadowPassData.view = shadowData.viewMatrix;
+        shadowPassData.projection = shadowData.projectionMatrix;
+        shadowPassData.viewProj = shadowData.viewProjectionMatrix;
+        shadowPassData.cameraPos = vec3::zero;
+        executePass(shadowPassData, _shadowCommandQueue, instanceIndex);
+        instanceIndex += _shadowCommandQueue.size();
+        _shadowCommandQueue.clear();
+    }
+
+    glViewport(0, 0, _viewportData.pixelWidth, _viewportData.pixelHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, _mainFramebuffer._fbo);
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // TODO Okay this needs to be looked at
+    //  - Un-hardcode sampler location 15
+    //  - abstract away the way to get the texture bind point
+    auto shadowMapBinding = get<assets::AssetRef<Texture>>(_shadowFramebuffer._depthAttachment)->getGlBindPoint();
+    glBindTextureUnit(15, shadowMapBinding);
+    glBindSampler(15, _shadowSampler);
 
     // Execute opaque pass
     ViewportDataBlock opaqueData;
@@ -216,24 +296,14 @@ void Renderer::renderFrame()
     // Frame cleanup
     _pointLights.clear();
     _spotlights.clear();
+    _dirLights.clear();
 }
 
-void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
-{
-    _postEffects.clear();
-    _postEffects.assign_range(stack);
-}
-
-void Renderer::setClearColor(const Color& clearColor)
-{
-    _clearColor = clearColor;
-}
-
-u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
+u64 Renderer::buildSortKey(assets::AssetRef<Material> material, u16 meshKey)
 {
     return (static_cast<u64>(material->pipeline.sortKey) << 32) |
            (static_cast<u64>(material->sortKey) << 16) |
-           (static_cast<u64>(mesh->sortKey));
+           (static_cast<u64>(meshKey));
 }
 
 void Renderer::bindPipeline(const Pipeline& pipeline)
@@ -382,7 +452,7 @@ void Renderer::appendInstanceData(CommandQueue& queue)
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
 }
 
-void Renderer::setupLightingData() const
+LightingDataBlock Renderer::collectLightingData() const
 {
     ZoneScopedN("Construct lighting data")
 
@@ -428,8 +498,7 @@ void Renderer::setupLightingData() const
             .intensity = 0
         };
     }
-
-    bindLightingData(lightingData);
+    return lightingData;
 }
 
 void Renderer::executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex)

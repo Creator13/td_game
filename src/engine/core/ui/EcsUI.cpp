@@ -137,11 +137,11 @@ engine_ui::engine_ui(flecs::world& ecs)
                     DrawCommand command;
                     command.mesh = _uiQuad->gpuHandle;
                     command.material = _uiMaterial;
-                    command.sortKey = Renderer::buildSortKey(_uiMaterial, _uiQuad);
+                    command.sortKey = Renderer::buildSortKey(_uiMaterial, _uiQuad->sortKey);
                     command.instanceData.transform = make2dRectTRS(rect, rect.rotation, rect.anchor);
                     command.queue = DrawCommand::RenderQueue::UI;
 
-                    renderer->submitDrawCommand(command);
+                    renderer->submitDrawCommand(command, false);
                 }
             }
         });
@@ -199,7 +199,7 @@ engine_ui::engine_ui(flecs::world& ecs)
                     DrawCommand baseCommand;
                     baseCommand.mesh = glyphMesh->gpuHandle;
                     baseCommand.material = renderData.font->getMaterial();
-                    baseCommand.sortKey = Renderer::buildSortKey(baseCommand.material, glyphMesh);
+                    baseCommand.sortKey = Renderer::buildSortKey(baseCommand.material, glyphMesh->sortKey);
                     baseCommand.queue = DrawCommand::RenderQueue::UI;
 
                     mat4 baseTransform = make2dRectTRS({rect.offset, vec2::one}, rect.rotation, rect.anchor);
@@ -267,7 +267,7 @@ engine_ui::engine_ui(flecs::world& ecs)
 
                         command.instanceData.customData.c0 = glyphBufferIndex;
 
-                        renderer->submitDrawCommand(command);
+                        renderer->submitDrawCommand(command, false);
                         glyphBufferIndex++;
                     }
                 }

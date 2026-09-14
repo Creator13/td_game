@@ -6,6 +6,7 @@ struct DirectionalLight {
     vec3 direction;
     vec3 color;
     float intensity;
+    mat4 lightSpaceMatrix;
 };
 
 struct PointLight {
@@ -40,6 +41,8 @@ struct LightSample {
     vec3 radiance;
 };
 
+layout (binding = 15) uniform sampler2D _shadowMap;
+
 float distanceAttenuation(float squareDistance, float lightRange) {
     float squareRange = lightRange * lightRange;
 
@@ -48,6 +51,16 @@ float distanceAttenuation(float squareDistance, float lightRange) {
 
     float invSquare = 1.0 / max(squareDistance, 0.0001);
     return invSquare * window;
+}
+
+float sampleShadow(vec4 fragPosLightSpace, vec3 normal) {
+    float bias = max(0.005 * (1.0 - dot(normal, -lighting.mainLight.direction)), 0.0005f);
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(_shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    return (1.0 - shadow);
 }
 
 LightSample sampleDirectionalLight(DirectionalLight light) {

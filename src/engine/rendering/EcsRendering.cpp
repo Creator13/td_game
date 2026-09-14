@@ -252,13 +252,13 @@ rendering::rendering(flecs::world& ecs)
 
                     // Submit command
                     DrawCommand command;
-                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
+                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh->sortKey);
                     command.mesh = renderData.mesh->gpuHandle;
                     command.material = renderData.material;
                     command.instanceData.transform = f_transform[i].getWorldMatrix();
                     command.instanceData.invTransform = inverse(command.instanceData.transform); // TODO cache inverse matrix on objects, this is expensive to calculate each frame.
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
-                    renderer.ptr->submitDrawCommand(command);
+                    renderer.ptr->submitDrawCommand(command, renderData.castShadow); // TODO implement shadow casting of object as override of pipeline setting
 
                     rendered++;
                 }

@@ -195,18 +195,29 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
         shaderPropInfo.propertyType = ShaderPropertyInfo::PropertyType::Sampler;
         shaderPropInfo.glType = params[1];
 
-        SamplerInfo samplerInfo;
-        samplerInfo.location = params[2];
-        samplerInfo.textureUnit = textureUnit++;
-        samplerInfo.target = getGlSamplerTargetForUniformType(params[1]);
-        shaderPropInfo.data = samplerInfo;
-
-        glProgramUniform1i(program, samplerInfo.location, samplerInfo.textureUnit);
-
         const gl::Int uniformNameLength = params[3];
         shaderPropInfo.name.resize(uniformNameLength);
         glGetProgramResourceName(program, GL_UNIFORM, iUniform, uniformNameLength, nullptr, shaderPropInfo.name.data());
-        shaderPropInfo.name.resize(uniformNameLength - 1);
+        shaderPropInfo.name.resize(uniformNameLength - 1);\
+
+        SamplerInfo samplerInfo;
+        samplerInfo.location = params[2];
+        samplerInfo.target = getGlSamplerTargetForUniformType(params[1]);
+
+        // Check for a shader-declared layout (binding = ##) construction and use that if present
+        gl::Int shaderDeclaredUnit = 0;
+        glGetUniformiv(program, samplerInfo.location, &shaderDeclaredUnit);
+        if (shaderDeclaredUnit >= 12) // Everything that is not declared or declared outside the range (12-15) gets auto-assigned but the range gets kept
+        {
+            samplerInfo.textureUnit = shaderDeclaredUnit;
+        }
+        else // manually assign
+        {
+            ENGINE_ASSERT(textureUnit < 12, "Shader contains more samplers than allowed (max 0-12).");
+            samplerInfo.textureUnit = textureUnit++;
+            glProgramUniform1i(program, samplerInfo.location, samplerInfo.textureUnit);
+        }
+        shaderPropInfo.data = samplerInfo;
 
         ShaderPropertyId spid = makePropertyId(shaderPropInfo.name);
         resultLayout._shaderProperties[spid] = shaderPropInfo;

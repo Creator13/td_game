@@ -17,6 +17,7 @@ in VertToFrag {
     vec3 vLocalPos;
     vec3 vNorm;
     vec2 vTexCoord;
+    vec4 vFragPosLightSpace;
 } fragIn;
 
 out vec4 fragColor;
@@ -51,8 +52,9 @@ void main() {
     surf.specularColor = texture(specularTexture, fragIn.vTexCoord).rgb * specularColor.rgb;
     surf.shininess = shininess;
 
+    float shadow = sampleShadow(fragIn.vFragPosLightSpace, surf.normal);
     vec3 litColor = lighting.ambientIntensity * surf.albedo;
-    litColor += blinnPhong(sampleDirectionalLight(lighting.mainLight), surf);
+    litColor += shadow * blinnPhong(sampleDirectionalLight(lighting.mainLight), surf);
 
     for (int i = 0; i < lighting.numPointLights; i++) {
         litColor += blinnPhong(samplePointLight(lighting.pointLights[i], fragIn.vWorldPos), surf);

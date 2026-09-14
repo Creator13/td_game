@@ -3,7 +3,6 @@
 #include "engine.h"
 #include "assets/Mesh.h"
 #include "assets/Texture.h"
-#include "core/Debug.h"
 #include "core/EcsCore.h"
 #include "core/EcsDebug.h"
 #include "core/Input.h"
@@ -55,7 +54,7 @@ void engine::setupGame(const flecs::world& world)
 
     const AssetRef<Mesh> avocado = Mesh::loadFromFile("mesh/frischavacadoo.glb");
     const AssetRef<Mesh> sphere = Mesh::loadFromFile("mesh/primitive/uv_sphere.glb");
-    const AssetRef<Mesh> cube = Mesh::loadFromFile("mesh/primitive/cube.glb");
+    // const AssetRef<Mesh> cube = Mesh::loadFromFile("mesh/primitive/cube.glb");
     const AssetRef<Mesh> cubeSimpleUv = Mesh::loadFromFile("mesh/cubeSimpleUv.glb");
     const AssetRef<Mesh> groundPlane = Mesh::loadFromFile("mesh/primitive/plane.glb");
 
@@ -94,16 +93,15 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
     whiteUnlit->setColor("color"_spid, Color::white);
     auto lightParent = world.entity("light parent")
-        // .set<RotateData>({.angularVelocity = 25})
-        ;
-    transform::add(lightParent, vec3::zero);
+        .set<RotateData>({.angularVelocity = 10});
+    transform::add(lightParent, vec3::up * 2);
     auto light = world.entity("light")
             .set<MeshRenderData>({.mesh = sphere, .material = whiteUnlit})
             .set<LightData>({.type = LightData::Type::Directional, .color = Color::white, .intensity = 1})
         // .set<DiscoLight>({})
         ;
     light.add<::debug::ecs::Gizmo>();
-    transform::add(light, lightParent, vec3(1.2f, 1.0f, 2.0f), quaternion::lookRotation(vec3(1, 1, -.5), vec3::up), vec3(.1f));
+    transform::add(light, lightParent, vec3::zero, quaternion::lookRotation(vec3(1.2, 1.5, -.67), vec3::up), vec3(.1f));
 
     auto pointLight = world.entity("pointLight")
         .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 1, .range = 1});
@@ -131,13 +129,16 @@ void engine::setupGame(const flecs::world& world)
     auto floor = world.entity("Floor")
         .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
     transform::add(floor, vec3(0, 0, 0));
+    auto floor2 = world.entity("floor2")
+        .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
+    transform::add(floor2, vec3(0, 0, 0), quaternion::eulerAngles(180, 0, 0));
 
     auto cube1 = world.entity("cube1")
-        .set<MeshRenderData>({.mesh = cube, .material = baseMat});
+        .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = baseMat});
     transform::add(cube1, vec3(-2, 3, 0.65), quaternion::eulerAngles(15, 0, 66));
 
     auto cube2 = world.entity("cube2")
-        .set<MeshRenderData>({.mesh = cube, .material = baseMat});
+        .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = baseMat});
     transform::add(cube2, vec3(2.3, 0, 0.5), quaternion::eulerAngles(0, 0, 37));
 
     auto sphereMat = Material::duplicate(baseMat, "sphere1");
@@ -161,17 +162,17 @@ void engine::setupGame(const flecs::world& world)
 
     auto redGizmoMat = coloredGizmoShader->newMaterialInstance("red");
     redGizmoMat->setColor("color"_spid, Color::red);
-    auto gizmoX = world.entity("gizmoX").set<MeshRenderData>({.mesh = cube, .material = redGizmoMat});
+    auto gizmoX = world.entity("gizmoX").set<MeshRenderData>({.mesh = cubeSimpleUv, .material = redGizmoMat});
     transform::add(gizmoX, vec3::zero, quaternion::identity, vec3(4, .01, .01));
 
     auto greenGizmoMat = coloredGizmoShader->newMaterialInstance("green");
     greenGizmoMat->setColor("color"_spid, Color::green);
-    auto gizmoY = world.entity("gizmoY").set<MeshRenderData>({.mesh = cube, .material = greenGizmoMat});
+    auto gizmoY = world.entity("gizmoY").set<MeshRenderData>({.mesh = cubeSimpleUv, .material = greenGizmoMat});
     transform::add(gizmoY, vec3::zero, quaternion::identity, vec3(.01, 4, .01));
 
     auto blueGizmoMat = coloredGizmoShader->newMaterialInstance("blue");
     blueGizmoMat->setColor("color"_spid, Color::blue);
-    auto gizmoZ = world.entity("gizmoZ").set<MeshRenderData>({.mesh = cube, .material = blueGizmoMat});
+    auto gizmoZ = world.entity("gizmoZ").set<MeshRenderData>({.mesh = cubeSimpleUv, .material = blueGizmoMat});
     transform::add(gizmoZ, vec3::zero, quaternion::identity, vec3(.01, .01, 4));
 
     // #### NxN object scene

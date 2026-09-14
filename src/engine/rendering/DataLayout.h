@@ -92,13 +92,14 @@ namespace core::gfx
             Std140Vec3 direction;
             math::vec3 color;
             float intensity;
+            math::mat4 lightSpaceMatrix = math::mat4::identity;
         };
 
         struct alignas(16) Spotlight
         {
             Std140Vec3 position; // 4 byte
-            math::vec3 direction; // 3 + 1 byte
-            float innerCutoff; // 3 + 1 byte
+            math::vec3 direction; // [3] + 1 byte
+            float innerCutoff; // 3 + [1] byte
 
             math::vec3 color;
             float outerCutoff;

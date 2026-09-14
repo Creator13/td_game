@@ -101,7 +101,7 @@ Application::Application(int argc, char* argv[], const WindowState& windowState)
 
     _renderer = std::make_unique<gfx::Renderer>();
     // Initialize renderer
-    _renderer->init(_windowState.fbWidth, _windowState.fbHeight);
+    _renderer->init(_windowState.fbWidth, _windowState.fbHeight, 2048);
 
     _debugRenderer = std::make_unique<debug::DebugRenderer>();
     debug::bindDebugRenderer(*_debugRenderer);

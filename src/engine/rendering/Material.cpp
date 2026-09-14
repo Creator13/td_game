@@ -59,7 +59,12 @@ void Material::initializeData()
         // Assign null ref to every texture unit; rely on renderer to know how to deal with null refs.
         if (property.propertyType == ShaderPropertyInfo::PropertyType::Sampler)
         {
-            _textures.insert_or_assign(id, assets::AssetRef<Texture>::null());
+            // Skip textures (12-15), reserved by renderer and don't expose them to the material system
+            // TODO possibly give them an internal flag to make this more easy
+            if (property.getSamplerInfo().textureUnit < 12)
+            {
+                _textures.insert_or_assign(id, assets::AssetRef<Texture>::null());
+            }
         }
 
         // Most uniforms will have {0} as their default value

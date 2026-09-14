@@ -2,6 +2,7 @@
 
 #include "cginc/core.inc.glsl"
 #include "cginc/instancing.inc.glsl"
+#include "cginc/lighting.inc.glsl"
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNorm;
@@ -12,6 +13,7 @@ out VertToFrag {
     vec3 vLocalPos;
     vec3 vNorm;
     vec2 vTexCoord;
+    vec4 vFragPosLightSpace;
 } vertOut;
 
 void main() {
@@ -22,4 +24,5 @@ void main() {
     vertOut.vLocalPos = aPos;
     vertOut.vNorm = mat3(transpose(INSTANCE_TRANSFORM_INVERSE)) * aNorm;
     vertOut.vTexCoord = aTexCoord;
+    vertOut.vFragPosLightSpace = lighting.mainLight.lightSpaceMatrix * vec4(vertOut.vWorldPos, 1.0);
 }

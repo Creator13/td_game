@@ -42,6 +42,13 @@ void Framebuffer::create()
     deleteAttachments(); // Delete has no effect when called on null attachments, therefore we can call this function safely even on first create
     createAttachments();
 
+    SPDLOG_DEBUG("Created framebuffer {} with size {}x{}, color format {} {}, depth format {} {}",
+        _fbo.id, _width, _height,
+        (_colorFormat.has_value() ? magic_enum::enum_name(_colorFormat.value()) : "none"),
+        (_colorFormat.has_value() ? fmt::format("(tex id {})", _colorAttachment->getGlBindPoint().id) : ""),
+        (_depthFormat.has_value() ? magic_enum::enum_name(_depthFormat.value()) : "none"),
+        (_depthFormat.has_value() && _depthReadable? fmt::format("(tex id {})", get<AssetRef<Texture>>(_depthAttachment)->getGlBindPoint().id) : ""));
+
     _isCreated = true;
     validate();
 }

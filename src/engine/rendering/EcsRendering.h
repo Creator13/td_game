@@ -47,6 +47,7 @@ namespace core::ecs
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
         CullReason cullReason;
+        bool castShadow = true;
     };
 
     struct BoxBoundsData
