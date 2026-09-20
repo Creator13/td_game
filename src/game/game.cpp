@@ -105,9 +105,17 @@ void engine::setupGame(const flecs::world& world)
     transform::add(light, lightParent, vec3::zero, quaternion::lookRotation(vec3(1.2, 1.5, -.67), vec3::up), vec3(.1f));
 
     // POINT LIGHT
-    auto pointLight = world.entity("pointLight")
-        .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 1, .range = 1});
-    transform::add(pointLight, vec3(0, -1, .5f));
+    for (int i = 0; i < 8; ++i)
+    {
+        float t = static_cast<float>(i) / 8.f;
+        SrgbColor color = SrgbColor::fromHsv(t, 1, 1);
+        flecs::entity l = world.entity(fmt::format("Light {}", i).c_str())
+            .set<LightData>({.type = LightData::Type::Point, .color = Color::fromSrgb(color), .intensity = lerp(.5, 2, t), .range = 1});
+        transform::add(l, vec3(math::cos(t * TWOPI) * 5, math::sin(t * TWOPI) * 5, .5f));
+    }
+    // auto pointLight = world.entity("pointLight")
+        // .set<LightData>({.type = LightData::Type::Point, .color = Color::greenYellow, .intensity = 1, .range = 1});
+    // transform::add(pointLight, vec3(0, -1, .5f));
 
     // CONTAINER CUBE
     auto containerMat = Material::duplicate(baseMat, "container");

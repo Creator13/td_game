@@ -53,6 +53,9 @@ namespace core::gfx
             i32 numDrawCalls = 0;
             i32 numPipelineBinds = 0;
             i32 numCommands = 0;
+            i32 numDirLights = 0;
+            i32 numSpotlights = 0;
+            i32 numPointLights = 0;
             u64 triCount = 0;
         } _frameStats;
 

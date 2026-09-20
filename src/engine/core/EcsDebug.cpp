@@ -58,10 +58,11 @@ engine_debug::engine_debug(flecs::world& ecs)
 
             std::string stats = fmt::format(enLoc,
                 "{:.3f}ms (avg:{:.3f}ms, 1%:{:.3f}ms) | {:.1f}fps\n"
-                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {}\n"
+                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {} | lights: {} dir, {} point, {} spot\n"
                 "Asset storage: {} items, {:.2b} (Pl:{}/{:.1b} | Mat:{}/{:.1b} | Tex:{}/{:.1b} | Mesh:{}/{:.1b} | Font:{}/{:.1b})",
                 time::deltaMs(), time::averageDeltaMs(), time::onePercentMs(), time::fps(),
                 renderStats.numCommands, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds,
+                renderStats.numDirLights, renderStats.numPointLights, renderStats.numSpotlights,
                 assetStats.totalAssetCount, FormattableBytes(assetStats.totalBytesUsed),
                 assetStats.pipelineStats.itemCount, FormattableBytes(assetStats.pipelineStats.bytesUsed),
                 assetStats.materialStats.itemCount, FormattableBytes(assetStats.materialStats.bytesUsed),
@@ -101,6 +102,4 @@ engine_debug::engine_debug(flecs::world& ecs)
             }
         )
     .add<DebugSystemTag>();
-
-
 }

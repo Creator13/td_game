@@ -115,8 +115,17 @@ namespace core::gfx
         i32 numPointLights = 0;
         i32 numSpotlights = 0;
         float ambientStrength = 0;
-        math::mat4 lightSpaceMatrix = math::mat4::identity;
+        math::mat4 lightSpaceMatrix = DEFAULT_LIGHTSPACE_MATRIX;
 
         constexpr static gl::Int SHADER_BINDING = 4;
+
+    private:
+        // This light space matrix triggers a rendering path in shadow sampling that just skips shadows entirely
+        constexpr static math::mat4 DEFAULT_LIGHTSPACE_MATRIX = math::mat4(
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 2,
+            0, 0, 0, 1
+        );
     };
 }

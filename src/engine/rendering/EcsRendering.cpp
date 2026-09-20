@@ -74,19 +74,24 @@ namespace
         ecs.component<MeshRenderData>();
         // TODO minimal reflection data
 
+        ecs.component<LightData::Type>("Light type")
+            .constant("Directional", LightData::Type::Directional)
+            .constant("Point", LightData::Type::Point)
+            .constant("Spot", LightData::Type::Spot)
+            .constant("Area", LightData::Type::Area);
+
+        ecs.component<LightData>("Light")
+            .member<LightData::Type>("Type")
+            .member<core::Color>("Color")
+            .member<float>("Intensity")
+            .member<float>("Cutoff (degrees)")
+            .member<float>("Range")
+            .member<float>("Light score");
+
         ecs.component<ViewportData>().add(flecs::Singleton);
         ecs.component<SceneRenderData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
-    }
-
-    constexpr float lightAttenuation(float squareDistance, float lightRange)
-    {
-        const float squareRange = lightRange * lightRange;
-        const float factor = clamp01(1.0f - (squareDistance * squareDistance) / (squareRange * squareRange));
-        const float window = factor * factor;
-        const float invSquare = 1.0f / max(squareDistance, 0.0001f);
-        return invSquare * window;
     }
 
     int sortLightsComparison(flecs::entity_t e1, const LightData* l1, flecs::entity_t e2, const LightData* l2)
@@ -99,40 +104,92 @@ namespace
             return static_cast<int>(l1->type) - static_cast<int>(l2->type);
         }
 
-        return (l1->score > l2->score) - (l1->score < l2->score);
+        return (l1->score < l2->score) - (l1->score > l2->score);
     }
 
-    void scoreLights(LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
+    float scorePointLight(const LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
+    {
+        ZoneScoped
+
+        // Cull lights outside view frustum
+        if (!isSphereInFrustum({.center = transform.getWorldPosition(), .radius = light.range}, viewportData.frustum))
+        {
+            return -1;
+        }
+
+        const vec3 toLight = transform.getWorldPosition() - viewportData.cameraPos;
+        const float sqrDist = sqrDistance(transform.getWorldPosition(), viewportData.cameraPos);
+        const float dist = math::sqrt(sqrDist);
+
+        constexpr float minSqrDist = 0.1f;
+        const float effectiveSqrDist = max(sqrDist, minSqrDist);
+
+        const vec3 dirToLight = (dist > 0.0001f) ? (toLight / dist) : viewportData.viewDir;
+        const float viewDot = dot(viewportData.viewDir, dirToLight);
+        const float viewFactor = clamp(0.5f + 0.5f * viewDot, 0.05f, 1.0f);
+
+        const float brightness = std::max({light.color.r, light.color.g, light.color.b});
+        return (brightness * light.intensity * viewFactor) / (effectiveSqrDist * effectiveSqrDist);
+    }
+
+    float scoreSpotlight(const LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
+    {
+        ZoneScoped
+
+        constexpr float cos45 = 0.70710678f;
+        const vec3 lightDir = transform.getForward();
+        const vec3 lightPos = transform.getWorldPosition();
+
+        const float outerCutoffCos = math::cos(light.cutoffDegrees * .5f * DEG2RAD);
+
+        // Frustum culling
+        sphere boundingSphere;
+        if (outerCutoffCos >= cos45)
+        {
+            const float t = light.range / (2.0f * outerCutoffCos * outerCutoffCos);
+            boundingSphere = {.center = lightPos + lightDir * t, .radius = t};
+        }
+        else
+        {
+            const float sinHalfAngle = math::sqrt(max(1.0f - outerCutoffCos * outerCutoffCos, 0.0f));
+            const float baseRadius = light.range * (sinHalfAngle / outerCutoffCos);
+            boundingSphere = { .center = lightPos + lightDir * light.range, .radius = baseRadius };
+        }
+
+        if (!isSphereInFrustum(boundingSphere, viewportData.frustum))
+        {
+            return -1;
+        }
+
+        // Light scoring
+        const vec3 toLight = lightPos - viewportData.cameraPos;
+        const float sqrDist = sqrDistance(lightPos, viewportData.cameraPos);
+        const float dist = math::sqrt(sqrDist);
+
+        constexpr float minSqrDist = 0.1f;
+        const float effectiveSqrDist = max(sqrDist, minSqrDist);
+
+        const vec3 dirToLight = (dist > 0.0001f) ? (toLight / dist) : viewportData.viewDir;
+        const float viewDot = dot(viewportData.viewDir, dirToLight);
+        const float viewFactor = clamp(0.5f + 0.5f * viewDot, 0.05f, 1.0f);
+
+        const float brightness = std::max({light.color.r, light.color.g, light.color.b});
+        return (brightness * light.intensity * viewFactor) / (effectiveSqrDist * effectiveSqrDist);
+    }
+
+    void scoreLight(LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
     {
         switch (light.type)
         {
             case LightData::Type::Directional:
-            {
                 light.score = light.intensity;
                 break;
-            }
             case LightData::Type::Point:
-            {
-                const float sqrDist = sqrDistance(transform.getWorldPosition(), viewportData.cameraPos);
-                light.score = light.intensity * lightAttenuation(sqrDist, light.range);
+                light.score = scorePointLight(light, transform, viewportData);
                 break;
-            }
             case LightData::Type::Spot:
-            {
-                const vec3 toCamera = viewportData.cameraPos - transform.getWorldPosition();
-                const float squareDistance = toCamera.sqrLength();
-                const vec3 dirToCamera = toCamera * (1.0f / math::sqrt(max(squareDistance, 0.0001f)));
-
-                const float innerCutoff = math::cos(light.cutoffDegrees * .5f * .5f * DEG2RAD);
-                const float outerCutoff = math::cos(light.cutoffDegrees * .5f * DEG2RAD);
-                const float theta = dot(transform.getForward(), dirToCamera);
-
-                const float distAttenuation = lightAttenuation(squareDistance, light.range);
-                const float coneAttenuation = smoothstep(outerCutoff, innerCutoff, theta);
-
-                light.score = light.intensity * distAttenuation * coneAttenuation;
+                light.score = scoreSpotlight(light, transform, viewportData);
                 break;
-            }
             default:
                 light.score = light.intensity;
                 break;
@@ -140,92 +197,90 @@ namespace
     }
 
     void collectLights(flecs::iter& it)
+    {
+        ZoneScopedN("Light collection")
+
+        const auto& renderer = it.world().get<const RendererSingleton>();
+
+        bool hasMainLight = false;
+        int numPointLights = 0;
+        int numDirectionalLights = 0;
+        int numSpotlights = 0;
+
+        while (it.next())
         {
-            const auto& renderer = it.world().get<const RendererSingleton>();
+            auto f_lightData = it.field<const LightData>(0);
+            auto f_transform = it.field<const HierarchyTransform>(1);
 
-            const auto& camera = it.world().get<const ViewportData>();
-            const frustum camFrustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
-
-            bool hasMainLight = false;
-            int numPointLights = 0;
-            int numDirectionalLights = 0;
-            int numSpotlights = 0;
-
-            while (it.next())
+            for (auto i : it)
             {
-                auto f_lightData = it.field<const LightData>(0);
-                auto f_transform = it.field<const HierarchyTransform>(1);
+                const HierarchyTransform& transform = f_transform[i];
+                const LightData& ecsLight = f_lightData[i];
 
-                for (auto i : it)
+                switch (ecsLight.type)
                 {
-                    const HierarchyTransform& transform = f_transform[i];
-                    const LightData& ecsLight = f_lightData[i];
-
-                    switch (ecsLight.type)
+                    case LightData::Type::Directional:
                     {
-                        case LightData::Type::Directional:
-                        {
-                            // Culling: limit to MAX_LIGHTS, but also do not submit any lights with a score of 0 (no contribution)
-                            if (numDirectionalLights >= LightingDataBlock::MAX_LIGHTS) break;
-                            if (ecsLight.score <= 0) break;
+                        // Culling: limit to MAX_LIGHTS, but also do not submit any lights with a score of 0 (no contribution)
+                        if (numDirectionalLights >= LightingDataBlock::MAX_LIGHTS) break;
+                        if (ecsLight.score <= 0) break;
 
-                            LightingDataBlock::DirectionalLight dirLight{
-                                .direction = transform.getForward(),
-                                .color = ecsLight.color.rgbVec3(),
-                                .intensity = ecsLight.intensity
-                            };
-                            if (hasMainLight)
-                            {
-                                // TODO set the first encountered light as the main light
-                                // renderer.ptr->setMainLight(...)
-                                hasMainLight = true;
-                            }
-                            renderer.ptr->submitDirectionalLight(dirLight);
-                            numDirectionalLights++;
-                            break;
-                        }
-                        case LightData::Type::Point:
+                        LightingDataBlock::DirectionalLight dirLight{
+                            .direction = transform.getForward(),
+                            .color = ecsLight.color.rgbVec3(),
+                            .intensity = ecsLight.intensity
+                        };
+                        if (hasMainLight)
                         {
-                            // Culling: limit to MAX_LIGHTS
-                            if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
-                            vec3 position = transform.getWorldPosition();
-                            if (!isSphereInFrustum({.center = position, .radius = ecsLight.range}, camFrustum)) break;
-                            if (ecsLight.score <= 0) break;
-
-                            LightingDataBlock::PointLight pointLight{
-                                .position = position,
-                                .color = ecsLight.color.rgbVec3(),
-                                .intensity = ecsLight.intensity,
-                                .range = ecsLight.range
-                            };
-                            renderer.ptr->submitPointLight(pointLight);
-                            numPointLights++;
-                            break;
+                            // TODO set the first encountered light as the main light
+                            // renderer.ptr->setMainLight(...)
+                            hasMainLight = true;
                         }
-                        case LightData::Type::Spot:
-                        {
-                            if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
-
-                            LightingDataBlock::Spotlight spotlight{
-                                .position = transform.getWorldPosition(),
-                                .direction = transform.getForward(),
-                                .innerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * .5f * DEG2RAD), // Hardcode half the outer width, improve once there are better data structures
-                                .color = ecsLight.color.rgbVec3(),
-                                .outerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * DEG2RAD),
-                                .intensity = ecsLight.intensity,
-                                .range = ecsLight.range,
-                            };
-                            renderer.ptr->submitSpotlight(spotlight);
-                            numSpotlights++;
-                            break;
-                        }
-                        default:
-                            ENGINE_ASSERT(false, "Invlaid");
-                            break;
+                        renderer.ptr->submitDirectionalLight(dirLight);
+                        numDirectionalLights++;
+                        break;
                     }
+                    case LightData::Type::Point:
+                    {
+                        // Culling: limit to MAX_LIGHTS
+                        if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
+                        if (ecsLight.score <= 0) break;
+
+                        LightingDataBlock::PointLight pointLight{
+                            .position = transform.getWorldPosition(),
+                            .color = ecsLight.color.rgbVec3(),
+                            .intensity = ecsLight.intensity,
+                            .range = ecsLight.range
+                        };
+                        renderer.ptr->submitPointLight(pointLight);
+                        numPointLights++;
+                        break;
+                    }
+                    case LightData::Type::Spot:
+                    {
+                        if (numSpotlights >= LightingDataBlock::MAX_LIGHTS) break;
+                        if (ecsLight.score <= 0) break;
+
+                        LightingDataBlock::Spotlight spotlight{
+                            .position = transform.getWorldPosition(),
+                            .direction = transform.getForward(),
+                            .innerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * .5f * DEG2RAD), // Hardcode half the outer width, improve once there are better data structures
+                            .color = ecsLight.color.rgbVec3(),
+                            .outerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * DEG2RAD),
+                            .intensity = ecsLight.intensity,
+                            .range = ecsLight.range,
+                        };
+                        renderer.ptr->submitSpotlight(spotlight);
+                        numSpotlights++;
+                        break;
+                    }
+                    default:
+                        ENGINE_ASSERT(false, "Invlaid");
+                        break;
                 }
             }
         }
+    }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
     flecs::entity currentActiveCameraEntity;
@@ -282,7 +337,8 @@ rendering::rendering(flecs::world& ecs)
         .each(syncSceneData);
 
     auto lightScoringSystem = ecs.system<LightData, const HierarchyTransform, const ViewportData>("Light scoring system")
-        .each(scoreLights)
+        // TODO profile
+        .each(scoreLight)
         .depends_on(viewportSyncSystem);
 
     ecs.system<const LightData, const HierarchyTransform>("Light collection system")
@@ -297,8 +353,7 @@ rendering::rendering(flecs::world& ecs)
         {
             ZoneScopedN("Culling system");
 
-            auto& camera = it.world().get<const ViewportData>();
-            const frustum frustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
+            auto& viewport = it.world().get<const ViewportData>();
 
             while (it.next())
             {
@@ -335,7 +390,7 @@ rendering::rendering(flecs::world& ecs)
                         math::abs(worldMat.get(2, 2)) * bounds.localBounds.halfExtents.z;
 
                     // Cull entity if it falls outside the frustum
-                    if (!isAABBInFrustum(worldBounds, frustum))
+                    if (!isAABBInFrustum(worldBounds, viewport.frustum))
                     {
                         renderData.cullReason = CullReason::Frustum;
                     }
@@ -409,10 +464,13 @@ void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& camer
 
     viewportData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
     viewportData.viewMatrix = inverse(transform.getWorldMatrix());
+    viewportData.viewProjectionMatrix = viewportData.projectionMatrix * constants::COORDINATE_BASIS * viewportData.viewMatrix;
     viewportData.cameraPos = transform.getWorldPosition();
+    viewportData.frustum = frustum::fromViewProjectionMatrix(viewportData.viewProjectionMatrix);
 
     viewportData.pixelWidth = window.state->fbWidth;
     viewportData.pixelHeight = window.state->fbHeight;
+
 }
 
 void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)
@@ -428,6 +486,9 @@ void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const
         cameraData.far
     );
     viewportData.viewMatrix = inverse(transform.getWorldMatrix());
+    viewportData.viewProjectionMatrix = viewportData.projectionMatrix * constants::COORDINATE_BASIS * viewportData.viewMatrix;
+    viewportData.cameraPos = transform.getWorldPosition();
+    viewportData.frustum = frustum::fromViewProjectionMatrix(viewportData.viewProjectionMatrix);
 
     viewportData.pixelWidth = window.state->fbWidth;
     viewportData.pixelHeight = window.state->fbHeight;

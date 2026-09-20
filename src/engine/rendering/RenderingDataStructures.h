@@ -9,7 +9,10 @@ namespace core::gfx
     {
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewMatrix = math::mat4::identity;
+        math::mat4 viewProjectionMatrix = math::mat4::identity;
         math::vec3 cameraPos = math::vec3::zero;
+        math::vec3 viewDir = math::vec3::zero;
+        math::frustum frustum = {};
 
         u16 pixelWidth, pixelHeight;
 

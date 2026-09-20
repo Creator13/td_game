@@ -85,7 +85,7 @@ LightSample samplePointLight(PointLight light, vec3 fragPos) {
 
     LightSample s;
     s.dir = toLight / dist;
-    s.radiance = light.color * distanceAttenuation(distSq, light.range);
+    s.radiance = light.color * light.intensity * distanceAttenuation(distSq, light.range);
     return s;
 }
 

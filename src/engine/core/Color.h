@@ -226,6 +226,11 @@ namespace core
         return Color(in1.r * in2.r, in1.g * in2.g, in1.b * in2.b, in1.a * in2.a);
     }
 
+    [[nodiscard]] constexpr float luminance(const Color& c) noexcept
+    {
+        return 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+    }
+
     /// Represents a color, assumed to be in sRGB space.
     struct SrgbColor
     {

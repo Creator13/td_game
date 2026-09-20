@@ -63,7 +63,7 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 }
 
 Renderer::Renderer()
-    : _lightingDataBlock(), _instanceDataBuffer(1_MB),
+    : _instanceDataBuffer(1_MB),
       _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, TextureFormat::D24_UNORM_S8_UINT, false),
       _shadowFramebuffer(_shadowMapResolution, _shadowMapResolution, std::nullopt, TextureFormat::D32_FLOAT, true),
       _pingPongFramebuffers({
@@ -231,6 +231,9 @@ void Renderer::renderFrame()
 
     static_assert(std::is_trivially_destructible_v<FrameStats>);
     _frameStats = FrameStats{ };
+    _frameStats.numDirLights = _lightingDataBlock.numDirLights;
+    _frameStats.numPointLights = _lightingDataBlock.numPointLights;
+    _frameStats.numSpotlights = _lightingDataBlock.numSpotlights;
 
     // Global frame data
     FrameDataBlock frameData;
@@ -571,9 +574,8 @@ void Renderer::executePostEffect(assets::AssetRef<Material> material, const Fram
 void Renderer::resetLightingData()
 {
     // Reset light data by setting the number of lights to 0 (no need to actually clean the data in the arrays)
-    _lightingDataBlock.numDirLights = 0;
-    _lightingDataBlock.numPointLights = 0;
-    _lightingDataBlock.numSpotlights = 0;
+    static_assert(std::is_trivially_destructible_v<LightingDataBlock>);
+    _lightingDataBlock = {};
 }
 
 void Renderer::sortCommandList(CommandQueue& queue)
