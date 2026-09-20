@@ -101,4 +101,10 @@ namespace math
         const uint32_t yi = std::bit_cast<uint32_t>(sgn) & 0x8000'0000u;
         return std::bit_cast<float>(xi | yi);
     }
+
+    constexpr float smoothstep(float edge0, float edge1, float x)
+    {
+        const float t = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
+    }
 }

@@ -6,7 +6,6 @@ struct DirectionalLight {
     vec3 direction;
     vec3 color;
     float intensity;
-    mat4 lightSpaceMatrix;
 };
 
 struct PointLight {
@@ -28,12 +27,14 @@ struct Spotlight {
 };
 
 layout (binding = 4, std140) uniform LightingData {
-    DirectionalLight mainLight;
+    DirectionalLight dirLights[MAX_LIGHTS];
     PointLight pointLights[MAX_LIGHTS];
     Spotlight spotlights[MAX_LIGHTS];
+    int numDirLights;
     int numPointLights;
     int numSpotlights;
     float ambientIntensity;
+    mat4 lightSpaceMatrix;
 } lighting;
 
 struct LightSample {

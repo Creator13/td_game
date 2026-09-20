@@ -30,33 +30,6 @@ namespace core::gfx
         u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
-    struct PointLight
-    {
-        math::vec3 position = math::vec3::zero;
-        Color color = Color::black;
-        float intensity = 1;
-        float range;
-    };
-
-    struct DirectionalLight
-    {
-        math::vec3 direction = math::vec3::right;
-        Color color = Color::black;
-        float intensity = 1;
-    };
-
-    struct Spotlight
-    {
-        math::vec3 position = math::vec3::zero;
-        math::vec3 direction = math::vec3::right;
-        float innerCutoff;
-        float outerCutoff;
-        float range;
-
-        Color color = Color::black;
-        float intensity = 1;
-    };
-
     struct ShadowData
     {
         math::mat4 viewMatrix = math::mat4::identity;
@@ -80,15 +53,12 @@ namespace core::gfx
             i32 numDrawCalls = 0;
             i32 numPipelineBinds = 0;
             i32 numCommands = 0;
-            i32 numShadowCasters = 0;
             u64 triCount = 0;
         } _frameStats;
 
         ViewportData _viewportData = ViewportData();
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
-        std::vector<PointLight> _pointLights = std::vector<PointLight>();
-        std::vector<DirectionalLight> _dirLights = std::vector<DirectionalLight>();
-        std::vector<Spotlight> _spotlights = std::vector<Spotlight>();
+        LightingDataBlock _lightingDataBlock;
         Color _clearColor;
         int _shadowMapResolution = 512;
 
@@ -117,7 +87,7 @@ namespace core::gfx
     public:
         Renderer();
 
-        void init(int fbWidth, int fbHeight, int shadowMapResolution);
+        void init(int shadowMapResolution);
 
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
@@ -126,15 +96,16 @@ namespace core::gfx
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
         void setClearColor(const Color& clearColor);
 
-        void submitPointLight(const PointLight& light);
-        void submitDirectionalLight(const DirectionalLight& light);
-        void submitSpotlight(const Spotlight& spotlight);
+        void submitPointLight(const LightingDataBlock::PointLight& light);
+        void submitDirectionalLight(const LightingDataBlock::DirectionalLight& light);
+        void submitSpotlight(const LightingDataBlock::Spotlight& spotlight);
 
-        void submitDrawCommand(const DrawCommand& command, bool castShadow);
+        void submitShadowCommand(assets::AssetRef<Mesh> mesh, const math::mat4& transform);
+        void submitDrawCommand(const DrawCommand& command);
 
         void renderFrame();
 
-        static u64 buildSortKey(assets::AssetRef<Material> material, u16 meshKey);
+        static u64 buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh);
 
     private:
         void bindPipeline(const Pipeline& pipeline);
@@ -146,11 +117,13 @@ namespace core::gfx
         void resizeFrameBuffers(int newWidth, int newHeight);
 
         void appendInstanceData(CommandQueue& queue);
-        LightingDataBlock collectLightingData() const;
+        // LightingDataBlock collectLightingData() const;
 
         void executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex);
         void executePostEffectStack();
         void executePostEffect(assets::AssetRef<Material> material, const Framebuffer& src, gl::framebuffer_t dst);
+
+        void resetLightingData();
 
         static void sortCommandList(std::vector<DrawCommand>& queue);
     };

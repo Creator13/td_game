@@ -63,7 +63,7 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 }
 
 Renderer::Renderer()
-    : _instanceDataBuffer(1_MB),
+    : _lightingDataBlock(), _instanceDataBuffer(1_MB),
       _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, TextureFormat::D24_UNORM_S8_UINT, false),
       _shadowFramebuffer(_shadowMapResolution, _shadowMapResolution, std::nullopt, TextureFormat::D32_FLOAT, true),
       _pingPongFramebuffers({
@@ -79,7 +79,7 @@ Renderer::Renderer()
     SPDLOG_DEBUG("Max shader object bindings: UBO={}, SSBO={}, Tex={}, Img={}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
 }
 
-void Renderer::init(int fbWidth, int fbHeight, int shadowMapResolution)
+void Renderer::init(int shadowMapResolution)
 {
     glFrontFace(GL_CCW);
 
@@ -149,22 +149,63 @@ void Renderer::setClearColor(const Color& clearColor)
     _clearColor = clearColor;
 }
 
-void Renderer::submitPointLight(const PointLight& light)
+void Renderer::submitPointLight(const LightingDataBlock::PointLight& light)
 {
-    _pointLights.push_back(light);
+    const usize currentIndex = _lightingDataBlock.numPointLights;
+    if (currentIndex >= LightingDataBlock::MAX_LIGHTS)
+    {
+        SPDLOG_WARN("More directional lights in scene than allowed {}", LightingDataBlock::MAX_LIGHTS);
+        return;
+    }
+
+    _lightingDataBlock.pointLights[currentIndex] = light;
+    _lightingDataBlock.numPointLights++;
 }
 
-void Renderer::submitDirectionalLight(const DirectionalLight& light)
+void Renderer::submitDirectionalLight(const LightingDataBlock::DirectionalLight& light)
 {
-    _dirLights.push_back(light);
+    const usize currentIndex = _lightingDataBlock.numDirLights;
+    if (currentIndex >= LightingDataBlock::MAX_LIGHTS)
+    {
+        SPDLOG_WARN("More point lights in scene than allowed {}", LightingDataBlock::MAX_LIGHTS);
+        return;
+    }
+
+    _lightingDataBlock.dirLights[currentIndex] = light;
+    _lightingDataBlock.numDirLights++;
 }
 
-void Renderer::submitSpotlight(const Spotlight& spotlight)
+void Renderer::submitSpotlight(const LightingDataBlock::Spotlight& light)
 {
-    _spotlights.push_back(spotlight);
+    const usize currentIndex = _lightingDataBlock.numSpotlights;
+    if (currentIndex >= LightingDataBlock::MAX_LIGHTS)
+    {
+        SPDLOG_WARN("More spotlights in scene than allowed {}", LightingDataBlock::MAX_LIGHTS);
+        return;
+    }
+    _lightingDataBlock.spotlights[currentIndex] = light;
+    _lightingDataBlock.numSpotlights++;
 }
 
-void Renderer::submitDrawCommand(const DrawCommand& command, bool castShadow)
+void Renderer::submitShadowCommand(assets::AssetRef<Mesh> mesh, const mat4& transform)
+{
+    // TODO it is wildly inefficient to run the shadow pass through the standard pipeline; for one it does not need the
+    //  same instance data as normal rendering does and we are sending an empty matrix through the bridge for every
+    //  shadowcasting object.
+    DrawCommand shadowCommand;
+    shadowCommand.queue = DrawCommand::RenderQueue::SHADOW;
+    shadowCommand.material = _depthMaterial;
+    shadowCommand.sortKey = buildSortKey(_depthMaterial, mesh);
+    shadowCommand.instanceData = {
+        .transform = transform,
+        .invTransform = mat4::identity,
+        .customData = {}
+    };
+    shadowCommand.mesh = mesh->gpuHandle;
+    _shadowCommandQueue.push_back(shadowCommand);
+}
+
+void Renderer::submitDrawCommand(const DrawCommand& command)
 {
     std::vector<DrawCommand>* targetQueue = nullptr;
 
@@ -182,17 +223,6 @@ void Renderer::submitDrawCommand(const DrawCommand& command, bool castShadow)
     }
 
     targetQueue->push_back(command);
-
-    if (castShadow)
-    {
-        DrawCommand shadowCommand;
-        shadowCommand.queue = DrawCommand::RenderQueue::SHADOW;
-        shadowCommand.material = _depthMaterial;
-        shadowCommand.sortKey = buildSortKey(_depthMaterial, command.getMeshId());
-        shadowCommand.instanceData = command.instanceData;
-        shadowCommand.mesh = command.mesh;
-        _shadowCommandQueue.push_back(shadowCommand);
-    }
 }
 
 void Renderer::renderFrame()
@@ -202,25 +232,18 @@ void Renderer::renderFrame()
     static_assert(std::is_trivially_destructible_v<FrameStats>);
     _frameStats = FrameStats{ };
 
+    // Global frame data
     FrameDataBlock frameData;
     frameData.screenSize = vec2(_viewportData.pixelWidth, _viewportData.pixelHeight);
     frameData.time = time::sinceLoad();
     bindFrameData(frameData);
 
-    LightingDataBlock lightingData = collectLightingData();
-    ShadowData shadowData;
+    // Lighting data
+    _lightingDataBlock.ambientStrength = _environmentSettings.ambientIntensity;
+    bindLightingData(_lightingDataBlock);
 
-    const bool hasShadowSource = _dirLights.size() > 0;
-    if (hasShadowSource)
-    {
-        const DirectionalLight& shadowSourceLight = _dirLights[0];
-        // It is a minor optimization to create the view matrix as a TRS, avoids one multiplication and creates the matrix in-place
-        shadowData.viewMatrix = inverse(mat4::makeTRS(-shadowSourceLight.direction * 10, rot3x3::lookRotation(shadowSourceLight.direction, vec3::up), vec3::one));
-        shadowData.projectionMatrix = mat4::makeOrtho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
-        shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
-        lightingData.dirLight.lightSpaceMatrix = shadowData.viewProjectionMatrix;
-    }
-    bindLightingData(lightingData);
+    ShadowData shadowData;
+    bool hasShadowSource = false;
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
@@ -298,16 +321,14 @@ void Renderer::renderFrame()
     _uiCommandQueue.clear();
 
     // Frame cleanup
-    _pointLights.clear();
-    _spotlights.clear();
-    _dirLights.clear();
+    resetLightingData();
 }
 
-u64 Renderer::buildSortKey(assets::AssetRef<Material> material, u16 meshKey)
+u64 Renderer::buildSortKey(assets::AssetRef<Material> material, assets::AssetRef<Mesh> mesh)
 {
     return (static_cast<u64>(material->pipeline.sortKey) << 32) |
            (static_cast<u64>(material->sortKey) << 16) |
-           (static_cast<u64>(meshKey));
+           (static_cast<u64>(mesh->sortKey));
 }
 
 void Renderer::bindPipeline(const Pipeline& pipeline)
@@ -456,55 +477,6 @@ void Renderer::appendInstanceData(CommandQueue& queue)
     _instanceDataBuffer.appendRange(instanceDataFromDrawCommandView);
 }
 
-LightingDataBlock Renderer::collectLightingData() const
-{
-    ZoneScopedN("Construct lighting data")
-
-    const DirectionalLight& firstDirLight = _dirLights[0];
-    LightingDataBlock lightingData;
-    lightingData.ambientStrength = _environmentSettings.ambientIntensity;
-    lightingData.numPointLights = min(_pointLights.size(), 8);
-    for (int i = 0; i < lightingData.numPointLights; i++)
-    {
-        lightingData.pointLights[i] = {
-            .position = _pointLights[i].position,
-            .color = _pointLights[i].color.rgbVec3(),
-            .intensity = _pointLights[i].intensity,
-            .range = _pointLights[i].range,
-        };
-    }
-    lightingData.numSpotlights = min(_spotlights.size(), 8);
-    for (int i = 0; i < lightingData.numSpotlights; i++)
-    {
-        lightingData.spotlights[i] = {
-            .position = _spotlights[i].position,
-            .direction = _spotlights[i].direction,
-            .innerCutoff = _spotlights[i].innerCutoff,
-            .color = _spotlights[i].color.rgbVec3(),
-            .outerCutoff = _spotlights[i].outerCutoff,
-            .intensity = _spotlights[i].intensity,
-            .range = _spotlights[i].range,
-        };
-    }
-    if (_dirLights.size() > 0)
-    {
-        lightingData.dirLight = {
-            .direction = firstDirLight.direction,
-            .color = firstDirLight.color.rgbVec3(),
-            .intensity = firstDirLight.intensity,
-        };
-    }
-    else
-    {
-        lightingData.dirLight = {
-            .direction = vec3::right,
-            .color = Color::black.rgbVec3(),
-            .intensity = 0
-        };
-    }
-    return lightingData;
-}
-
 void Renderer::executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex)
 {
     if (queue.empty()) return;
@@ -594,6 +566,14 @@ void Renderer::executePostEffect(assets::AssetRef<Material> material, const Fram
     glBindVertexArray(_emptyVao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     _frameStats.numDrawCalls++;
+}
+
+void Renderer::resetLightingData()
+{
+    // Reset light data by setting the number of lights to 0 (no need to actually clean the data in the arrays)
+    _lightingDataBlock.numDirLights = 0;
+    _lightingDataBlock.numPointLights = 0;
+    _lightingDataBlock.numSpotlights = 0;
 }
 
 void Renderer::sortCommandList(CommandQueue& queue)

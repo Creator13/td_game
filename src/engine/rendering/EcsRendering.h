@@ -64,6 +64,7 @@ namespace core::ecs
         float intensity;
         float cutoffDegrees;
         float range;
+        float score;
     };
 
     // #### SINGLETON ####

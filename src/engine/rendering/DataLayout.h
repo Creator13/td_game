@@ -79,40 +79,43 @@ namespace core::gfx
 
     struct alignas(16) LightingDataBlock
     {
+        constexpr static usize MAX_LIGHTS = 8;
+
         struct alignas(16) PointLight
         {
-            Std140Vec3 position;
-            math::vec3 color;
-            float intensity;
-            float range;
+            Std140Vec3 position = math::vec3::zero;
+            math::vec3 color = math::vec3::one;
+            float intensity = 0;
+            float range = 0;
         };
 
         struct alignas(16) DirectionalLight
         {
-            Std140Vec3 direction;
-            math::vec3 color;
-            float intensity;
-            math::mat4 lightSpaceMatrix = math::mat4::identity;
+            Std140Vec3 direction = math::vec3::forward;
+            math::vec3 color = math::vec3::one;
+            float intensity = 0;
         };
 
         struct alignas(16) Spotlight
         {
-            Std140Vec3 position; // 4 byte
-            math::vec3 direction; // [3] + 1 byte
-            float innerCutoff; // 3 + [1] byte
+            Std140Vec3 position = math::vec3::zero; // 4 byte
+            math::vec3 direction = math::vec3::forward; // [3] + 1 byte
+            float innerCutoff = 0; // 3 + [1] byte
 
-            math::vec3 color;
-            float outerCutoff;
-            float intensity;
-            float range;
+            math::vec3 color = math::vec3::one;
+            float outerCutoff = 0;
+            float intensity = 0;
+            float range = 0;
         };
 
-        DirectionalLight dirLight;
-        PointLight pointLights[8];
-        Spotlight spotlights[8];
+        DirectionalLight dirLights[MAX_LIGHTS];
+        PointLight pointLights[MAX_LIGHTS];
+        Spotlight spotlights[MAX_LIGHTS];
+        i32 numDirLights = 0;
         i32 numPointLights = 0;
         i32 numSpotlights = 0;
-        float ambientStrength;
+        float ambientStrength = 0;
+        math::mat4 lightSpaceMatrix = math::mat4::identity;
 
         constexpr static gl::Int SHADER_BINDING = 4;
     };

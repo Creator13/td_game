@@ -26,9 +26,9 @@ void main() {
     vertOut.vTexCoord = aTexCoord;
 
     // shadow normal offset bias
-    float NdotL = clamp(dot(vertOut.vNorm, normalize(-lighting.mainLight.direction)), 0.0, 1.0);
+    float NdotL = clamp(dot(vertOut.vNorm, normalize(-lighting.dirLights[0].direction)), 0.0, 1.0);
     float normalOffsetScale = 0.33 * (1.0 - NdotL);
     vec3 biasedWorldPos = vertOut.vWorldPos + (vertOut.vNorm * normalOffsetScale);
 
-    vertOut.vFragPosLightSpace = lighting.mainLight.lightSpaceMatrix * vec4(biasedWorldPos, 1.0);
+    vertOut.vFragPosLightSpace = lighting.lightSpaceMatrix * vec4(biasedWorldPos, 1.0);
 }

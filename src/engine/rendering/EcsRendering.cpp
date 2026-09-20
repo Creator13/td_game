@@ -35,6 +35,23 @@ namespace
         return true;
     }
 
+    constexpr bool isSphereBehindPlane(const sphere& sphere, const plane& plane)
+    {
+        return dot(plane.normal, sphere.center) + plane.dist < -sphere.radius;
+    }
+
+    constexpr bool isSphereInFrustum(const sphere& sphere, const frustum& frustum)
+    {
+        if (isSphereBehindPlane(sphere, frustum.near)) return false;
+        if (isSphereBehindPlane(sphere, frustum.far)) return false;
+        if (isSphereBehindPlane(sphere, frustum.left)) return false;
+        if (isSphereBehindPlane(sphere, frustum.right)) return false;
+        if (isSphereBehindPlane(sphere, frustum.top)) return false;
+        if (isSphereBehindPlane(sphere, frustum.bottom)) return false;
+
+        return true;
+    }
+
     void registerComponents(flecs::world& ecs)
     {
         ecs.component<ActiveCamera>();
@@ -62,6 +79,153 @@ namespace
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
     }
+
+    constexpr float lightAttenuation(float squareDistance, float lightRange)
+    {
+        const float squareRange = lightRange * lightRange;
+        const float factor = clamp01(1.0f - (squareDistance * squareDistance) / (squareRange * squareRange));
+        const float window = factor * factor;
+        const float invSquare = 1.0f / max(squareDistance, 0.0001f);
+        return invSquare * window;
+    }
+
+    int sortLightsComparison(flecs::entity_t e1, const LightData* l1, flecs::entity_t e2, const LightData* l2)
+    {
+        (void) e1;
+        (void) e2;
+
+        if (l1->type != l2->type)
+        {
+            return static_cast<int>(l1->type) - static_cast<int>(l2->type);
+        }
+
+        return (l1->score > l2->score) - (l1->score < l2->score);
+    }
+
+    void scoreLights(LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
+    {
+        switch (light.type)
+        {
+            case LightData::Type::Directional:
+            {
+                light.score = light.intensity;
+                break;
+            }
+            case LightData::Type::Point:
+            {
+                const float sqrDist = sqrDistance(transform.getWorldPosition(), viewportData.cameraPos);
+                light.score = light.intensity * lightAttenuation(sqrDist, light.range);
+                break;
+            }
+            case LightData::Type::Spot:
+            {
+                const vec3 toCamera = viewportData.cameraPos - transform.getWorldPosition();
+                const float squareDistance = toCamera.sqrLength();
+                const vec3 dirToCamera = toCamera * (1.0f / math::sqrt(max(squareDistance, 0.0001f)));
+
+                const float innerCutoff = math::cos(light.cutoffDegrees * .5f * .5f * DEG2RAD);
+                const float outerCutoff = math::cos(light.cutoffDegrees * .5f * DEG2RAD);
+                const float theta = dot(transform.getForward(), dirToCamera);
+
+                const float distAttenuation = lightAttenuation(squareDistance, light.range);
+                const float coneAttenuation = smoothstep(outerCutoff, innerCutoff, theta);
+
+                light.score = light.intensity * distAttenuation * coneAttenuation;
+                break;
+            }
+            default:
+                light.score = light.intensity;
+                break;
+        }
+    }
+
+    void collectLights(flecs::iter& it)
+        {
+            const auto& renderer = it.world().get<const RendererSingleton>();
+
+            const auto& camera = it.world().get<const ViewportData>();
+            const frustum camFrustum = frustum::fromViewProjectionMatrix(camera.projectionMatrix * constants::COORDINATE_BASIS * camera.viewMatrix);
+
+            bool hasMainLight = false;
+            int numPointLights = 0;
+            int numDirectionalLights = 0;
+            int numSpotlights = 0;
+
+            while (it.next())
+            {
+                auto f_lightData = it.field<const LightData>(0);
+                auto f_transform = it.field<const HierarchyTransform>(1);
+
+                for (auto i : it)
+                {
+                    const HierarchyTransform& transform = f_transform[i];
+                    const LightData& ecsLight = f_lightData[i];
+
+                    switch (ecsLight.type)
+                    {
+                        case LightData::Type::Directional:
+                        {
+                            // Culling: limit to MAX_LIGHTS, but also do not submit any lights with a score of 0 (no contribution)
+                            if (numDirectionalLights >= LightingDataBlock::MAX_LIGHTS) break;
+                            if (ecsLight.score <= 0) break;
+
+                            LightingDataBlock::DirectionalLight dirLight{
+                                .direction = transform.getForward(),
+                                .color = ecsLight.color.rgbVec3(),
+                                .intensity = ecsLight.intensity
+                            };
+                            if (hasMainLight)
+                            {
+                                // TODO set the first encountered light as the main light
+                                // renderer.ptr->setMainLight(...)
+                                hasMainLight = true;
+                            }
+                            renderer.ptr->submitDirectionalLight(dirLight);
+                            numDirectionalLights++;
+                            break;
+                        }
+                        case LightData::Type::Point:
+                        {
+                            // Culling: limit to MAX_LIGHTS
+                            if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
+                            vec3 position = transform.getWorldPosition();
+                            if (!isSphereInFrustum({.center = position, .radius = ecsLight.range}, camFrustum)) break;
+                            if (ecsLight.score <= 0) break;
+
+                            LightingDataBlock::PointLight pointLight{
+                                .position = position,
+                                .color = ecsLight.color.rgbVec3(),
+                                .intensity = ecsLight.intensity,
+                                .range = ecsLight.range
+                            };
+                            renderer.ptr->submitPointLight(pointLight);
+                            numPointLights++;
+                            break;
+                        }
+                        case LightData::Type::Spot:
+                        {
+                            if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
+
+                            LightingDataBlock::Spotlight spotlight{
+                                .position = transform.getWorldPosition(),
+                                .direction = transform.getForward(),
+                                .innerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * .5f * DEG2RAD), // Hardcode half the outer width, improve once there are better data structures
+                                .color = ecsLight.color.rgbVec3(),
+                                .outerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * DEG2RAD),
+                                .intensity = ecsLight.intensity,
+                                .range = ecsLight.range,
+                            };
+                            renderer.ptr->submitSpotlight(spotlight);
+                            numSpotlights++;
+                            break;
+                        }
+                        default:
+                            ENGINE_ASSERT(false, "Invlaid");
+                            break;
+                    }
+                }
+            }
+        }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
     flecs::entity currentActiveCameraEntity;
@@ -108,69 +272,23 @@ rendering::rendering(flecs::world& ecs)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
 
-    ecs.system<const RendererSingleton, const ViewportData>()
+    auto viewportSyncSystem = ecs.system<const RendererSingleton, const ViewportData>()
         .each(syncRendererToActiveCamera)
         .depends_on(perspSystem)
         .depends_on(orthoSystem);
 
-    ecs.system<const RendererSingleton, const SceneRenderData>("Scene data synchronization system").each(syncSceneData);
+    ecs.system<const RendererSingleton, const SceneRenderData>("Scene data synchronization system")
+        .kind(flecs::PreStore)
+        .each(syncSceneData);
+
+    auto lightScoringSystem = ecs.system<LightData, const HierarchyTransform, const ViewportData>("Light scoring system")
+        .each(scoreLights)
+        .depends_on(viewportSyncSystem);
 
     ecs.system<const LightData, const HierarchyTransform>("Light collection system")
-        .kind(flecs::PreStore).run([](flecs::iter& it)
-        {
-            const auto& renderer = it.world().get<const RendererSingleton>();
-
-            while (it.next())
-            {
-                auto f_lightData = it.field<const LightData>(0);
-                auto f_transform = it.field<const HierarchyTransform>(1);
-
-                for (auto i : it)
-                {
-                    const HierarchyTransform& transform = f_transform[i];
-                    const LightData& ecsLight = f_lightData[i];
-
-                    switch (ecsLight.type)
-                    {
-                        case LightData::Type::Directional:
-                        {
-                            DirectionalLight dirLight;
-                            dirLight.direction = transform.getForward();
-                            dirLight.color = ecsLight.color;
-                            dirLight.intensity = ecsLight.intensity;
-                            renderer.ptr->submitDirectionalLight(dirLight);
-                            break;
-                        }
-                        case LightData::Type::Point:
-                        {
-                            PointLight pointLight;
-                            pointLight.position = transform.getWorldPosition();
-                            pointLight.color = ecsLight.color;
-                            pointLight.intensity = ecsLight.intensity;
-                            pointLight.range = ecsLight.range;
-                            renderer.ptr->submitPointLight(pointLight);
-                            break;
-                        }
-                        case LightData::Type::Spot:
-                        {
-                            Spotlight spotlight;
-                            spotlight.position = transform.getWorldPosition();
-                            spotlight.direction = transform.getForward();
-                            spotlight.innerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * .5f * DEG2RAD); // Hardcode half the outer width, improve once there are better data structures
-                            spotlight.outerCutoff = math::cos(ecsLight.cutoffDegrees * .5f * DEG2RAD);
-                            spotlight.range = ecsLight.range;
-                            spotlight.color = ecsLight.color;
-                            spotlight.intensity = ecsLight.intensity;
-                            renderer.ptr->submitSpotlight(spotlight);
-                            break;
-                        }
-                        default:
-                            ENGINE_ASSERT(false, "Invlaid");
-                            break;
-                    }
-                }
-            }
-        });
+        .order_by(sortLightsComparison)
+        .run(collectLights)
+        .depends_on(lightScoringSystem);
 
     auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
@@ -252,14 +370,19 @@ rendering::rendering(flecs::world& ecs)
 
                     // Submit command
                     DrawCommand command;
-                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh->sortKey);
+                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
                     command.mesh = renderData.mesh->gpuHandle;
                     command.material = renderData.material;
                     command.instanceData.transform = f_transform[i].getWorldMatrix();
                     command.instanceData.invTransform = inverse(command.instanceData.transform); // TODO cache inverse matrix on objects, this is expensive to calculate each frame.
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
-                    renderer.ptr->submitDrawCommand(command, renderData.castShadow); // TODO implement shadow casting of object as override of pipeline setting
+                    renderer.ptr->submitDrawCommand(command);
 
+                    if (renderData.castShadow)
+                    {
+                        // TODO implement shadow casting of object as override of pipeline setting
+                        renderer.ptr->submitShadowCommand(renderData.mesh, f_transform[i].getWorldMatrix());
+                    }
                     rendered++;
                 }
             }

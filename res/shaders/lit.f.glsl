@@ -54,7 +54,11 @@ void main() {
 
     float shadow = sampleShadow(fragIn.vFragPosLightSpace);
     vec3 litColor = lighting.ambientIntensity * surf.albedo;
-    litColor += shadow * blinnPhong(sampleDirectionalLight(lighting.mainLight), surf);
+    litColor += shadow * blinnPhong(sampleDirectionalLight(lighting.dirLights[0]), surf);
+
+    for (int i = 1; i < lighting.numDirLights; i++) {
+        litColor += blinnPhong(sampleDirectionalLight(lighting.dirLights[i]), surf);
+    }
 
     for (int i = 0; i < lighting.numPointLights; i++) {
         litColor += blinnPhong(samplePointLight(lighting.pointLights[i], fragIn.vWorldPos), surf);
