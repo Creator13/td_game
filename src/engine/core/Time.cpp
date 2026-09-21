@@ -113,7 +113,7 @@ namespace core::time
         return globalTime.getLatestDelta();
     }
 
-    uint64_t ticks()
+    u64 ticks()
     {
         return globalTime.frameCount;
     }

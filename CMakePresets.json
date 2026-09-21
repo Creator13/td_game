@@ -9,7 +9,10 @@
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
       },
-      "architecture": "x64"
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
     }
   ],
   "buildPresets": [

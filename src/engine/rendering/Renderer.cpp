@@ -141,7 +141,7 @@ void Renderer::setEnvironmentSettings(const EnvironmentSettings& env) { }
 void Renderer::setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack)
 {
     _postEffects.clear();
-    _postEffects.assign_range(stack);
+    _postEffects.assign(stack.begin(), stack.end());
 }
 
 void Renderer::setClearColor(const Color& clearColor)
@@ -199,7 +199,7 @@ void Renderer::submitShadowCommand(assets::AssetRef<Mesh> mesh, const mat4& tran
     shadowCommand.instanceData = {
         .transform = transform,
         .invTransform = mat4::identity,
-        .customData = {}
+        .customData = { }
     };
     shadowCommand.mesh = mesh->gpuHandle;
     _shadowCommandQueue.push_back(shadowCommand);
@@ -283,8 +283,8 @@ void Renderer::renderFrame()
         shadowPassData.cameraPos = vec3::zero;
         executePass(shadowPassData, _shadowCommandQueue, instanceIndex);
         instanceIndex += _shadowCommandQueue.size();
-        _shadowCommandQueue.clear();
     }
+    _shadowCommandQueue.clear();
 
     glViewport(0, 0, _viewportData.pixelWidth, _viewportData.pixelHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, _mainFramebuffer._fbo);
@@ -575,7 +575,7 @@ void Renderer::resetLightingData()
 {
     // Reset light data by setting the number of lights to 0 (no need to actually clean the data in the arrays)
     static_assert(std::is_trivially_destructible_v<LightingDataBlock>);
-    _lightingDataBlock = {};
+    _lightingDataBlock = { };
 }
 
 void Renderer::sortCommandList(CommandQueue& queue)

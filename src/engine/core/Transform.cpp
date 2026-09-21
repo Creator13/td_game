@@ -240,10 +240,12 @@ void HierarchyTransform::propagateMatrixToChildren(flecs::entity e_self, const m
     if (parentMatrix != nullptr)
     {
         worldMatrix = *parentMatrix * mat4::makeTRS(localPos, localRot, localScale);
+        version++;
     }
     else
     {
         worldMatrix = mat4::makeTRS(localPos, localRot, localScale);
+        version++;
     }
 
     e_self.children([this](flecs::entity e_child)

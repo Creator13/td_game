@@ -107,6 +107,8 @@ namespace
         return (l1->score < l2->score) - (l1->score > l2->score);
     }
 
+    constexpr float MAX_LIGHT_DISTANCE_SQR = 50;
+
     float scorePointLight(const LightData& light, const HierarchyTransform& transform, const ViewportData& viewportData)
     {
         ZoneScoped
@@ -119,11 +121,18 @@ namespace
 
         const vec3 toLight = transform.getWorldPosition() - viewportData.cameraPos;
         const float sqrDist = sqrDistance(transform.getWorldPosition(), viewportData.cameraPos);
-        const float dist = math::sqrt(sqrDist);
 
+        // Cull when out of light draw distance
+        if (sqrDist > MAX_LIGHT_DISTANCE_SQR * MAX_LIGHT_DISTANCE_SQR)
+        {
+            return -1;
+        }
+
+        // Scoring
         constexpr float minSqrDist = 0.1f;
         const float effectiveSqrDist = max(sqrDist, minSqrDist);
 
+        const float dist = math::sqrt(sqrDist);
         const vec3 dirToLight = (dist > 0.0001f) ? (toLight / dist) : viewportData.viewDir;
         const float viewDot = dot(viewportData.viewDir, dirToLight);
         const float viewFactor = clamp(0.5f + 0.5f * viewDot, 0.05f, 1.0f);
@@ -153,7 +162,7 @@ namespace
         {
             const float sinHalfAngle = math::sqrt(max(1.0f - outerCutoffCos * outerCutoffCos, 0.0f));
             const float baseRadius = light.range * (sinHalfAngle / outerCutoffCos);
-            boundingSphere = { .center = lightPos + lightDir * light.range, .radius = baseRadius };
+            boundingSphere = {.center = lightPos + lightDir * light.range, .radius = baseRadius};
         }
 
         if (!isSphereInFrustum(boundingSphere, viewportData.frustum))
@@ -161,14 +170,20 @@ namespace
             return -1;
         }
 
-        // Light scoring
         const vec3 toLight = lightPos - viewportData.cameraPos;
         const float sqrDist = sqrDistance(lightPos, viewportData.cameraPos);
-        const float dist = math::sqrt(sqrDist);
 
+        // Cull when out of light draw distance
+        if (sqrDist > MAX_LIGHT_DISTANCE_SQR * MAX_LIGHT_DISTANCE_SQR)
+        {
+            return -1;
+        }
+
+        // Scoring
         constexpr float minSqrDist = 0.1f;
         const float effectiveSqrDist = max(sqrDist, minSqrDist);
 
+        const float dist = math::sqrt(sqrDist);
         const vec3 dirToLight = (dist > 0.0001f) ? (toLight / dist) : viewportData.viewDir;
         const float viewDot = dot(viewportData.viewDir, dirToLight);
         const float viewFactor = clamp(0.5f + 0.5f * viewDot, 0.05f, 1.0f);
@@ -217,23 +232,24 @@ namespace
                 const HierarchyTransform& transform = f_transform[i];
                 const LightData& ecsLight = f_lightData[i];
 
+                // Skip culled lights (determined by scoring system;
+                // geometrically culled lights get a score of -1 and all lights are removed if their intensity is 0)
+                if (ecsLight.score <= 0) continue;
+
                 switch (ecsLight.type)
                 {
                     case LightData::Type::Directional:
                     {
-                        // Culling: limit to MAX_LIGHTS, but also do not submit any lights with a score of 0 (no contribution)
                         if (numDirectionalLights >= LightingDataBlock::MAX_LIGHTS) break;
-                        if (ecsLight.score <= 0) break;
 
                         LightingDataBlock::DirectionalLight dirLight{
                             .direction = transform.getForward(),
                             .color = ecsLight.color.rgbVec3(),
                             .intensity = ecsLight.intensity
                         };
-                        if (hasMainLight)
+                        if (!hasMainLight)
                         {
-                            // TODO set the first encountered light as the main light
-                            // renderer.ptr->setMainLight(...)
+                            // renderer.ptr->setShadowData();
                             hasMainLight = true;
                         }
                         renderer.ptr->submitDirectionalLight(dirLight);
@@ -242,9 +258,7 @@ namespace
                     }
                     case LightData::Type::Point:
                     {
-                        // Culling: limit to MAX_LIGHTS
                         if (numPointLights >= LightingDataBlock::MAX_LIGHTS) break;
-                        if (ecsLight.score <= 0) break;
 
                         LightingDataBlock::PointLight pointLight{
                             .position = transform.getWorldPosition(),
@@ -259,7 +273,6 @@ namespace
                     case LightData::Type::Spot:
                     {
                         if (numSpotlights >= LightingDataBlock::MAX_LIGHTS) break;
-                        if (ecsLight.score <= 0) break;
 
                         LightingDataBlock::Spotlight spotlight{
                             .position = transform.getWorldPosition(),
@@ -275,7 +288,7 @@ namespace
                         break;
                     }
                     default:
-                        ENGINE_ASSERT(false, "Invlaid");
+                        ENGINE_ASSERT(false, "Unsupported light type: {}", static_cast<std::underlying_type_t<LightData::Type>>(ecsLight.type));
                         break;
                 }
             }
@@ -346,7 +359,35 @@ rendering::rendering(flecs::world& ecs)
         .run(collectLights)
         .depends_on(lightScoringSystem);
 
-    auto cullingSystem = ecs.system<const HierarchyTransform, const BoxBoundsData, MeshRenderData>("Culling system")
+    auto boundsCalculationSystem = ecs.system<const HierarchyTransform, BoxBoundsData>()
+        .kind(flecs::OnStore)
+        .multi_threaded()
+        .each([](const HierarchyTransform& transform, BoxBoundsData& bounds)
+        {
+            if (bounds.cachedTransformVersion != transform.version)
+            {
+                const mat4& worldMat = transform.getWorldMatrix();
+
+                AABB& worldBounds = bounds.cachedWorldBounds;
+                worldBounds.center = (worldMat * vec4(bounds.localBounds.center, 1.0f)).xyz();
+                worldBounds.halfExtents.x =
+                    math::abs(worldMat.get(0, 0)) * bounds.localBounds.halfExtents.x +
+                    math::abs(worldMat.get(0, 1)) * bounds.localBounds.halfExtents.y +
+                    math::abs(worldMat.get(0, 2)) * bounds.localBounds.halfExtents.z;
+
+                worldBounds.halfExtents.y =
+                    math::abs(worldMat.get(1, 0)) * bounds.localBounds.halfExtents.x +
+                    math::abs(worldMat.get(1, 1)) * bounds.localBounds.halfExtents.y +
+                    math::abs(worldMat.get(1, 2)) * bounds.localBounds.halfExtents.z;
+
+                worldBounds.halfExtents.z =
+                    math::abs(worldMat.get(2, 0)) * bounds.localBounds.halfExtents.x +
+                    math::abs(worldMat.get(2, 1)) * bounds.localBounds.halfExtents.y +
+                    math::abs(worldMat.get(2, 2)) * bounds.localBounds.halfExtents.z;
+            }
+        });
+
+    auto cullingSystem = ecs.system<const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
         .multi_threaded()
         .run([](flecs::iter& it)
@@ -357,46 +398,25 @@ rendering::rendering(flecs::world& ecs)
 
             while (it.next())
             {
-                auto f_transform = it.field<const HierarchyTransform>(0);
-                auto f_bounds = it.field<const BoxBoundsData>(1);
-                auto f_renderData = it.field<MeshRenderData>(2);
+                auto f_bounds = it.field<const BoxBoundsData>(0);
+                auto f_renderData = it.field<MeshRenderData>(1);
 
                 for (auto i : it)
                 {
-                    const HierarchyTransform& transform = f_transform[i];
                     const BoxBoundsData& bounds = f_bounds[i];
                     MeshRenderData& renderData = f_renderData[i];
 
                     renderData.cullReason = CullReason::None;
 
-                    const mat4& worldMat = transform.getWorldMatrix();
-
-                    // TODO caching world bounds is a decently easy optimization
-                    AABB worldBounds;
-                    worldBounds.center = (worldMat * vec4(bounds.localBounds.center, 1.0f)).xyz();
-                    worldBounds.halfExtents.x =
-                        math::abs(worldMat.get(0, 0)) * bounds.localBounds.halfExtents.x +
-                        math::abs(worldMat.get(0, 1)) * bounds.localBounds.halfExtents.y +
-                        math::abs(worldMat.get(0, 2)) * bounds.localBounds.halfExtents.z;
-
-                    worldBounds.halfExtents.y =
-                        math::abs(worldMat.get(1, 0)) * bounds.localBounds.halfExtents.x +
-                        math::abs(worldMat.get(1, 1)) * bounds.localBounds.halfExtents.y +
-                        math::abs(worldMat.get(1, 2)) * bounds.localBounds.halfExtents.z;
-
-                    worldBounds.halfExtents.z =
-                        math::abs(worldMat.get(2, 0)) * bounds.localBounds.halfExtents.x +
-                        math::abs(worldMat.get(2, 1)) * bounds.localBounds.halfExtents.y +
-                        math::abs(worldMat.get(2, 2)) * bounds.localBounds.halfExtents.z;
-
-                    // Cull entity if it falls outside the frustum
-                    if (!isAABBInFrustum(worldBounds, viewport.frustum))
+                    // Cull entity if it falls outside the view frustum
+                    if (!isAABBInFrustum(bounds.cachedWorldBounds, viewport.frustum))
                     {
                         renderData.cullReason = CullReason::Frustum;
                     }
                 }
             }
-        });
+        })
+        .depends_on(boundsCalculationSystem);
 
     ecs.system<const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
@@ -407,9 +427,6 @@ rendering::rendering(flecs::world& ecs)
 
             const auto& renderer = it.world().get<const RendererSingleton>();
 
-            int total = 0;
-            int rendered = 0;
-
             while (it.next())
             {
                 auto f_transform = it.field<const HierarchyTransform>(0);
@@ -418,7 +435,6 @@ rendering::rendering(flecs::world& ecs)
                 for (const auto i : it)
                 {
                     const auto& renderData = f_renderData[i];
-                    total++;
 
                     // Exclude culled entities
                     if (renderData.cullReason != CullReason::None) continue;
@@ -433,34 +449,33 @@ rendering::rendering(flecs::world& ecs)
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
                     renderer.ptr->submitDrawCommand(command);
 
-                    if (renderData.castShadow)
+                    if (!renderData.cullShadowCasting && renderData.castShadow)
                     {
                         // TODO implement shadow casting of object as override of pipeline setting
                         renderer.ptr->submitShadowCommand(renderData.mesh, f_transform[i].getWorldMatrix());
                     }
-                    rendered++;
                 }
             }
         })
         .depends_on(cullingSystem);
 }
 
-void rendering::syncRendererToActiveCamera(const RendererSingleton& r_ptr, const ViewportData& viewportData)
+void rendering::syncRendererToActiveCamera(const RendererSingleton& rPtr, const ViewportData& viewportData)
 {
-    Renderer& renderer = *r_ptr.ptr;
+    Renderer& renderer = *rPtr.ptr;
     renderer.setViewportData(viewportData);
 }
 
-void rendering::syncSceneData(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData)
+void rendering::syncSceneData(const RendererSingleton& rPtr, const SceneRenderData& sceneRenderData)
 {
-    Renderer& renderer = *r_ptr.ptr;
+    Renderer& renderer = *rPtr.ptr;
     renderer.setPostEffectStack(sceneRenderData.postEffects);
     renderer.setClearColor(sceneRenderData.backgroundColor);
 }
 
 void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)
 {
-    float aspect = window.state->getFrameBufferAspect();
+    const float aspect = window.state->getFrameBufferAspect();
 
     viewportData.projectionMatrix = mat4::makePerspective(cameraData.fov, aspect, cameraData.near, cameraData.far);
     viewportData.viewMatrix = inverse(transform.getWorldMatrix());
@@ -470,12 +485,11 @@ void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& camer
 
     viewportData.pixelWidth = window.state->fbWidth;
     viewportData.pixelHeight = window.state->fbHeight;
-
 }
 
 void rendering::updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, ViewportData& viewportData)
 {
-    float aspect = window.state->getFrameBufferAspect();
+    const float aspect = window.state->getFrameBufferAspect();
 
     viewportData.projectionMatrix = mat4::makeOrtho(
         -cameraData.orthoSize * aspect,

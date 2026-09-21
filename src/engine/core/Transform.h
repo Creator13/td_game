@@ -2,6 +2,7 @@
 
 #include <flecs.h>
 
+#include "datatype.h"
 #include "math/mat4.h"
 #include "math/rotation.h"
 #include "math/vec3.h"
@@ -43,6 +44,7 @@ namespace core
             math::vec3 localScale = math::vec3::one;
 
             math::mat4 worldMatrix = math::mat4::identity;
+            u32 version = 0;
 
             math::vec3 getWorldPosition() const;
             math::quaternion getGlobalOrientation() const;

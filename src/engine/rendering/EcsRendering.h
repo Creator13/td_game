@@ -35,7 +35,7 @@ namespace core::ecs
     struct ActiveCamera { };
 
     // #### RENDER COMPONENTS ####
-    enum class CullReason
+    enum class CullReason : u8
     {
         None = 0,
         Frustum = 1,
@@ -46,13 +46,16 @@ namespace core::ecs
     {
         assets::AssetRef<Mesh> mesh;
         assets::AssetRef<Material> material;
-        CullReason cullReason;
+        CullReason cullReason = CullReason::None;
+        bool cullShadowCasting = false;
         bool castShadow = true;
     };
 
     struct BoxBoundsData
     {
         math::AABB localBounds;
+        math::AABB cachedWorldBounds;
+        u32 cachedTransformVersion = std::numeric_limits<u32>::max(); // Corresponds to the version of the transform the cached oriented bounds were calculated for
     };
 
     struct LightData
@@ -89,9 +92,9 @@ namespace core::ecs
         explicit rendering(flecs::world& ecs);
 
     private:
-        static void syncRendererToActiveCamera(const RendererSingleton& r_ptr, const gfx::ViewportData& viewportData);
+        static void syncRendererToActiveCamera(const RendererSingleton& rPtr, const gfx::ViewportData& viewportData);
         static void updateActivePerspectiveCamera(const PerspectiveCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
         static void updateActiveOrthoCamera(const OrthoCameraData& cameraData, const HierarchyTransform& transform, const WindowSingleton& window, gfx::ViewportData& viewportData);
-        static void syncSceneData(const RendererSingleton& r_ptr, const SceneRenderData& sceneRenderData);
+        static void syncSceneData(const RendererSingleton& rPtr, const SceneRenderData& sceneRenderData);
     };
 }

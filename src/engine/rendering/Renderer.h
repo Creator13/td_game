@@ -90,7 +90,7 @@ namespace core::gfx
     public:
         Renderer();
 
-        void init(int shadowMapResolution);
+        void init(int shadowMapResolution); // TODO unhardcode the shadow map resolution
 
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
@@ -98,6 +98,7 @@ namespace core::gfx
         void setEnvironmentSettings(const EnvironmentSettings& env);
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
         void setClearColor(const Color& clearColor);
+        void setShadowData();
 
         void submitPointLight(const LightingDataBlock::PointLight& light);
         void submitDirectionalLight(const LightingDataBlock::DirectionalLight& light);
@@ -120,7 +121,6 @@ namespace core::gfx
         void resizeFrameBuffers(int newWidth, int newHeight);
 
         void appendInstanceData(CommandQueue& queue);
-        // LightingDataBlock collectLightingData() const;
 
         void executePass(const ViewportDataBlock& passData, CommandQueue& queue, usize instanceIndex);
         void executePostEffectStack();
