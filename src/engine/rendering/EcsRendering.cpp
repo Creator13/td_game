@@ -89,6 +89,7 @@ namespace
             .member<float>("Light score");
 
         ecs.component<ViewportData>().add(flecs::Singleton);
+        ecs.component<ShadowData>().add(flecs::Singleton);
         ecs.component<SceneRenderData>().add(flecs::Singleton);
         ecs.component<WindowSingleton>().add(flecs::Singleton);
         ecs.component<RendererSingleton>().add(flecs::Singleton);
@@ -211,23 +212,24 @@ namespace
         }
     }
 
-    void collectLights(flecs::iter& it)
+    void collectLights(flecs::iter& iter)
     {
         ZoneScopedN("Light collection")
 
-        const auto& renderer = it.world().get<const RendererSingleton>();
+        const auto& renderer = iter.world().get<const RendererSingleton>();
 
-        bool hasMainLight = false;
+        const LightData* mainDirLight = nullptr;
+        const HierarchyTransform* mainLightTransform = nullptr;
         int numPointLights = 0;
         int numDirectionalLights = 0;
         int numSpotlights = 0;
 
-        while (it.next())
+        while (iter.next())
         {
-            auto f_lightData = it.field<const LightData>(0);
-            auto f_transform = it.field<const HierarchyTransform>(1);
+            auto f_lightData = iter.field<const LightData>(0);
+            auto f_transform = iter.field<const HierarchyTransform>(1);
 
-            for (auto i : it)
+            for (const auto i : iter)
             {
                 const HierarchyTransform& transform = f_transform[i];
                 const LightData& ecsLight = f_lightData[i];
@@ -247,10 +249,10 @@ namespace
                             .color = ecsLight.color.rgbVec3(),
                             .intensity = ecsLight.intensity
                         };
-                        if (!hasMainLight)
+                        if (!mainDirLight)
                         {
-                            // renderer.ptr->setShadowData();
-                            hasMainLight = true;
+                            mainDirLight = &ecsLight;
+                            mainLightTransform = &transform;
                         }
                         renderer.ptr->submitDirectionalLight(dirLight);
                         numDirectionalLights++;
@@ -293,6 +295,21 @@ namespace
                 }
             }
         }
+
+        // Set shadow casting properties
+        ShadowData& shadowData = iter.world().get_mut<ShadowData>();
+        shadowData.renderShadows = mainDirLight && mainLightTransform;
+        if (shadowData.renderShadows)
+        {
+            shadowData.mainLightPos= mainLightTransform->getWorldPosition();
+            shadowData.mainLightDir = mainLightTransform->getForward();
+            // It is a minor optimization to create the view matrix as a TRS, avoids one multiplication and creates the matrix in-place
+            shadowData.viewMatrix = inverse(mat4::makeTRS(-shadowData.mainLightDir * 10, rot3x3::lookRotation(shadowData.mainLightDir, vec3::up), vec3::one));
+            shadowData.projectionMatrix = mat4::makeOrtho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
+            shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
+            shadowData.mainLightFrustum = frustum::fromViewProjectionMatrix(shadowData.viewProjectionMatrix);
+        }
+        renderer.ptr->setShadowData(shadowData);
     }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
@@ -306,6 +323,7 @@ rendering::rendering(flecs::world& ecs)
     registerComponents(ecs);
 
     ecs.set<ViewportData>({ });
+    ecs.set<ShadowData>({ });
     ecs.set<SceneRenderData>({ });
 
     ecs.observer("Active camera uniqueness observer")
@@ -330,17 +348,17 @@ rendering::rendering(flecs::world& ecs)
             e.set<BoxBoundsData>({bounds});
         });
 
-    auto perspSystem = ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Perspective camera update system")
+    const auto perspSystem = ecs.system<const PerspectiveCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Perspective camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActivePerspectiveCamera);
 
-    auto orthoSystem = ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Ortho camera update system")
+    const auto orthoSystem = ecs.system<const OrthoCameraData, const HierarchyTransform, const WindowSingleton, ViewportData>("Ortho camera update system")
         .kind(flecs::PreStore)
         .with<ActiveCamera>()
         .each(updateActiveOrthoCamera);
 
-    auto viewportSyncSystem = ecs.system<const RendererSingleton, const ViewportData>()
+    const auto viewportSyncSystem = ecs.system<const RendererSingleton, const ViewportData>()
         .each(syncRendererToActiveCamera)
         .depends_on(perspSystem)
         .depends_on(orthoSystem);
@@ -349,17 +367,18 @@ rendering::rendering(flecs::world& ecs)
         .kind(flecs::PreStore)
         .each(syncSceneData);
 
-    auto lightScoringSystem = ecs.system<LightData, const HierarchyTransform, const ViewportData>("Light scoring system")
+    const auto lightScoringSystem = ecs.system<LightData, const HierarchyTransform, const ViewportData>("Light scoring system")
         // TODO profile
         .each(scoreLight)
         .depends_on(viewportSyncSystem);
 
-    ecs.system<const LightData, const HierarchyTransform>("Light collection system")
+    const auto lightCollectionSystem = ecs.system<const LightData, const HierarchyTransform>("Light collection system")
+        .kind(flecs::OnStore)
         .order_by(sortLightsComparison)
         .run(collectLights)
         .depends_on(lightScoringSystem);
 
-    auto boundsCalculationSystem = ecs.system<const HierarchyTransform, BoxBoundsData>()
+    const auto boundsCalculationSystem = ecs.system<const HierarchyTransform, BoxBoundsData>()
         .kind(flecs::OnStore)
         .multi_threaded()
         .each([](const HierarchyTransform& transform, BoxBoundsData& bounds)
@@ -387,7 +406,7 @@ rendering::rendering(flecs::world& ecs)
             }
         });
 
-    auto cullingSystem = ecs.system<const BoxBoundsData, MeshRenderData>("Culling system")
+    const auto cullingSystem = ecs.system<const BoxBoundsData, MeshRenderData>("Culling system")
         .kind(flecs::OnStore)
         .multi_threaded()
         .run([](flecs::iter& it)
@@ -395,13 +414,14 @@ rendering::rendering(flecs::world& ecs)
             ZoneScopedN("Culling system");
 
             auto& viewport = it.world().get<const ViewportData>();
+            auto& shadowData = it.world().get<const ShadowData>();
 
             while (it.next())
             {
                 auto f_bounds = it.field<const BoxBoundsData>(0);
                 auto f_renderData = it.field<MeshRenderData>(1);
 
-                for (auto i : it)
+                for (const auto i : it)
                 {
                     const BoxBoundsData& bounds = f_bounds[i];
                     MeshRenderData& renderData = f_renderData[i];
@@ -413,26 +433,30 @@ rendering::rendering(flecs::world& ecs)
                     {
                         renderData.cullReason = CullReason::Frustum;
                     }
+
+                    renderData.cullShadowCasting = !isAABBInFrustum(bounds.cachedWorldBounds, shadowData.mainLightFrustum);
                 }
             }
         })
+        .depends_on(lightCollectionSystem)
         .depends_on(boundsCalculationSystem);
 
     ecs.system<const HierarchyTransform, const MeshRenderData>("Scene geometry collection")
         // .multi_threaded() // TODO make multithreaded (but obv can't while renderer doesn't have a thread-safe render list)
         .kind(flecs::OnStore)
-        .run([](flecs::iter& it)
+        .run([](flecs::iter& iter)
         {
             ZoneScopedN("Scene geometry collection system");
 
-            const auto& renderer = it.world().get<const RendererSingleton>();
+            const auto& renderer = iter.world().get<const RendererSingleton>();
+            const auto& shadowData = iter.world().get<const ShadowData>();
 
-            while (it.next())
+            while (iter.next())
             {
-                auto f_transform = it.field<const HierarchyTransform>(0);
-                auto f_renderData = it.field<const MeshRenderData>(1);
+                auto f_transform = iter.field<const HierarchyTransform>(0);
+                auto f_renderData = iter.field<const MeshRenderData>(1);
 
-                for (const auto i : it)
+                for (const auto i : iter)
                 {
                     const auto& renderData = f_renderData[i];
 
@@ -449,7 +473,7 @@ rendering::rendering(flecs::world& ecs)
                     command.queue = DrawCommand::RenderQueue::OPAQUE;
                     renderer.ptr->submitDrawCommand(command);
 
-                    if (!renderData.cullShadowCasting && renderData.castShadow)
+                    if (shadowData.renderShadows && !renderData.cullShadowCasting && renderData.castShadow)
                     {
                         // TODO implement shadow casting of object as override of pipeline setting
                         renderer.ptr->submitShadowCommand(renderData.mesh, f_transform[i].getWorldMatrix());

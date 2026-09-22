@@ -15,7 +15,7 @@ using namespace core::debug;
 
 namespace
 {
-    constexpr size_t MAX_VERTICES = 20'000;
+    constexpr size_t MAX_VERTICES = 48'000;
     DebugRenderer* globalDebugRenderer;
 
     gl::program_t compileDebugShader()
@@ -222,4 +222,40 @@ void debug::draw2DRect(rect rect, Color color)
 void debug::draw2DLine(vec2 start, vec2 end, Color color)
 {
     globalDebugRenderer->submitScreenSpaceLine(start, end, color);
+}
+
+void debug::drawAABB(const AABB& aabb, Color color)
+{
+    const vec3& c = aabb.center;
+    const vec3& h = aabb.halfExtents;
+
+    // 8 corners of the box
+    vec3 corners[8] = {
+        c + vec3(-h.x, -h.y, -h.z), // 0
+        c + vec3( h.x, -h.y, -h.z), // 1
+        c + vec3( h.x,  h.y, -h.z), // 2
+        c + vec3(-h.x,  h.y, -h.z), // 3
+        c + vec3(-h.x, -h.y,  h.z), // 4
+        c + vec3( h.x, -h.y,  h.z), // 5
+        c + vec3( h.x,  h.y,  h.z), // 6
+        c + vec3(-h.x,  h.y,  h.z), // 7
+    };
+
+    // bottom face (z = -h.z)
+    globalDebugRenderer->submitLine({corners[0], color}, {corners[1], color});
+    globalDebugRenderer->submitLine({corners[1], color}, {corners[2], color});
+    globalDebugRenderer->submitLine({corners[2], color}, {corners[3], color});
+    globalDebugRenderer->submitLine({corners[3], color}, {corners[0], color});
+
+    // top face (z = +h.z)
+    globalDebugRenderer->submitLine({corners[4], color}, {corners[5], color});
+    globalDebugRenderer->submitLine({corners[5], color}, {corners[6], color});
+    globalDebugRenderer->submitLine({corners[6], color}, {corners[7], color});
+    globalDebugRenderer->submitLine({corners[7], color}, {corners[4], color});
+
+    // vertical edges connecting bottom to top
+    globalDebugRenderer->submitLine({corners[0], color}, {corners[4], color});
+    globalDebugRenderer->submitLine({corners[1], color}, {corners[5], color});
+    globalDebugRenderer->submitLine({corners[2], color}, {corners[6], color});
+    globalDebugRenderer->submitLine({corners[3], color}, {corners[7], color});
 }

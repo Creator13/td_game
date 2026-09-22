@@ -21,4 +21,15 @@ namespace core::gfx
         math::vec3 screenToWorld(math::vec2 pixelPos, float depth = 0.5f) const;
         math::vec2 worldToScreen(math::vec3 worldPos) const;
     };
+
+    struct ShadowData
+    {
+        math::vec3 mainLightPos = math::vec3::zero;
+        math::vec3 mainLightDir = math::vec3::forward;
+        math::mat4 viewMatrix = math::mat4::identity;
+        math::mat4 projectionMatrix = math::mat4::identity;
+        math::mat4 viewProjectionMatrix = math::mat4::identity;
+        math::frustum mainLightFrustum;
+        bool renderShadows = false;
+    };
 }

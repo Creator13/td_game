@@ -30,13 +30,6 @@ namespace core::gfx
         u16 getMeshId() const { return sortKey & 0xFFFF; }
     };
 
-    struct ShadowData
-    {
-        math::mat4 viewMatrix = math::mat4::identity;
-        math::mat4 projectionMatrix = math::mat4::identity;
-        math::mat4 viewProjectionMatrix = math::mat4::identity;
-    };
-
     struct EnvironmentSettings
     {
         float ambientIntensity = .01f;
@@ -52,14 +45,19 @@ namespace core::gfx
         {
             i32 numDrawCalls = 0;
             i32 numPipelineBinds = 0;
+
             i32 numCommands = 0;
+            i32 numShadowCasters = 0;
+
             i32 numDirLights = 0;
             i32 numSpotlights = 0;
             i32 numPointLights = 0;
+
             u64 triCount = 0;
         } _frameStats;
 
         ViewportData _viewportData = ViewportData();
+        ShadowData _shadowData = ShadowData();
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
         LightingDataBlock _lightingDataBlock;
         Color _clearColor;
@@ -94,11 +92,11 @@ namespace core::gfx
 
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 
-        void setViewportData(const ViewportData& params);
+        void setViewportData(const ViewportData& viewportData);
+        void setShadowData(const ShadowData& shadowData);
         void setEnvironmentSettings(const EnvironmentSettings& env);
         void setPostEffectStack(const std::vector<assets::AssetRef<Material>>& stack);
         void setClearColor(const Color& clearColor);
-        void setShadowData();
 
         void submitPointLight(const LightingDataBlock::PointLight& light);
         void submitDirectionalLight(const LightingDataBlock::DirectionalLight& light);

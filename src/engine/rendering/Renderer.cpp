@@ -126,14 +126,19 @@ void Renderer::init(int shadowMapResolution)
     _depthMaterial = depthPipeline->newMaterialInstance("Default depth material");
 }
 
-void Renderer::setViewportData(const ViewportData& params)
+void Renderer::setViewportData(const ViewportData& viewportData)
 {
-    if (_viewportData.pixelHeight != params.pixelHeight || _viewportData.pixelWidth != params.pixelWidth)
+    if (_viewportData.pixelHeight != viewportData.pixelHeight || _viewportData.pixelWidth != viewportData.pixelWidth)
     {
-        resizeFrameBuffers(params.pixelWidth, params.pixelHeight);
+        resizeFrameBuffers(viewportData.pixelWidth, viewportData.pixelHeight);
     }
 
-    _viewportData = params;
+    _viewportData = viewportData;
+}
+
+void Renderer::setShadowData(const ShadowData& shadowData)
+{
+    _shadowData = shadowData;
 }
 
 void Renderer::setEnvironmentSettings(const EnvironmentSettings& env) { }
@@ -243,48 +248,48 @@ void Renderer::renderFrame()
 
     // Lighting data
     _lightingDataBlock.ambientStrength = _environmentSettings.ambientIntensity;
+    _lightingDataBlock.lightSpaceMatrix = _shadowData.viewProjectionMatrix;
     bindLightingData(_lightingDataBlock);
-
-    ShadowData shadowData;
-    bool hasShadowSource = false;
 
     // Upload instance data for all passes in the same buffer
     // TODO revisit this and see if an asynchronous buffer could work too?
     _instanceDataBuffer.clear();
 
-    if (hasShadowSource) sortCommandList(_shadowCommandQueue);
+    if (_shadowData.renderShadows) sortCommandList(_shadowCommandQueue);
     sortCommandList(_opaqueCommandQueue);
     sortCommandList(_uiCommandQueue);
 
-    if (hasShadowSource) appendInstanceData(_shadowCommandQueue);
+    if (_shadowData.renderShadows) appendInstanceData(_shadowCommandQueue);
     appendInstanceData(_opaqueCommandQueue);
     appendInstanceData(_uiCommandQueue);
 
     _instanceDataBuffer.upload();
     _instanceDataBuffer.bind(InstanceData::SHADER_BINDING);
 
-    if (hasShadowSource) _frameStats.numCommands += _shadowCommandQueue.size();
+    if (_shadowData.renderShadows) _frameStats.numCommands += _shadowCommandQueue.size();
     _frameStats.numCommands += _opaqueCommandQueue.size();
     _frameStats.numCommands += _uiCommandQueue.size();
 
     usize instanceIndex = 0;
 
     // Execute shadow pass (only if there is a light to cast shadows)
-    if (hasShadowSource)
+    if (_shadowData.renderShadows && _shadowCommandQueue.size() > 0)
     {
         glViewport(0, 0, _shadowMapResolution, _shadowMapResolution);
         glBindFramebuffer(GL_FRAMEBUFFER, _shadowFramebuffer._fbo);
         glClear(GL_DEPTH_BUFFER_BIT);
 
         ViewportDataBlock shadowPassData;
-        shadowPassData.view = shadowData.viewMatrix;
-        shadowPassData.projection = shadowData.projectionMatrix;
-        shadowPassData.viewProj = shadowData.viewProjectionMatrix;
+        shadowPassData.view = _shadowData.viewMatrix;
+        shadowPassData.projection = _shadowData.projectionMatrix;
+        shadowPassData.viewProj = _shadowData.viewProjectionMatrix;
         shadowPassData.cameraPos = vec3::zero;
         executePass(shadowPassData, _shadowCommandQueue, instanceIndex);
         instanceIndex += _shadowCommandQueue.size();
     }
-    _shadowCommandQueue.clear();
+    _frameStats.numShadowCasters = _shadowCommandQueue.size();
+    ENGINE_VALIDATE(_shadowData.renderShadows || (!_shadowData.renderShadows && _shadowCommandQueue.size() == 0), "Ideally no shadow commands should be submitted when there is no shadow-casting light");
+    _shadowCommandQueue.clear(); // ALWAYS clear shadow queue because shadows may still be submitted even if there is no light
 
     glViewport(0, 0, _viewportData.pixelWidth, _viewportData.pixelHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, _mainFramebuffer._fbo);

@@ -16,3 +16,8 @@ void core::debug::handle_assert(const char* expression, const std::string_view& 
     __builtin_trap();
 #endif
 }
+
+void core::debug::handle_validate(const char* expression, const std::string_view& message)
+{
+    SPDLOG_WARN("Non-critical assumption failed: {} | Message: {}", expression, message);
+}

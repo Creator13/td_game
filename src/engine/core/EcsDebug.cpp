@@ -17,21 +17,29 @@ using namespace math;
 namespace
 {
     // TODO extract this to be globally accessible when more places need this formatting (wow maybe even by default?)
-    struct EnglishNumberPunctuation : std::numpunct<char> {
+    struct EnglishNumberPunctuation : std::numpunct<char>
+    {
     protected:
         char do_decimal_point() const override { return '.'; }
         char do_thousands_sep() const override { return ','; }
         std::string do_grouping() const override { return "\3"; }
     };
+
     std::locale enLoc(std::locale::classic(), new EnglishNumberPunctuation);
 
     struct RenderDebugEntity { };
 
     struct DebugSystemTag { };
+
+    constexpr auto COMMANDS_PLOT_NAME = "Commands";
+    constexpr auto DRAW_CALLS_PLOT_NAME = "Draw calls";
 }
 
 engine_debug::engine_debug(flecs::world& ecs)
 {
+    TracyPlotConfig(COMMANDS_PLOT_NAME, tracy::PlotFormatType::Number, false, true, tracy::Color::Orange2);
+    TracyPlotConfig(DRAW_CALLS_PLOT_NAME, tracy::PlotFormatType::Number, false, true, tracy::Color::OrangeRed2);
+
     _debugInfoFont = Font::loadFromFile("font/JetBrainsMono-Regular.ttf");
 
     ecs.module<engine_debug>("Debug module");
@@ -58,10 +66,10 @@ engine_debug::engine_debug(flecs::world& ecs)
 
             std::string stats = fmt::format(enLoc,
                 "{:.3f}ms (avg:{:.3f}ms, 1%:{:.3f}ms) | {:.1f}fps\n"
-                "Commands submitted: {} | tri count: {:L} | draw calls: {} | pipeline binds: {} | lights: {} dir, {} point, {} spot\n"
+                "Commands submitted: {} | shadow casters: {} | tri count: {:L} | draw calls: {} | pipeline binds: {} | lights: {} dir, {} point, {} spot\n"
                 "Asset storage: {} items, {:.2b} (Pl:{}/{:.1b} | Mat:{}/{:.1b} | Tex:{}/{:.1b} | Mesh:{}/{:.1b} | Font:{}/{:.1b})",
                 time::deltaMs(), time::averageDeltaMs(), time::onePercentMs(), time::fps(),
-                renderStats.numCommands, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds,
+                renderStats.numCommands, renderStats.numShadowCasters, renderStats.triCount, renderStats.numDrawCalls, renderStats.numPipelineBinds,
                 renderStats.numDirLights, renderStats.numPointLights, renderStats.numSpotlights,
                 assetStats.totalAssetCount, FormattableBytes(assetStats.totalBytesUsed),
                 assetStats.pipelineStats.itemCount, FormattableBytes(assetStats.pipelineStats.bytesUsed),
@@ -71,8 +79,32 @@ engine_debug::engine_debug(flecs::world& ecs)
                 assetStats.fontStats.itemCount, FormattableBytes(assetStats.fontStats.bytesUsed)
             );
             text.setText(stats);
+
+            // TODO move this somewhere else (maybe?)
+            TracyPlot(COMMANDS_PLOT_NAME, static_cast<i64>(renderStats.numCommands));
+            TracyPlot(DRAW_CALLS_PLOT_NAME, static_cast<i64>(renderStats.numDrawCalls));
         })
         .add<DebugSystemTag>();
+
+    ecs.system<const BoxBoundsData, const MeshRenderData>()
+        .each([](const BoxBoundsData& data, const MeshRenderData& renderData)
+        {
+            Color color = Color::magenta;
+            switch (renderData.cullReason)
+            {
+                case CullReason::None:
+                    color = Color::deepPink;
+                    break;
+                case CullReason::Frustum:
+                    color = Color::darkSeaGreen;
+                    break;
+                case CullReason::LOD:
+                    color = Color::cadetBlue;
+                    break;
+            }
+            core::debug::drawAABB(data.cachedWorldBounds, color);
+        })
+        .disable();
 
     ecs.system<const HierarchyTransform, const LightData>()
         .with<Gizmo>()
@@ -101,5 +133,5 @@ engine_debug::engine_debug(flecs::world& ecs)
                 }
             }
         )
-    .add<DebugSystemTag>();
+        .add<DebugSystemTag>();
 }

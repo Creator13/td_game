@@ -5,6 +5,24 @@
 
 using namespace core;
 
+static_assert(sizeof(u8) == 1);
+static_assert(sizeof(u16) == 2);
+static_assert(sizeof(u32) == 4);
+static_assert(sizeof(u64) == 8);
+static_assert(sizeof(i8) == 1);
+static_assert(sizeof(i16) == 2);
+static_assert(sizeof(i32) == 4);
+static_assert(sizeof(i64) == 8);
+
+static_assert(alignof(u8) == 1);
+static_assert(alignof(u16) == 2);
+static_assert(alignof(u32) == 4);
+static_assert(alignof(u64) == 8);
+static_assert(alignof(i8) == 1);
+static_assert(alignof(i16) == 2);
+static_assert(alignof(i32) == 4);
+static_assert(alignof(i64) == 8);
+
 // GL assertions
 static_assert(sizeof(gl::Uint) == sizeof(GLuint));
 static_assert(sizeof(gl::Int) == sizeof(GLint));

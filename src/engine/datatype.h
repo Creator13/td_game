@@ -1,18 +1,17 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
 namespace core
 {
-    using u8 = uint8_t;
-    using u16 = uint16_t;
-    using u32 = uint32_t;
+    using u8 = unsigned char;
+    using u16 = unsigned short;
+    using u32 = unsigned int;
     using u64 = unsigned long long;
-    using i8 = int8_t;
-    using i16 = int16_t;
-    using i32 = int32_t;
-    using i64 = int64_t;
+    using i8 = signed char;
+    using i16 = signed short;
+    using i32 = signed int;
+    using i64 = signed long long;
 
     using f16 = short;
     using f32 = float;
@@ -28,14 +27,14 @@ namespace core
 
 namespace core::gl
 {
-    using Uint = uint32_t;
-    using Int = int32_t;
-    using Sizei = int32_t;
-    using Bool = uint8_t;
+    using Uint = u32;
+    using Int = i32;
+    using Sizei = i32;
+    using Bool = u8;
     using Float = float;
     using Double = double;
 
-    using enum_t = uint32_t;
+    using enum_t = u32;
 }
 
 namespace core::gl

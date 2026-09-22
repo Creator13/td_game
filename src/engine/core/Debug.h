@@ -56,5 +56,6 @@ namespace core::debug
     void drawCameraFrustum(math::vec3 pos, ecs::PerspectiveCameraData& camera);
     void draw2DRect(math::rect rect, Color color);
     void draw2DLine(math::vec2 start, math::vec2 end, Color color);
+    void drawAABB(const math::AABB& aabb, Color color);
 }
 
