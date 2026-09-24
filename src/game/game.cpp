@@ -105,10 +105,11 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Material> whiteUnlit = unlitPipeline->newMaterialInstance("whiteUnlit");
     whiteUnlit->setColor("color"_spid, Color::white);
     auto lightParent = world.entity("light parent")
-        .set<RotateData>({.angularVelocity = 10});
+        // .set<RotateData>({.angularVelocity = 10})
+    ;
     transform::add(lightParent, vec3::up * 2);
     auto light = world.entity("light")
-            .set<Toggleable>({.state = false})
+            .set<Toggleable>({.state = true})
             .set<MeshRenderData>({.mesh = sphere, .material = whiteUnlit})
             .set<LightData>({.type = LightData::Type::Directional, .color = Color::white, .intensity = 1})
         // .set<DiscoLight>({})

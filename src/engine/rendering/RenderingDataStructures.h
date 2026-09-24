@@ -24,7 +24,6 @@ namespace core::gfx
 
     struct ShadowData
     {
-        math::vec3 mainLightPos = math::vec3::zero;
         math::vec3 mainLightDir = math::vec3::forward;
         math::mat4 viewMatrix = math::mat4::identity;
         math::mat4 projectionMatrix = math::mat4::identity;

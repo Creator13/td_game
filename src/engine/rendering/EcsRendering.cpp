@@ -218,7 +218,6 @@ namespace
 
         const auto& renderer = iter.world().get<const RendererSingleton>();
 
-        const LightData* mainDirLight = nullptr;
         const HierarchyTransform* mainLightTransform = nullptr;
         int numPointLights = 0;
         int numDirectionalLights = 0;
@@ -249,9 +248,8 @@ namespace
                             .color = ecsLight.color.rgbVec3(),
                             .intensity = ecsLight.intensity
                         };
-                        if (!mainDirLight)
+                        if (!mainLightTransform)
                         {
-                            mainDirLight = &ecsLight;
                             mainLightTransform = &transform;
                         }
                         renderer.ptr->submitDirectionalLight(dirLight);
@@ -298,18 +296,17 @@ namespace
 
         // Set shadow casting properties
         ShadowData& shadowData = iter.world().get_mut<ShadowData>();
-        shadowData.renderShadows = mainDirLight && mainLightTransform;
+        shadowData.renderShadows = mainLightTransform != nullptr;
         if (shadowData.renderShadows)
         {
-            shadowData.mainLightPos= mainLightTransform->getWorldPosition();
             shadowData.mainLightDir = mainLightTransform->getForward();
-            // It is a minor optimization to create the view matrix as a TRS, avoids one multiplication and creates the matrix in-place
-            shadowData.viewMatrix = inverse(mat4::makeTRS(-shadowData.mainLightDir * 10, rot3x3::lookRotation(shadowData.mainLightDir, vec3::up), vec3::one));
-            shadowData.projectionMatrix = mat4::makeOrtho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
-            shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
-            shadowData.mainLightFrustum = frustum::fromViewProjectionMatrix(shadowData.viewProjectionMatrix);
         }
-        renderer.ptr->setShadowData(shadowData);
+    }
+
+    constexpr float ndcZForWorldDepth(const mat4& viewProj, vec3 camPos, vec3 camDir, float depth)
+    {
+        const vec4 clip = viewProj * vec4(camPos + camDir * depth, 1);
+        return clip.z / clip.w;
     }
 
     // TODO find a solution for this that I love more (CurrentActiveCamera with an entity target?)
@@ -377,6 +374,74 @@ rendering::rendering(flecs::world& ecs)
         .order_by(sortLightsComparison)
         .run(collectLights)
         .depends_on(lightScoringSystem);
+
+    const auto shadowCollectionSystem = ecs.system<RendererSingleton, ShadowData, const ViewportData>("Shadow collection system")
+        .kind(flecs::OnStore)
+        .each([](RendererSingleton& renderer, ShadowData& shadowData, const ViewportData& viewportData)
+        {
+            ZoneScopedN("Shadow data collection")
+            // Return early if no shadows but this system is expected to set the data on the renderer so we still do that
+            // TODO that could probably its own mini-system for correctness.z
+            if (!shadowData.renderShadows)
+            {
+                renderer.ptr->setShadowData(shadowData);
+                return;
+            }
+
+            constexpr std::array ndcXY = {
+                vec2(-1, -1),
+                vec2(1, -1),
+                vec2(-1, 1),
+                vec2(1, 1),
+            };
+
+            mat4 invViewProj = inverse(viewportData.viewProjectionMatrix);
+
+            float ndcNearZ = ndcZForWorldDepth(viewportData.viewProjectionMatrix, viewportData.cameraPos, viewportData.viewDir, .01);
+            float ndcFarZ = ndcZForWorldDepth(viewportData.viewProjectionMatrix, viewportData.cameraPos, viewportData.viewDir, 5);
+
+            std::array<vec4, 8> worldCorners;
+            for (int i = 0; i < 4; i++)
+            {
+                vec4 nearCorner = invViewProj * vec4(ndcXY[i].x, ndcXY[i].y, ndcNearZ, 1);
+                vec4 farCorner = invViewProj * vec4(ndcXY[i].x, ndcXY[i].y, ndcFarZ, 1);
+                worldCorners[i] = nearCorner / nearCorner.w;
+                worldCorners[i + 4] = farCorner / farCorner.w;
+            }
+
+            vec3 center = vec3::zero;
+            for (const vec4& corner : worldCorners)
+            {
+                center += corner.xyz();
+            }
+            center /= worldCorners.size();
+
+            float radius = 0;
+            for (const vec4& corner : worldCorners)
+            {
+                radius = max(radius, sqrDistance(corner.xyz(), center));
+            }
+            radius = math::sqrt(radius);
+
+            const vec3 lightEye = center - shadowData.mainLightDir * radius;
+            shadowData.viewMatrix = inverse(mat4::makeTRS(lightEye, rot3x3::lookRotation(shadowData.mainLightDir, vec3::up), vec3::one));
+
+            vec3 minExtent(FLT_MAX), maxExtent(-FLT_MAX);
+            for (const vec4& corner : worldCorners)
+            {
+                vec4 ls = shadowData.viewMatrix * corner;
+                minExtent = comptMin(minExtent, ls.xyz());
+                maxExtent = comptMax(maxExtent, ls.xyz());
+            }
+
+            constexpr float depthOffset = 20;
+            shadowData.projectionMatrix = mat4::makeOrtho(minExtent.x, maxExtent.x, minExtent.z, maxExtent.z, minExtent.y - depthOffset, maxExtent.y + depthOffset);
+            shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
+            shadowData.mainLightFrustum = frustum::fromViewProjectionMatrix(shadowData.viewProjectionMatrix);
+
+            renderer.ptr->setShadowData(shadowData);
+        })
+        .depends_on(lightCollectionSystem);
 
     const auto boundsCalculationSystem = ecs.system<const HierarchyTransform, BoxBoundsData>()
         .kind(flecs::OnStore)
@@ -461,17 +526,18 @@ rendering::rendering(flecs::world& ecs)
                     const auto& renderData = f_renderData[i];
 
                     // Exclude culled entities
-                    if (renderData.cullReason != CullReason::None) continue;
-
-                    // Submit command
-                    DrawCommand command;
-                    command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
-                    command.mesh = renderData.mesh->gpuHandle;
-                    command.material = renderData.material;
-                    command.instanceData.transform = f_transform[i].getWorldMatrix();
-                    command.instanceData.invTransform = inverse(command.instanceData.transform); // TODO cache inverse matrix on objects, this is expensive to calculate each frame.
-                    command.queue = DrawCommand::RenderQueue::OPAQUE;
-                    renderer.ptr->submitDrawCommand(command);
+                    if (renderData.cullReason == CullReason::None)
+                    {
+                        // Submit command
+                        DrawCommand command;
+                        command.sortKey = Renderer::buildSortKey(renderData.material, renderData.mesh);
+                        command.mesh = renderData.mesh->gpuHandle;
+                        command.material = renderData.material;
+                        command.instanceData.transform = f_transform[i].getWorldMatrix();
+                        command.instanceData.invTransform = inverse(command.instanceData.transform); // TODO cache inverse matrix on objects, this is expensive to calculate each frame.
+                        command.queue = DrawCommand::RenderQueue::OPAQUE;
+                        renderer.ptr->submitDrawCommand(command);
+                    }
 
                     if (shadowData.renderShadows && !renderData.cullShadowCasting && renderData.castShadow)
                     {
@@ -505,6 +571,7 @@ void rendering::updateActivePerspectiveCamera(const PerspectiveCameraData& camer
     viewportData.viewMatrix = inverse(transform.getWorldMatrix());
     viewportData.viewProjectionMatrix = viewportData.projectionMatrix * constants::COORDINATE_BASIS * viewportData.viewMatrix;
     viewportData.cameraPos = transform.getWorldPosition();
+    viewportData.viewDir = transform.getForward();
     viewportData.frustum = frustum::fromViewProjectionMatrix(viewportData.viewProjectionMatrix);
 
     viewportData.pixelWidth = window.state->fbWidth;
