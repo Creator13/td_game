@@ -29,9 +29,12 @@ namespace core::gfx
 
     struct SamplerInfo
     {
+        enum class SamplerType : u8 { Default, Normal };
+
         gl::Int location;
         gl::Int textureUnit;
         gl::enum_t target;
+        SamplerType samplerType;
     };
 
     struct BufferInfo
@@ -48,12 +51,12 @@ namespace core::gfx
 
     struct ShaderPropertyInfo
     {
-        enum class PropertyType { Sampler, Uniform, Buffer };
+        enum class PropertyType : u8 { Sampler, Uniform, Buffer };
 
         std::string name;
         gl::enum_t glType;
-        PropertyType propertyType;
         std::variant<UniformInfo, SamplerInfo, BufferInfo> data;
+        PropertyType propertyType;
 
         const UniformInfo& getUniformInfo() const;
         const SamplerInfo& getSamplerInfo() const;
@@ -63,7 +66,7 @@ namespace core::gfx
     struct ShaderLayout
     {
     private:
-        constexpr static int MAX_UBOS = 8;
+        constexpr static int MAX_UBOS = 16;
 
         int _numUBOs;
         int _numSamplers;

@@ -5,6 +5,7 @@
 #include "core/Time.h"
 #include "core/ui/EcsUI.h"
 #include "formatting/fmt_bytes.h"
+#include "formatting/fmt_math.h"
 #include "rendering/EcsRendering.h"
 
 using namespace debug::ecs;
@@ -29,6 +30,8 @@ namespace
 
     struct RenderDebugEntity { };
 
+    struct AdditionalDebugEntity { };
+
     struct DebugSystemTag { };
 
     constexpr auto COMMANDS_PLOT_NAME = "Commands";
@@ -52,10 +55,16 @@ engine_debug::engine_debug(flecs::world& ecs)
         });
 
     ecs.entity("Rendering debug view")
-        .set<Rect>({{10, 10}, {0, 0}, 0, anchor::topLeft})
+        .set<Rect>({.offset = {10, 10}, .size = {0, 0}, .rotation = 0, .anchor = anchor::topLeft})
         .emplace<Text>("")
-        .set<TextRenderData>({_debugInfoFont, 12, Color::white})
+        .set<TextRenderData>({.font = _debugInfoFont, .size = 12, .color = Color::white})
         .add<RenderDebugEntity>();
+
+    ecs.entity("Additional debug view")
+        .set<Rect>({.offset = {10, 62}, .size = {0, 0}, .rotation = 0, .anchor = anchor::topLeft})
+        .emplace<Text>("")
+        .set<TextRenderData>({.font = _debugInfoFont, .size = 12, .color = Color::white})
+        .add<AdditionalDebugEntity>();
 
     ecs.system<Text, const RendererSingleton&>()
         .with<RenderDebugEntity>()
@@ -83,6 +92,17 @@ engine_debug::engine_debug(flecs::world& ecs)
             // TODO move this somewhere else (maybe?)
             TracyPlot(COMMANDS_PLOT_NAME, static_cast<i64>(renderStats.numCommands));
             TracyPlot(DRAW_CALLS_PLOT_NAME, static_cast<i64>(renderStats.numDrawCalls));
+        })
+        .add<DebugSystemTag>();
+
+    ecs.system<Text, const gfx::ViewportData>()
+        .with<AdditionalDebugEntity>()
+        .each([](Text& text, const gfx::ViewportData& viewportData)
+        {
+            std::string info = fmt::format(enLoc,
+                "View pos: {:.2f}", viewportData.cameraPos
+                );
+            text.setText(info);
         })
         .add<DebugSystemTag>();
 
@@ -134,4 +154,28 @@ engine_debug::engine_debug(flecs::world& ecs)
             }
         )
         .add<DebugSystemTag>();
+
+    ecs.system<const HierarchyTransform, const MeshRenderData>()
+        .with<VisualizeTBN>()
+        .each([](const HierarchyTransform& transform, const MeshRenderData& meshData)
+        {
+            const Mesh& mesh = *meshData.mesh;
+            const mat4 worldMat = transform.getWorldMatrix();
+            const mat4 invTransposeMat = transpose(inverse(worldMat));
+
+            for (Vertex v : mesh.vertices)
+            {
+                constexpr float range = .04f;
+
+                vec3 N = normalize((invTransposeMat * vec4(v.normal, 0.f)).xyz());
+                vec3 T = normalize(worldMat * vec4(v.tangent.xyz(), 0.f)).xyz();
+                vec3 B = normalize(cross(N, T) * v.tangent.w);
+
+                vec3 pos = (worldMat * vec4(v.position, 1.f)).xyz();
+
+                core::debug::drawRay(pos, N * range, Color::lime);
+                core::debug::drawRay(pos, T * range, Color::red);
+                core::debug::drawRay(pos, B * range, Color::blue);
+            }
+        });
 }

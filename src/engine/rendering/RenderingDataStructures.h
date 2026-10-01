@@ -24,11 +24,14 @@ namespace core::gfx
 
     struct ShadowData
     {
+        constexpr static float shadowMapResolutionConst = 2048;
+
         math::vec3 mainLightDir = math::vec3::forward;
         math::mat4 viewMatrix = math::mat4::identity;
         math::mat4 projectionMatrix = math::mat4::identity;
         math::mat4 viewProjectionMatrix = math::mat4::identity;
         math::frustum mainLightFrustum;
+        float shadowTexelWorldSize = 1.0f;
         bool renderShadows = false;
     };
 }

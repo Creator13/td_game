@@ -48,7 +48,7 @@ WindowState engine::getInitialWindowState()
 void engine::setupGame(const flecs::world& world)
 {
     const flecs::entity cam = world.entity("Debug camera")
-        .set<PerspectiveCameraData>({60, .1, 1000})
+        .set<PerspectiveCameraData>({60, .05, 500})
         .add<ActiveCamera>();
 
     world.observer<const Toggleable>()
@@ -73,6 +73,7 @@ void engine::setupGame(const flecs::world& world)
     AssetRef<Texture> containerSpecular = Texture::loadFromFile("tex/container2_specular.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> uvCheckerTex = Texture::loadFromFile("tex/uv_checker.png", TextureFormat::RGBA8_SRGB, false, true);
     AssetRef<Texture> avacadooTex = Texture::loadFromFile("tex/Avocado_baseColor.png", TextureFormat::RGBA8_SRGB, false, true);
+    AssetRef<Texture> bricksNormal = Texture::loadFromFile("tex/bricks-normal.png", TextureFormat::RGBA8_UNORM, false, true);
 
     constexpr PipelineDescriptor pDesc{
         .depthTest = true,
@@ -115,7 +116,8 @@ void engine::setupGame(const flecs::world& world)
         // .set<DiscoLight>({})
         ;
     light.add<::debug::ecs::Gizmo>();
-    transform::add(light, lightParent, vec3::zero, quaternion::lookRotation(vec3(1.2, 1.5, -.67), vec3::up), vec3(.1f));
+    transform::add(light, lightParent, vec3::zero, quaternion::lookRotation(vec3(0, -1.5, -.67), vec3::up), vec3(.1f));
+    light.disable();
 
     // POINT LIGHT
     for (int i = 0; i < 8; ++i)
@@ -132,9 +134,8 @@ void engine::setupGame(const flecs::world& world)
 
     // CONTAINER CUBE
     auto containerMat = Material::duplicate(baseMat, "container");
-    containerMat->setColor("diffuseColor"_spid, Color::white);
-    containerMat->setTexture2D("diffuseTexture"_spid, containerDiffuse);
-    containerMat->setTexture2D("specularTexture"_spid, containerSpecular);
+    containerMat->setColor("diffuseColor"_spid, Color::greenYellow);
+    containerMat->setTexture2D("normalTexture_NORM"_spid, bricksNormal);
     auto cube3 = world.entity("cube3")
         .set<MeshRenderData>({.mesh = cubeSimpleUv, .material = containerMat})
         .set<RotateData>({.angularVelocity = 15});
@@ -153,7 +154,9 @@ void engine::setupGame(const flecs::world& world)
     uvCheckerMat->setTexture2D("diffuseTexture"_spid, uvCheckerTex);
     uvCheckerMat->setColor("diffuseColor"_spid, Color::gray);
     auto floor = world.entity("Floor")
-        .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat});
+        .set<MeshRenderData>({.mesh = groundPlane, .material = uvCheckerMat})
+        // .add<::debug::ecs::VisualizeTBN>()
+    ;
     transform::add(floor, vec3(0, 0, 0), quaternion::identity, vec3(10));
 
     // OTHER CUBES
@@ -170,7 +173,8 @@ void engine::setupGame(const flecs::world& world)
     sphereMat->setColor("diffuseColor"_spid, Color::gray2);
     sphereMat->setFloat("shininess"_spid, 128);
     auto sphere1 = world.entity("sphere1")
-        .set<MeshRenderData>({.mesh = sphere, .material = sphereMat});
+        .set<MeshRenderData>({.mesh = sphere, .material = sphereMat})
+    ;
     transform::add(sphere1, vec3(1, -1.5, .5));
 
     // AVACADOO
@@ -178,7 +182,8 @@ void engine::setupGame(const flecs::world& world)
     avacadooMat->setTexture2D("diffuseTexture"_spid, avacadooTex);
     avacadooMat->setColor("diffuseColor"_spid, Color::white);
     auto avacadoo = world.entity("avacadoo")
-        .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat});
+        .set<MeshRenderData>({.mesh = avocado, .material = avacadooMat})
+    ;
     transform::add(avacadoo, vec3(1, 1, .15), quaternion::eulerAngles(90, 0, 22), vec3::one * 10);
 
     // Axes

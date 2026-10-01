@@ -116,6 +116,7 @@ namespace core::gfx
         i32 numSpotlights = 0;
         float ambientStrength = 0;
         math::mat4 lightSpaceMatrix = DEFAULT_LIGHTSPACE_MATRIX;
+        float shadowTexelWorldSize = 0;
 
         constexpr static gl::Int SHADER_BINDING = 4;
 

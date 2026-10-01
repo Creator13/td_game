@@ -5,6 +5,7 @@
 
 uniform sampler2D diffuseTexture;
 uniform sampler2D specularTexture;
+uniform sampler2D normalTexture_NORM;
 
 layout (binding = 3, std140) uniform MaterialData {
     vec4 diffuseColor;
@@ -18,6 +19,7 @@ in VertToFrag {
     vec3 vNorm;
     vec2 vTexCoord;
     vec4 vFragPosLightSpace;
+    vec4 vTangent;
 } fragIn;
 
 out vec4 fragColor;
@@ -46,14 +48,23 @@ vec3 blinnPhong(LightSample light, Surface surf) {
 
 void main() {
     Surface surf;
-    surf.normal = normalize(fragIn.vNorm);
     surf.viewDir = normalize(scene.cameraPos - fragIn.vWorldPos);
     surf.albedo = texture(diffuseTexture, fragIn.vTexCoord).rgb * diffuseColor.rgb;
     surf.specularColor = texture(specularTexture, fragIn.vTexCoord).rgb * specularColor.rgb;
     surf.shininess = shininess;
 
+    vec3 N = normalize(fragIn.vNorm);
+    vec3 T = normalize(fragIn.vTangent.xyz);
+    T = normalize(T - dot(T, N) * N);
+    vec3 B = cross(N, T) * fragIn.vTangent.w;
+    mat3 TBN = mat3(T, B, N);
+
+    vec3 localNormal = texture(normalTexture_NORM, fragIn.vTexCoord).rgb * 2.0 - 1.0;
+    surf.normal = normalize(TBN * localNormal);
+
     float shadow = sampleShadow(fragIn.vFragPosLightSpace);
     vec3 litColor = lighting.ambientIntensity * surf.albedo;
+    // By convention the first dirLight is considered the main (shadow casting) light in the scene
     litColor += shadow * blinnPhong(sampleDirectionalLight(lighting.dirLights[0]), surf);
 
     for (int i = 1; i < lighting.numDirLights; i++) {

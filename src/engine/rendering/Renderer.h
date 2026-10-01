@@ -61,7 +61,7 @@ namespace core::gfx
         EnvironmentSettings _environmentSettings = EnvironmentSettings();
         LightingDataBlock _lightingDataBlock;
         Color _clearColor;
-        int _shadowMapResolution = 512;
+        int _shadowMapResolution;
 
         CommandQueue _shadowCommandQueue;
         CommandQueue _opaqueCommandQueue;
@@ -88,7 +88,7 @@ namespace core::gfx
     public:
         Renderer();
 
-        void init(int shadowMapResolution); // TODO unhardcode the shadow map resolution
+        void init();
 
         [[nodiscard]] const FrameStats& getFrameStats() const noexcept { return _frameStats; }
 

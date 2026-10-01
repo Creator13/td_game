@@ -366,6 +366,7 @@ rendering::rendering(flecs::world& ecs)
 
     const auto lightScoringSystem = ecs.system<LightData, const HierarchyTransform, const ViewportData>("Light scoring system")
         // TODO profile
+        .multi_threaded()
         .each(scoreLight)
         .depends_on(viewportSyncSystem);
 
@@ -381,7 +382,7 @@ rendering::rendering(flecs::world& ecs)
         {
             ZoneScopedN("Shadow data collection")
             // Return early if no shadows but this system is expected to set the data on the renderer so we still do that
-            // TODO that could probably its own mini-system for correctness.z
+            // TODO that could probably its own mini-system for correctness.
             if (!shadowData.renderShadows)
             {
                 renderer.ptr->setShadowData(shadowData);
@@ -397,7 +398,7 @@ rendering::rendering(flecs::world& ecs)
 
             mat4 invViewProj = inverse(viewportData.viewProjectionMatrix);
 
-            float ndcNearZ = ndcZForWorldDepth(viewportData.viewProjectionMatrix, viewportData.cameraPos, viewportData.viewDir, .01);
+            float ndcNearZ = ndcZForWorldDepth(viewportData.viewProjectionMatrix, viewportData.cameraPos, viewportData.viewDir, .05);
             float ndcFarZ = ndcZForWorldDepth(viewportData.viewProjectionMatrix, viewportData.cameraPos, viewportData.viewDir, 5);
 
             std::array<vec4, 8> worldCorners;
@@ -409,35 +410,38 @@ rendering::rendering(flecs::world& ecs)
                 worldCorners[i + 4] = farCorner / farCorner.w;
             }
 
-            vec3 center = vec3::zero;
-            for (const vec4& corner : worldCorners)
-            {
-                center += corner.xyz();
-            }
-            center /= worldCorners.size();
+            const float nearD = .1f, farD = 1.8f;
 
-            float radius = 0;
-            for (const vec4& corner : worldCorners)
-            {
-                radius = max(radius, sqrDistance(corner.xyz(), center));
-            }
-            radius = math::sqrt(radius);
+            // lateral (off-axis) distance of a near and far corner
+            const vec3 nearAxis = viewportData.cameraPos + viewportData.viewDir * nearD;
+            const vec3 farAxis  = viewportData.cameraPos + viewportData.viewDir * farD;
+            const float rn = distance(worldCorners[0].xyz(), nearAxis);
+            const float rf = distance(worldCorners[7].xyz(), farAxis);
 
-            const vec3 lightEye = center - shadowData.mainLightDir * radius;
+            // center on the axis at depth zc, equidistant from near and far corners
+            float zc = (farD*farD - nearD*nearD + rf*rf - rn*rn) / (2.f * (farD - nearD));
+            zc = clamp(zc, nearD, farD);
+
+            vec3 center = viewportData.cameraPos + viewportData.viewDir * zc;
+            float radius = max(math::sqrt((farD - zc)*(farD - zc) + rf*rf), math::sqrt((zc - nearD)*(zc - nearD) + rn*rn));
+
+            // float radius = 0;
+            // for (const vec4& corner : worldCorners)
+            // {
+            //     radius = max(radius, sqrDistance(corner.xyz(), center));
+            // }
+            // radius = math::sqrt(radius);
+
+            constexpr float depthOffset = 50;
+            const vec3 lightEye = center - shadowData.mainLightDir * (radius + depthOffset);
             shadowData.viewMatrix = inverse(mat4::makeTRS(lightEye, rot3x3::lookRotation(shadowData.mainLightDir, vec3::up), vec3::one));
 
-            vec3 minExtent(FLT_MAX), maxExtent(-FLT_MAX);
-            for (const vec4& corner : worldCorners)
-            {
-                vec4 ls = shadowData.viewMatrix * corner;
-                minExtent = comptMin(minExtent, ls.xyz());
-                maxExtent = comptMax(maxExtent, ls.xyz());
-            }
+            const float texelWorldSize = (2.f * radius) / ShadowData::shadowMapResolutionConst;
 
-            constexpr float depthOffset = 20;
-            shadowData.projectionMatrix = mat4::makeOrtho(minExtent.x, maxExtent.x, minExtent.z, maxExtent.z, minExtent.y - depthOffset, maxExtent.y + depthOffset);
+            shadowData.projectionMatrix = mat4::makeOrtho(-radius, radius, -radius, radius, 0, depthOffset + 2 * radius);
             shadowData.viewProjectionMatrix = shadowData.projectionMatrix * constants::COORDINATE_BASIS * shadowData.viewMatrix;
             shadowData.mainLightFrustum = frustum::fromViewProjectionMatrix(shadowData.viewProjectionMatrix);
+            shadowData.shadowTexelWorldSize = texelWorldSize;
 
             renderer.ptr->setShadowData(shadowData);
         })

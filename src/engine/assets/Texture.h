@@ -84,6 +84,7 @@ namespace core
         [[nodiscard]] static assets::AssetRef<Texture> create(std::string_view name, u32 width, u32 height, TextureFormat format, bool createMips, bool readOnly, TextureWrap wrapU = TextureWrap::Repeat, TextureWrap wrapV = TextureWrap::Repeat, TextureFilter filter = TextureFilter::Linear);
         [[nodiscard]] static assets::AssetRef<Texture> loadFromFile(std::string_view path, TextureFormat format, bool readable, bool createMips);
         [[nodiscard]] static assets::AssetRef<Texture> fallbackWhite();
+        [[nodiscard]] static assets::AssetRef<Texture> fallbackNormal();
 
         // TODO make this function much more safe
         void uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const;
@@ -106,6 +107,7 @@ namespace core
         void uploadPixelData() const;
 
         static assets::AssetRef<Texture> _fallbackWhiteRef;
+        static assets::AssetRef<Texture> _fallbackNormalRef;
     };
 
     namespace texture_util

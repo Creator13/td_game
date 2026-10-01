@@ -1,5 +1,6 @@
 #include "Mesh.h"
 
+#include <mikktspace.h>
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 
@@ -23,6 +24,81 @@ namespace
     constexpr vec3 transformGltfToEngineCoordinateSpace(const vec3& in)
     {
         return vec3(in.x, -in.z, in.y);
+    }
+
+    u32 getVertexIndex(const Mesh* mesh, int iFace, int iVert)
+    {
+        const usize indexInIndices = static_cast<usize>(iFace) * 3 + iVert;
+        return mesh->indices.empty() ? static_cast<u32>(indexInIndices) : mesh->indices[indexInIndices];
+    }
+
+    int mikkGetNumFaces(const SMikkTSpaceContext* pContext)
+    {
+        const Mesh* mesh = static_cast<const Mesh*>(pContext->m_pUserData);
+        return static_cast<int>(mesh->getTriCount());
+    }
+
+    int mikkGetNumVerticesOfFace(const SMikkTSpaceContext* pContext, const int iFace)
+    {
+        return 3;
+    }
+
+    void mikkGetPosition(const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert)
+    {
+        const Mesh* mesh = static_cast<const Mesh*>(pContext->m_pUserData);
+        const u32 index = getVertexIndex(mesh, iFace, iVert);
+        const vec3& pos = mesh->vertices[index].position;
+        fvPosOut[0] = pos.x;
+        fvPosOut[1] = pos.y;
+        fvPosOut[2] = pos.z;
+    }
+
+    void mikkGetNormal(const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert)
+    {
+        const Mesh* mesh = static_cast<const Mesh*>(pContext->m_pUserData);
+        const u32 index = getVertexIndex(mesh, iFace, iVert);
+        const vec3& norm = mesh->vertices[index].normal;
+        fvNormOut[0] = norm.x;
+        fvNormOut[1] = norm.y;
+        fvNormOut[2] = norm.z;
+    }
+
+    void mikkGetTexCoord(const SMikkTSpaceContext* pContext, float fvTexCoordOut[], const int iFace, const int iVert)
+    {
+        const Mesh* mesh = static_cast<const Mesh*>(pContext->m_pUserData);
+        const u32 index = getVertexIndex(mesh, iFace, iVert);
+        const vec2& uv = mesh->vertices[index].uv0;
+        fvTexCoordOut[0] = uv.x;
+        fvTexCoordOut[1] = uv.y;
+    }
+
+    void mikkSetTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert)
+    {
+        Mesh* mesh = static_cast<Mesh*>(pContext->m_pUserData);
+        const u32 index = getVertexIndex(mesh, iFace, iVert);
+        const vec4 tangent = vec4(fvTangent[0], fvTangent[1], fvTangent[2], fSign);
+        mesh->vertices[index].tangent = tangent;
+    }
+
+    bool calcTangentsMikkTSpace(Mesh& mesh)
+    {
+        SMikkTSpaceInterface interface
+        {
+            .m_getNumFaces = mikkGetNumFaces,
+            .m_getNumVerticesOfFace = mikkGetNumVerticesOfFace,
+            .m_getPosition = mikkGetPosition,
+            .m_getNormal = mikkGetNormal,
+            .m_getTexCoord = mikkGetTexCoord,
+            .m_setTSpaceBasic = mikkSetTSpaceBasic,
+            .m_setTSpace = nullptr
+        };
+
+        const SMikkTSpaceContext context{
+            .m_pInterface = &interface,
+            .m_pUserData = &mesh
+        };
+
+        return genTangSpaceDefault(&context);
     }
 }
 
@@ -62,6 +138,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     if (auto error = load.error(); error != fastgltf::Error::None)
     {
         SPDLOG_ERROR("Error parsing gltf/glb file at {}: {}::{}", path, getErrorName(data.error()), getErrorMessage(data.error()));
+        return AssetRef<Mesh>::null();
     }
 
     fastgltf::Asset asset = std::move(load.get());
@@ -69,16 +146,24 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
     const fastgltf::Mesh& gltfMesh = asset.meshes[0];
 
     auto& meshStorage = AssetDatabase::instance->_meshStorage;
-    auto [meshMem, index] = meshStorage.allocate_uninitialized();
-    Mesh* outMesh = ::new(meshMem) Mesh(meshStorage.size() - 1, true);
+    auto [meshMem, assetIndex] = meshStorage.allocate_uninitialized();
+    Mesh& outMesh = *::new(meshMem) Mesh(meshStorage.size() - 1, true);
 
     size_t vertex_base = 0;
+    bool hasTangents = false;
+    bool hasValidInputForMikkTSpace = true;
+
+    if (gltfMesh.primitives.size() > 1)
+    {
+        SPDLOG_WARN("GLTF files with >1 primitives are currently unsupported and lead to problems.");
+    }
 
     for (const auto& primitive : gltfMesh.primitives)
     {
+
         // position
         auto posAttribute = primitive.findAttribute("POSITION");
-        if (posAttribute == nullptr)
+        if (posAttribute == primitive.attributes.end())
         {
             SPDLOG_ERROR("No POSITION attribute (TODO add more info)"); // TODO add more info
             continue;
@@ -86,7 +171,7 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
         const fastgltf::Accessor& posAccessor = asset.accessors[posAttribute->accessorIndex];
 
         size_t count = posAccessor.count;
-        outMesh->vertices.resize(vertex_base + count);
+        outMesh.vertices.resize(vertex_base + count);
 
         fastgltf::iterateAccessorWithIndex<vec3>(asset, posAccessor,
             [&](vec3 pos, size_t index)
@@ -95,51 +180,84 @@ AssetRef<Mesh> Mesh::loadFromFile(std::string_view path)
                 v.position = transformGltfToEngineCoordinateSpace(pos);
                 v.normal = vec3::zero;
                 v.uv0 = vec2::one;
-                outMesh->vertices[vertex_base + index] = v;
+                v.tangent = vec4::zero;
+                outMesh.vertices[vertex_base + index] = v;
             });
 
 
         // normals
         auto normalAttribute = primitive.findAttribute("NORMAL");
-        if (normalAttribute)
+        if (normalAttribute != primitive.attributes.end())
         {
             const fastgltf::Accessor& normalAccessor = asset.accessors[normalAttribute->accessorIndex];
             fastgltf::iterateAccessorWithIndex<vec3>(asset, normalAccessor,
                 [&](vec3 normal, size_t index)
                 {
-                    outMesh->vertices[vertex_base + index].normal = transformGltfToEngineCoordinateSpace(normal);
+                    outMesh.vertices[vertex_base + index].normal = transformGltfToEngineCoordinateSpace(normal);
                 });
         }
         else
         {
             // TODO calc normals?
+            hasValidInputForMikkTSpace = false;
         }
 
         if (primitive.indicesAccessor.has_value())
         {
             const fastgltf::Accessor& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
-            outMesh->indices.resize(indexAccessor.count);
-            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, outMesh->indices.data());
+            outMesh.indices.resize(indexAccessor.count);
+            fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, outMesh.indices.data());
+        }
+        else
+        {
+            SPDLOG_ERROR("Invalid mesh with no indices: {}", path);
+            hasValidInputForMikkTSpace = false;
         }
 
         auto texcoordAttribute = primitive.findAttribute("TEXCOORD_0");
-        if (texcoordAttribute)
+        if (texcoordAttribute != primitive.attributes.end())
         {
             const fastgltf::Accessor& texAccessor = asset.accessors[texcoordAttribute->accessorIndex];
             fastgltf::iterateAccessorWithIndex<vec2>(asset, texAccessor,
                 [&](vec2 texcoord, size_t index)
                 {
-                    outMesh->vertices[vertex_base + index].uv0 = texcoord;
+                    outMesh.vertices[vertex_base + index].uv0 = texcoord;
+                });
+        }
+        else
+        {
+            hasValidInputForMikkTSpace = false;
+        }
+
+        // tangents
+        auto tangentAttribute = primitive.findAttribute("TANGENT");
+        if (tangentAttribute != primitive.attributes.end())
+        {
+            hasTangents = true;
+            const fastgltf::Accessor& tangentAccessor = asset.accessors[tangentAttribute->accessorIndex];
+            fastgltf::iterateAccessorWithIndex<vec4>(asset, tangentAccessor,
+                [&](vec4 tangent, size_t index)
+                {
+                    outMesh.vertices[vertex_base + index].tangent = vec4(tangent.xyz(), tangent.w);
                 });
         }
 
         vertex_base += count;
     }
 
-    outMesh->recalculateBounds();
-    outMesh->gpuHandle = allocator.uploadMesh(*outMesh);
+    if (!hasTangents && hasValidInputForMikkTSpace)
+    {
+        calcTangentsMikkTSpace(outMesh);
+    }
+    else if (!hasTangents && !hasValidInputForMikkTSpace)
+    {
+        SPDLOG_WARN("Could not calculate tangents for model file {}: not all required attributes (uv, normal, indices) are present.", path);
+    }
 
-    return AssetDatabase::registerAsset<Mesh>(path, outMesh, index);
+    outMesh.recalculateBounds();
+    outMesh.gpuHandle = allocator.uploadMesh(outMesh);
+
+    return AssetDatabase::registerAsset<Mesh>(path, &outMesh, assetIndex);
 }
 
 AssetRef<Mesh> Mesh::create(std::string_view name)

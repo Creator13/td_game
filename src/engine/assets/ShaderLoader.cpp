@@ -146,7 +146,7 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
 {
     // The error shader compilation has no error checks; it assumes the error shader code remains valid and unchanged.
     constexpr std::string_view errorShaderVert = R"(
-            #version 430 core
+            #version 460 core
 
             struct CustomData {
                 uint c0, c1, c2, c3;
@@ -154,6 +154,7 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
 
             struct InstanceData {
                 mat4 transform;
+                mat4 invTransform;
                 CustomData customData;
             };
 
@@ -162,6 +163,7 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
             };
 
             #define INSTANCE_TRANSFORM (instances[gl_BaseInstance + gl_InstanceID].transform)
+            #define INSTANCE_TRANSFORM_INVERSE (instances[gl_BaseInstance + gl_InstanceID].invTransform)
             #define INSTANCE_DATA (instances[gl_BaseInstance + gl_InstanceID].customData)
 
             layout (binding = 0, std140) uniform ViewportDataBlock
@@ -169,6 +171,7 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
                 mat4 view;
                 mat4 projection;
                 mat4 viewProj;
+                vec3 cameraPos;
             } scene;
 
             layout (binding = 1, std140) uniform FrameDataBlock {
@@ -177,7 +180,6 @@ gl::program_t ShaderLoader::compileInternalErrorShader()
             } frame;
 
             layout (location = 0) in vec3 pos;
-            layout (location = 1) in vec3 aNorm;
 
             void main() {
                 gl_Position = scene.viewProj * INSTANCE_TRANSFORM * vec4(pos, 1.0);

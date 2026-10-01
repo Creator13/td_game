@@ -198,11 +198,19 @@ ShaderLayout ShaderLayout::buildFromProgram(gl::program_t program)
         const gl::Int uniformNameLength = params[3];
         shaderPropInfo.name.resize(uniformNameLength);
         glGetProgramResourceName(program, GL_UNIFORM, iUniform, uniformNameLength, nullptr, shaderPropInfo.name.data());
-        shaderPropInfo.name.resize(uniformNameLength - 1);\
+        shaderPropInfo.name.resize(uniformNameLength - 1);
 
         SamplerInfo samplerInfo;
         samplerInfo.location = params[2];
         samplerInfo.target = getGlSamplerTargetForUniformType(params[1]);
+        if (shaderPropInfo.name.ends_with("_NORM"))
+        {
+            samplerInfo.samplerType = SamplerInfo::SamplerType::Normal;
+        }
+        else
+        {
+            samplerInfo.samplerType = SamplerInfo::SamplerType::Default;
+        }
 
         // Check for a shader-declared layout (binding = ##) construction and use that if present
         gl::Int shaderDeclaredUnit = 0;

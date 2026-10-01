@@ -35,6 +35,7 @@ layout (binding = 4, std140) uniform LightingData {
     int numSpotlights;
     float ambientIntensity;
     mat4 lightSpaceMatrix;
+    float shadowTexelWorldSize;
 } lighting;
 
 struct LightSample {

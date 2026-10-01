@@ -108,8 +108,21 @@ AssetRef<Texture> Texture::fallbackWhite()
         _fallbackWhiteRef = create("FallbackWhite", 1, 1, TextureFormat::RGBA8_SRGB, false, true, TextureWrap::Repeat, TextureWrap::Repeat, TextureFilter::Nearest);
         _fallbackWhiteRef->uploadExternalData(whitePixel, GL_RGBA, GL_UNSIGNED_BYTE, false);
     }
-    // SPDLOG_WARN("Fallback texture was required, try to avoid in production.");
+
     return _fallbackWhiteRef;
+}
+
+AssetRef<Texture> Texture::fallbackNormal()
+{
+    constexpr u8 flatNormal[] = {128, 128, 255, 255};
+
+    if (!_fallbackNormalRef)
+    {
+        _fallbackNormalRef = create("FallbackNormal", 1, 1, TextureFormat::RGBA8_UNORM, false, true, TextureWrap::Repeat, TextureWrap::Repeat, TextureFilter::Nearest);
+        _fallbackNormalRef->uploadExternalData(flatNormal, GL_RGBA, GL_UNSIGNED_BYTE, false);
+    }
+
+    return _fallbackNormalRef;
 }
 
 void Texture::uploadExternalData(const u8* pixelData, gl::enum_t pixelFormat, gl::enum_t pixelType, bool genMipMaps) const
@@ -129,6 +142,7 @@ void Texture::uploadPixelData() const
 }
 
 AssetRef<Texture> Texture::_fallbackWhiteRef = AssetRef<Texture>::null();
+AssetRef<Texture> Texture::_fallbackNormalRef = AssetRef<Texture>::null();
 
 gl::enum_t texture_util::getGlInternalFormat(TextureFormat format)
 {

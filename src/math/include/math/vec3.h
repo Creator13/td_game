@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vec2.h"
 #include "func.h"
+#include "vec2.h"
 
 namespace math
 {
@@ -199,14 +199,14 @@ namespace math
 
     /// Component-wise min function; returns a vector that contains the minimum value for each corresponding value of
     /// the two input vectors.
-    constexpr vec3 comptMin(vec3 a, vec3 b) noexcept
+    constexpr vec3 componentMin(vec3 a, vec3 b) noexcept
     {
         return vec3{min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};
     }
 
     /// Component-wise max function; returns a vector that contains the maximum value for each corresponding value of
     /// the two input vectors.
-    constexpr vec3 comptMax(vec3 a, vec3 b) noexcept
+    constexpr vec3 componentMax(vec3 a, vec3 b) noexcept
     {
         return vec3{max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};
     }

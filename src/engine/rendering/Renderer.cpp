@@ -63,7 +63,7 @@ vec2 ViewportData::worldToScreen(vec3 worldPos) const
 }
 
 Renderer::Renderer()
-    : _instanceDataBuffer(1_MB),
+    : _shadowMapResolution(1), _instanceDataBuffer(1_MB),
       _mainFramebuffer(800, 600, TextureFormat::RGBA16_FLOAT, TextureFormat::D24_UNORM_S8_UINT, false),
       _shadowFramebuffer(_shadowMapResolution, _shadowMapResolution, std::nullopt, TextureFormat::D32_FLOAT, true),
       _pingPongFramebuffers({
@@ -79,11 +79,11 @@ Renderer::Renderer()
     SPDLOG_DEBUG("Max shader object bindings: UBO={}, SSBO={}, Tex={}, Img={}", maxUboBindings, maxSsboBindings, maxTextureBindings, maxImageBindings);
 }
 
-void Renderer::init(int shadowMapResolution)
+void Renderer::init()
 {
     glFrontFace(GL_CCW);
 
-    _shadowMapResolution = shadowMapResolution;
+    _shadowMapResolution = ShadowData::shadowMapResolutionConst; // TODO unhardcode the shadow map resolution
     _shadowFramebuffer.setSize(_shadowMapResolution, _shadowMapResolution);
     _shadowFramebuffer.create();
 
@@ -249,6 +249,7 @@ void Renderer::renderFrame()
     // Lighting data
     _lightingDataBlock.ambientStrength = _environmentSettings.ambientIntensity;
     _lightingDataBlock.lightSpaceMatrix = _shadowData.viewProjectionMatrix;
+    _lightingDataBlock.shadowTexelWorldSize = _shadowData.shadowTexelWorldSize;
     bindLightingData(_lightingDataBlock);
 
     // Upload instance data for all passes in the same buffer
@@ -408,15 +409,26 @@ void Renderer::bindMaterial(assets::AssetRef<Material> material)
         {
             assets::AssetRef<Texture> textureToBind = textureRef;
 
-            if (textureRef.isNull())
-            {
-                textureToBind = Texture::fallbackWhite();
-            }
-
             const ShaderPropertyInfo* prop = material->_layout.getPropertyInfo(propertyId);
             ENGINE_ASSERT(prop != nullptr, "Trying to bind texture property (id:{}) from material that does not exist in shader layout. Material should not map properties that do not exist in the layout of its shader.", propertyId);
 
             const SamplerInfo& samplerInfo = prop->getSamplerInfo();
+
+            if (textureRef.isNull())
+            {
+                switch (samplerInfo.samplerType)
+                {
+                    case SamplerInfo::SamplerType::Default:
+                        textureToBind = Texture::fallbackWhite();
+                        break;
+                    case SamplerInfo::SamplerType::Normal:
+                        textureToBind = Texture::fallbackNormal();
+                        break;
+                    default:
+                        ENGINE_UNREACHABLE();
+                }
+            }
+
             glBindTextureUnit(samplerInfo.textureUnit, textureToBind->getGlBindPoint());
             glBindSampler(samplerInfo.textureUnit, _defaultSampler);
         }

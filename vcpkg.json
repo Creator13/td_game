@@ -43,5 +43,8 @@
   }, {
     "name" : "simdutf",
     "version>=" : "8.2.0"
+  }, {
+    "name" : "mikktspace",
+    "version>=" : "2020-10-06#3"
   } ]
 }

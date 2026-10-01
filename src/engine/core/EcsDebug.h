@@ -18,6 +18,8 @@ namespace debug::ecs
 
     struct Gizmo { };
 
+    struct VisualizeTBN { };
+
     struct engine_debug
     {
         engine_debug(flecs::world& ecs);

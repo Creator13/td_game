@@ -4,6 +4,7 @@
 
 #include "assets/AssetRef.h"
 #include "assets/AssetTraits.h"
+#include "core/Vertex.h"
 #include "math/geom.h"
 #include "math/vec3.h"
 #include "rendering/MeshGpuHandle.h"
@@ -16,13 +17,6 @@ namespace core
     struct assets::AssetTraits<Mesh>
     {
         static constexpr AssetType type = AssetType::Mesh;
-    };
-
-    struct Vertex
-    {
-        math::vec3 position;
-        math::vec3 normal;
-        math::vec2 uv0;
     };
 
     struct Mesh
@@ -65,8 +59,8 @@ namespace core
 
         for (const Vertex& v : vertices)
         {
-            min = comptMin(v.position, min);
-            max = comptMax(v.position, max);
+            min = componentMin(v.position, min);
+            max = componentMax(v.position, max);
         }
 
         return math::AABB::fromMinMax(min, max);
